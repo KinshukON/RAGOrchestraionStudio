@@ -17,7 +17,7 @@ type WorkflowCanvasProps = {
 }
 
 export function WorkflowCanvas({ initialNodes = [], initialEdges = [], onGraphChange }: WorkflowCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   const onConnect = (params: any) => {

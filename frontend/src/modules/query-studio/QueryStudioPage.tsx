@@ -69,14 +69,14 @@ export function QueryStudioPage() {
             style={{ width: '120px' }}
           />
         </label>
-        <button type="submit" disabled={simulation.isLoading} aria-label="Run query simulation">
-          {simulation.isLoading ? 'Running...' : 'Run Multi-Strategy Simulation'}
+        <button type="submit" disabled={simulation.isPending} aria-label="Run query simulation">
+          {simulation.isPending ? 'Running...' : 'Run Multi-Strategy Simulation'}
         </button>
       </form>
 
-      {simulation.isLoading && !simulation.data && <LoadingMessage label="Running simulation..." />}
+      {simulation.isPending && !simulation.data && <LoadingMessage label="Running simulation..." />}
 
-      {!simulation.isLoading && !simulation.data && (
+      {!simulation.isPending && !simulation.data && (
         <div style={{ marginTop: '1.5rem' }}>
           <EmptyState
             title="No results yet"

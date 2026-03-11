@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IntegrationConfig } from '../../api/integrations'
+import type { IntegrationConfig } from '../../api/integrations'
 import { useEnvironments, useIntegrations, useSaveEnvironment } from './useIntegrationsEnvApi'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
 import { IntegrationWizard } from './IntegrationWizard'

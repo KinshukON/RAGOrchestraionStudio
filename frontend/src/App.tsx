@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { LandingPage } from './modules/auth/LandingPage'
@@ -8,7 +9,7 @@ import { QueryStudioPage } from './modules/query-studio/QueryStudioPage'
 import { IntegrationsHubPage } from './modules/admin-integrations/IntegrationsHubPage'
 import { AuthProvider, useAuth } from './modules/auth/AuthContext'
 
-function ProtectedRoute({ children }: { children: JSX.Element }) {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth()
   if (!isAuthenticated) {
     return <Navigate to="/" replace />
