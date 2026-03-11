@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { apiClient } from '../../api/client'
 
 type User = {
   id: string
@@ -26,13 +25,6 @@ const AUTH_STORAGE_KEY = 'rag-studio-auth'
 
 type GoogleCredentialResponse = {
   credential: string
-}
-
-type AuthResponse = {
-  access_token: string
-  token_type: string
-  expires_in: number
-  user: User
 }
 
 declare global {
@@ -113,51 +105,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('VITE_GOOGLE_CLIENT_ID is not configured')
         }
 
-        await loadGoogleIdentityScript()
-
-        if (!window.google?.accounts.id) {
-          throw new Error('Google Identity Services failed to initialize')
-        }
-
         await new Promise<void>((resolve, reject) => {
           let resolved = false
 
-          window.google?.accounts.id.initialize({
-            client_id: clientId,
-            async callback(response: GoogleCredentialResponse) {
+          loadGoogleIdentityScript()
+            .then(() => {
+              if (!window.google?.accounts.id) {
+                throw new Error('Google Identity Services failed to initialize')
+              }
+
+              window.google.accounts.id.initialize({
+                client_id: clientId,
+                callback(response: GoogleCredentialResponse) {
+                  try {
+                    const token = response.credential
+                    const [, payloadBase64] = token.split('.')
+                    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/')
+                    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+                    const payloadJson = atob(padded)
+                    const payload = JSON.parse(payloadJson) as {
+                      sub: string
+                      email?: string
+                      name?: string
+                      picture?: string
+                    }
+
+                    const nextState: AuthState = {
+                      user: {
+                        id: payload.sub,
+                        email: payload.email ?? '',
+                        name: payload.name ?? payload.email ?? 'Unknown User',
+                        picture: payload.picture,
+                      },
+                      accessToken: token,
+                    }
+
+                    setState(nextState)
+                    if (typeof window !== 'undefined') {
+                      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextState))
+                    }
+
+                    if (!resolved) {
+                      resolved = true
+                      resolve()
+                    }
+                  } catch (error) {
+                    if (!resolved) {
+                      resolved = true
+                      reject(error instanceof Error ? error : new Error('Failed to parse Google token'))
+                    }
+                  }
+                },
+              })
+
               try {
-                const { data } = await apiClient.post<AuthResponse>('/api/auth/google', {
-                  id_token: response.credential,
-                })
-                const nextState: AuthState = {
-                  user: data.user,
-                  accessToken: data.access_token,
-                }
-                setState(nextState)
-                if (typeof window !== 'undefined') {
-                  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextState))
-                }
-                if (!resolved) {
-                  resolved = true
-                  resolve()
-                }
+                window.google?.accounts.id.prompt()
               } catch (error) {
                 if (!resolved) {
                   resolved = true
-                  reject(error instanceof Error ? error : new Error('Failed to sign in with Google'))
+                  reject(error instanceof Error ? error : new Error('Failed to start Google sign-in'))
                 }
               }
-            },
-          })
-
-          try {
-            window.google?.accounts.id.prompt()
-          } catch (error) {
-            if (!resolved) {
-              resolved = true
-              reject(error instanceof Error ? error : new Error('Failed to start Google sign-in'))
-            }
-          }
+            })
+            .catch(error => {
+              if (!resolved) {
+                resolved = true
+                reject(error instanceof Error ? error : new Error('Failed to load Google script'))
+              }
+            })
         })
       },
       signOut() {
