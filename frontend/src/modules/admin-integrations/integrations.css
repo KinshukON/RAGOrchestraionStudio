@@ -1,0 +1,89 @@
+.int-wizard-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+.int-wizard {
+  width: 480px;
+  max-width: 100%;
+  background: #020617;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.int-wizard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.int-wizard-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.int-wizard-header button {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.int-wizard-steps {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.int-wizard-steps span.active {
+  color: #e5e7eb;
+}
+
+.int-wizard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.int-wizard-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.int-wizard-body input,
+.int-wizard-body select {
+  border-radius: 0.5rem;
+  border: 1px solid #374151;
+  padding: 0.4rem 0.5rem;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.int-wizard-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.int-wizard-footer button {
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+

@@ -1,0 +1,62 @@
+---
+title: Admin frontend (React)
+description: Rules for implementing the admin UI (Users, Preferences, Views, Data Integration, Integrations, Observability).
+mode: auto
+files:
+  - "frontend/src/pages/admin/**"
+  - "frontend/src/modules/admin-*/**"
+---
+
+## Navigation & routing
+
+- Provide an **Admin** dropdown or section in the main header/shell with links to:
+  - `/admin/users`
+  - `/admin/preferences`
+  - `/admin/views`
+  - `/admin/data-integration`
+  - `/admin/integrations`
+  - `/admin/observability`
+- Use a `ProtectedRoute` or equivalent that checks for **ADMIN** role (or a superset) before allowing access to any `/admin` routes.
+- For `/admin`, redirect to `/admin/users` as the default landing page.
+
+## Page expectations
+
+- **/admin/users**
+  - Sub-tabs: Users, Roles & Permissions, Teams, Active Sessions.
+  - Users tab:
+    - Table view with columns: User (avatar + name + email), Department, Team, Manager, Location, Role, Status, Last Login, Actions.
+    - Filters: search (name/email), role, department.
+    - Actions: create user, edit user, deactivate user, view profile drawer.
+  - Roles & Permissions: show roles, descriptions, color, permissions summary, user counts.
+  - Teams: show hierarchical team structure with member counts.
+  - Active Sessions: list sessions with actions (terminate, terminate all for user, cleanup expired).
+
+- **/admin/integrations**
+  - Grid of integration cards (icon, name, provider, category, connection status).
+  - Search and category filters.
+  - Configure modal per integration (API key, endpoint, extra settings) with Test / Disconnect actions.
+
+- **/admin/preferences & /admin/views**
+  - Preferences: list or filterable view of users, with inline editing of default page size, default view, and landing page.
+  - Views: list of `HierarchyView` definitions with entity type, group-by field, sort order, publish/default toggles.
+
+- **/admin/data-integration**
+  - Sub-tabs: Table Mappings, Field Mappings, Transformations.
+  - Table Mappings: show mappings with last import status and metrics.
+  - Field Mappings: show mapping rows for source/target fields and transformations.
+  - Transformations: list transformation rules with category/type and usage counts.
+
+- **/admin/observability**
+  - 12 tabs: Overview, Server, Database, Memory, API Metrics, AI Usage, Network, Audit Trail, Alerts, Logs, Errors, Security.
+  - Use stat cards, gauges, and charts to visualize metrics; implement polling with TanStack Query where appropriate.
+
+## UI libraries & patterns
+
+- Use **TanStack Query** for _all_ admin data fetching and mutations.
+- Use **Recharts** for charts where needed (sparklines, bar/line charts).
+- Use **Lucide icons** for actions and status indicators where appropriate.
+- Follow the existing control-plane aesthetic:
+  - Sidebar or header-based navigation.
+  - Card-based content, with clear headings and spacing.
+  - Avoid introducing Tailwind unless explicitly added to the project.
+

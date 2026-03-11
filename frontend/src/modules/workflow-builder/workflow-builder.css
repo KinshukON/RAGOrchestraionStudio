@@ -1,0 +1,99 @@
+.wf-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.wf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.wf-header h1 {
+  margin: 0 0 0.25rem;
+}
+
+.wf-header p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.95rem;
+}
+
+.wf-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.wf-status-badge {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #e5e7eb;
+}
+
+.wf-header-actions button {
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+}
+
+.wf-body {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  gap: 1rem;
+}
+
+.wf-palette {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 1rem;
+}
+
+.wf-palette h2 {
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem;
+}
+
+.wf-palette ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wf-palette-item {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.4rem;
+  color: #e5e7eb;
+  background: #020617;
+  border: 1px solid #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.wf-config-panel {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 1rem;
+}
+
+.wf-config-panel h2 {
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem;
+}
+
+.wf-config-panel p {
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+

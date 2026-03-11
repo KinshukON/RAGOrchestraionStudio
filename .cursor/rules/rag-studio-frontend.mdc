@@ -1,0 +1,48 @@
+---
+title: RAG Studio frontend
+description: Rules for RAG Studio’s Workflow Builder, Query Studio, and Integrations Hub UI.
+mode: auto
+files:
+  - "frontend/src/modules/workflow-builder/**"
+  - "frontend/src/modules/query-studio/**"
+  - "frontend/src/modules/admin-integrations/**"
+---
+
+## Layout & UX
+
+- Preserve the **control-plane** layout:
+  - Left navigation (AppShell sidebar).
+  - Central workspace (canvas, forms, tables).
+  - Optional right-hand configuration panel (for workflows, nodes, etc.).
+- Keep the **dark navy / slate** palette with teal/indigo accents for core surfaces.
+- Use modular CSS per feature module (e.g., `workflow-builder.css`, `integrations.css`) rather than ad-hoc global styles.
+
+## Workflow Builder
+
+- Treat the React Flow canvas as the primary representation of workflow topology.
+- Use the mapping utilities in `workflow-builder/modelMapping.ts` to convert between React Flow nodes/edges and backend `WorkflowDefinition` models.
+- Maintain **configuration-first** behavior:
+  - Node configuration should be stored in `node.data.config` on the frontend and `WorkflowNode.config` on the backend.
+  - Avoid hardcoding provider details; reference integrations and environments where possible.
+- Keep Save Draft / Publish behavior:
+  - Save Draft → `is_active = false`.
+  - Publish → `is_active = true` (later may trigger governance approvals).
+
+## Query Studio
+
+- Use the workflow simulation endpoints:
+  - `/api/workflows/{id}/simulate` for single runs.
+  - `/api/workflows/{id}/simulate-multi` for multi-strategy comparisons.
+- Always surface:
+  - Answer, latency, confidence, hallucination risk.
+  - Retrieval path and high-level trace panels (timeline, sources, graph, temporal).
+- Prefer **parameterized runs** over custom client-side experimentation:
+  - Add “top-k”, temporal window, and strategy selection inputs and pass them as parameters to the backend.
+
+## Integrations Hub (RAG Studio)
+
+- Treat RAG Studio’s Integrations Hub as the **provider and data system registry** for RAG workflows:
+  - Vector DBs, graph DBs, SQL DBs, file/object stores, LLM providers, rerankers, etc.
+- Keep integrations **reusable and environment-aware**:
+  - Use environment mapping and environment bindings matrix UIs as already scaffolded.
+
