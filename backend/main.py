@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import projects, workflows, integrations, environments, governance
+from routers import auth, projects, workflows, integrations, environments, governance
 from db import init_db
 
 
@@ -25,6 +25,7 @@ def on_startup() -> None:
     init_db()
 
 
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
 app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])

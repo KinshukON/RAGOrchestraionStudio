@@ -77,6 +77,7 @@ When working in this repo, optimize for **modularity, explainability, and govern
 - Always keep lints passing:
   - Frontend: `npm run lint` in `frontend/`.
   - Backend (Python/Express): run configured linters/formatters if present.
+- After every meaningful change that affects the build (frontend or backend), commit and push to the primary GitHub branch so Vercel and other environments stay in sync with the latest code.
 
 ## Security & safety
 
