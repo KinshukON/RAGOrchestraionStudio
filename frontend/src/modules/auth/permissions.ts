@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 
 export type PermissionKey =
@@ -16,9 +17,9 @@ export function useHasPermission(permission: PermissionKey) {
   return perms[permission] === true
 }
 
-export function Can(props: { permission: PermissionKey; children: React.ReactNode }) {
+export function Can(props: { permission: PermissionKey; children: ReactNode }) {
   const allowed = useHasPermission(props.permission)
   if (!allowed) return null
-  return <>{props.children}</>
+  return props.children
 }
 
