@@ -5,6 +5,8 @@ type User = {
   name: string
   email: string
   picture?: string | null
+  // Optional permissions snapshot; in the future this can be hydrated from the backend.
+  permissions?: Record<string, boolean>
 }
 
 type AuthState = {

@@ -28,6 +28,9 @@ export function AppShell() {
           <NavLink to="/app/admin/integrations" className="shell-nav-item">
             Integrations Hub
           </NavLink>
+          <NavLink to="/app/admin/users" className="shell-nav-item">
+            Admin
+          </NavLink>
         </nav>
       </aside>
       <div className="shell-main">

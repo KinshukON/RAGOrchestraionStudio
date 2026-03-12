@@ -13,6 +13,7 @@ export type IntegrationCategory =
   | 'api'
   | 'identity_provider'
   | 'logging_monitoring'
+  | 'email'
 
 export type IntegrationConfig = {
   id: string

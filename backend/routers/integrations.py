@@ -1,7 +1,10 @@
-from typing import List, Literal, Dict, Any
+from typing import Any, Dict, List, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from models_core import Integration as IntegrationModel
+from repositories import IntegrationRepository
 
 
 IntegrationCategory = Literal[
@@ -17,6 +20,7 @@ IntegrationCategory = Literal[
     "api",
     "identity_provider",
     "logging_monitoring",
+    "email",
 ]
 
 
@@ -30,45 +34,54 @@ class IntegrationConfig(BaseModel):
     reusable: bool = True
     health_status: str | None = None
 
+    @classmethod
+    def from_model(cls, model: IntegrationModel) -> "IntegrationConfig":
+        return cls(
+            id=model.external_id,
+            name=model.name,
+            provider_type=model.provider_type,  # type: ignore[arg-type]
+            credentials_reference=model.credentials_reference,
+            environment_mapping=model.environment_mapping or {},
+            default_usage_policies=model.default_usage_policies or {},
+            reusable=model.reusable,
+            health_status=model.health_status,
+        )
+
 
 router = APIRouter()
-
-_INTEGRATIONS: Dict[str, IntegrationConfig] = {}
+_int_repo = IntegrationRepository()
 
 
 @router.get("/", response_model=List[IntegrationConfig])
 async def list_integrations() -> List[IntegrationConfig]:
-  return list(_INTEGRATIONS.values())
+    integrations = _int_repo.list_integrations()
+    return [IntegrationConfig.from_model(i) for i in integrations]
 
 
 @router.get("/{integration_id}", response_model=IntegrationConfig)
 async def get_integration(integration_id: str) -> IntegrationConfig:
-  integration = _INTEGRATIONS.get(integration_id)
-  if not integration:
-      raise HTTPException(status_code=404, detail="Integration not found")
-  return integration
+    model = _int_repo.get_by_external_id(integration_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    return IntegrationConfig.from_model(model)
 
 
 @router.post("/", response_model=IntegrationConfig)
 async def create_integration(integration: IntegrationConfig) -> IntegrationConfig:
-  if integration.id in _INTEGRATIONS:
-      raise HTTPException(status_code=400, detail="Integration with this id already exists")
-  _INTEGRATIONS[integration.id] = integration
-  return integration
+    created = _int_repo.upsert_from_payload(integration.model_dump())
+    return IntegrationConfig.from_model(created)
 
 
 @router.put("/{integration_id}", response_model=IntegrationConfig)
 async def update_integration(integration_id: str, integration: IntegrationConfig) -> IntegrationConfig:
-  if integration_id not in _INTEGRATIONS:
-      raise HTTPException(status_code=404, detail="Integration not found")
-  _INTEGRATIONS[integration_id] = integration
-  return integration
+    if integration_id != integration.id:
+        raise HTTPException(status_code=400, detail="Integration id mismatch")
+    updated = _int_repo.upsert_from_payload(integration.model_dump())
+    return IntegrationConfig.from_model(updated)
 
 
 @router.delete("/{integration_id}")
 async def delete_integration(integration_id: str) -> Dict[str, str]:
-  if integration_id not in _INTEGRATIONS:
-      raise HTTPException(status_code=404, detail="Integration not found")
-  del _INTEGRATIONS[integration_id]
-  return {"status": "deleted"}
+    # Soft-delete not yet implemented; for now, simply indicate unsupported.
+    raise HTTPException(status_code=501, detail="Integration deletion not yet supported with persistent storage")
 

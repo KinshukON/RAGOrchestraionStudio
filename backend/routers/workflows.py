@@ -3,6 +3,9 @@ from typing import List, Literal, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from db import get_session
+from models_core import WorkflowRun, TaskExecution
+
 
 NodeType = Literal[
     "input_query",
@@ -137,7 +140,33 @@ class MultiStrategySimulationTrace(BaseModel):
 async def simulate_workflow(
     workflow_id: str, payload: WorkflowSimulationRequest
 ) -> WorkflowSimulationTrace:
-    # Stubbed response to support Query Studio UI; replace with real orchestrator later.
+    # Minimal orchestration MVP:
+    # - Create a WorkflowRun row.
+    # - Create a single TaskExecution representing the overall simulation.
+    # - Return a stubbed trace.
+    with get_session() as session:
+        run = WorkflowRun(
+            workflow_id=workflow_id,
+            project_id=None,
+            environment_id=None,
+            status="succeeded",
+            input_payload=payload.model_dump(),
+        )
+        session.add(run)
+        session.commit()
+        session.refresh(run)
+
+        task = TaskExecution(
+            run_id=run.id or 0,
+            node_id="simulate",
+            node_type="simulate_entrypoint",
+            status="succeeded",
+            input_payload=payload.model_dump(),
+            output_payload={},
+        )
+        session.add(task)
+        session.commit()
+
     return WorkflowSimulationTrace(
         retrieved_sources=[],
         retrieval_path=[f"workflow:{workflow_id}", f"project:{payload.project_id}"],
