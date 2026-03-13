@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
+import { useAuth } from '../auth/AuthContext'
 
 type AdminUser = {
   id: number
@@ -16,10 +18,31 @@ async function fetchUsers() {
 }
 
 export function AdminUsersPage() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+
+  const bootstrap = useMutation({
+    mutationFn: () =>
+      apiClient.post('/api/admin/users/bootstrap', {
+        email: user?.email,
+        name: user?.name,
+        external_subject: user?.id,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+  })
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: fetchUsers,
   })
+
+  useEffect(() => {
+    if (user && !bootstrap.isPending && !bootstrap.isSuccess) {
+      bootstrap.mutate()
+    }
+  }, [user, bootstrap])
 
   return (
     <div>

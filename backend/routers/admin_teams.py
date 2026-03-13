@@ -1,15 +1,14 @@
-from typing import Dict, List
+from typing import List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from sqlmodel import select
 
+from db import get_session
 from models_admin import Team
 
 
 router = APIRouter()
-
-_TEAMS: Dict[int, Team] = {}
-_ID_COUNTER = 1
 
 
 class TeamCreate(BaseModel):
@@ -26,32 +25,35 @@ class TeamUpdate(BaseModel):
 
 @router.get("/", response_model=List[Team])
 async def list_teams() -> List[Team]:
-    return list(_TEAMS.values())
+    with get_session() as session:
+        return list(session.exec(select(Team)))
 
 
 @router.post("/", response_model=Team)
 async def create_team(payload: TeamCreate) -> Team:
-    global _ID_COUNTER
-    team = Team(
-        id=_ID_COUNTER,
-        name=payload.name,
-        description=payload.description or "",
-        default_role_id=payload.default_role_id,
-    )
-    _TEAMS[_ID_COUNTER] = team
-    _ID_COUNTER += 1
-    return team
+    with get_session() as session:
+        team = Team(
+            name=payload.name,
+            description=payload.description or "",
+            default_role_id=payload.default_role_id,
+        )
+        session.add(team)
+        session.commit()
+        session.refresh(team)
+        return team
 
 
 @router.patch("/{team_id}", response_model=Team)
 async def update_team(team_id: int, payload: TeamUpdate) -> Team:
-    team = _TEAMS.get(team_id)
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-    update_data = payload.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(team, key, value)
-    _TEAMS[team_id] = team
-    return team
-
+    with get_session() as session:
+        team = session.get(Team, team_id)
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+        update_data = payload.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(team, key, value)
+        session.add(team)
+        session.commit()
+        session.refresh(team)
+        return team
 

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { simulateWorkflowMulti } from '../../api/queryStudio'
 import { TracePanels } from './TracePanels'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
+import { listWorkflowRuns, type WorkflowRunSummary } from '../../api/workflowRuns'
 
 const DEFAULT_STRATEGIES = ['vector', 'vectorless', 'hybrid']
 
@@ -21,6 +22,11 @@ export function QueryStudioPage() {
         strategies,
         parameters: { top_k: topK },
       }),
+  })
+
+  const runsQuery = useQuery({
+    queryKey: ['workflow-runs'],
+    queryFn: listWorkflowRuns,
   })
 
   return (
@@ -115,6 +121,38 @@ export function QueryStudioPage() {
           ))}
         </section>
       )}
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Recent runs</h2>
+        {runsQuery.isLoading && <LoadingMessage label="Loading runs..." />}
+        {!runsQuery.isLoading && (!runsQuery.data || runsQuery.data.length === 0) && (
+          <p style={{ marginTop: '0.5rem' }}>No runs recorded yet.</p>
+        )}
+        {!runsQuery.isLoading && runsQuery.data && runsQuery.data.length > 0 && (
+          <table style={{ marginTop: '0.75rem', minWidth: '480px' }}>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Workflow</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Finished</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runsQuery.data.map((run: WorkflowRunSummary) => (
+                <tr key={run.id}>
+                  <td>{run.id}</td>
+                  <td>{run.workflow_id}</td>
+                  <td>{run.status}</td>
+                  <td>{new Date(run.created_at).toLocaleString()}</td>
+                  <td>{run.finished_at ? new Date(run.finished_at).toLocaleString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   )
 }

@@ -136,6 +136,14 @@ class MultiStrategySimulationTrace(BaseModel):
     results: List[StrategyTrace]
 
 
+class WorkflowRunSummary(BaseModel):
+    id: int
+    workflow_id: str
+    status: str
+    created_at: str
+    finished_at: str | None = None
+
+
 @router.post("/{workflow_id}/simulate", response_model=WorkflowSimulationTrace)
 async def simulate_workflow(
     workflow_id: str, payload: WorkflowSimulationRequest
@@ -204,4 +212,24 @@ async def simulate_workflow_multi(
         tweaked.confidence_score = max(0.0, min(1.0, base_trace.confidence_score - idx * 0.05))
         results.append(StrategyTrace(strategy_id=strategy_id, trace=tweaked))
     return MultiStrategySimulationTrace(results=results)
+
+
+@router.get("/runs", response_model=List[WorkflowRunSummary])
+async def list_workflow_runs() -> List[WorkflowRunSummary]:
+    with get_session() as session:
+        runs = list(session.exec(select(WorkflowRun)))
+    summaries: List[WorkflowRunSummary] = []
+    for run in runs:
+        summaries.append(
+            WorkflowRunSummary(
+                id=run.id or 0,
+                workflow_id=run.workflow_id,
+                status=run.status,
+                created_at=run.created_at.isoformat(),
+                finished_at=run.finished_at.isoformat() if run.finished_at else None,
+            )
+        )
+    # Show most recent first.
+    summaries.sort(key=lambda r: r.created_at, reverse=True)
+    return summaries
 
