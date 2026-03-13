@@ -14,7 +14,28 @@ engine = create_engine(DATABASE_URL, echo=False)
 
 
 def init_db() -> None:
-    SQLModel.metadata.create_all(engine)
+    """Apply all pending Alembic migrations on startup (replaces unsafe create_all)."""
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        from alembic.config import Config as AlembicConfig
+        from alembic import command as alembic_command
+
+        # alembic.ini lives next to this file (backend/)
+        ini_path = os.path.join(os.path.dirname(__file__), "alembic.ini")
+        alembic_cfg = AlembicConfig(ini_path)
+        # Ensure the URL is set from our env var, not the blank ini entry
+        alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
+        logger.info("Running alembic upgrade head …")
+        alembic_command.upgrade(alembic_cfg, "head")
+        logger.info("Database schema is up to date.")
+    except Exception as exc:  # pragma: no cover
+        logger.warning(
+            "Alembic migration failed (%s). Falling back to SQLModel.metadata.create_all().",
+            exc,
+        )
+        from sqlmodel import SQLModel
+        SQLModel.metadata.create_all(engine)
 
 
 def get_session() -> Session:
