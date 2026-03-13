@@ -9,9 +9,13 @@ from repositories import EnvironmentRepository
 
 class EnvironmentConfig(BaseModel):
     id: str
-    name: str  # dev, test, staging, prod
+    name: str
     description: str
     integration_bindings: Dict[str, str]
+    runtime_profile: Dict[str, str] = {}
+    promotion_status: str = "draft"
+    approval_state: str | None = None
+    health_status: str | None = None
 
     @classmethod
     def from_model(cls, model: EnvironmentModel) -> "EnvironmentConfig":
@@ -20,6 +24,10 @@ class EnvironmentConfig(BaseModel):
             name=model.name,
             description=model.description,
             integration_bindings=model.integration_bindings or {},
+            runtime_profile=getattr(model, "runtime_profile", None) or {},
+            promotion_status=getattr(model, "promotion_status", None) or "draft",
+            approval_state=getattr(model, "approval_state", None),
+            health_status=getattr(model, "health_status", None),
         )
 
 

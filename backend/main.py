@@ -8,6 +8,8 @@ from routers import (
     integrations,
     environments,
     governance,
+    observability,
+    evaluations,
     admin_users,
     admin_roles,
     admin_teams,
@@ -15,6 +17,8 @@ from routers import (
     admin_views,
     admin_preferences,
     admin_observability,
+    architectures,
+    demo,
 )
 from db import init_db
 
@@ -45,6 +49,9 @@ app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"]
 app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])
 app.include_router(environments.router, prefix="/api/environments", tags=["environments"])
 app.include_router(governance.router, prefix="/api/governance", tags=["governance"])
+app.include_router(architectures.router, prefix="/api/architectures", tags=["architectures"])
+app.include_router(evaluations.router, prefix="/api/evaluations", tags=["evaluations"])
+app.include_router(observability.router, prefix="/api/observability", tags=["observability"])
 app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin-users"])
 app.include_router(admin_roles.router, prefix="/api/admin/roles", tags=["admin-roles"])
 app.include_router(admin_teams.router, prefix="/api/admin/teams", tags=["admin-teams"])
@@ -52,6 +59,7 @@ app.include_router(admin_sessions.router, prefix="/api/admin/sessions", tags=["a
 app.include_router(admin_views.router, prefix="/api/admin/views", tags=["admin-views"])
 app.include_router(admin_preferences.router, prefix="/api/admin/preferences", tags=["admin-preferences"])
 app.include_router(admin_observability.router, prefix="/api/admin/observability", tags=["admin-observability"])
+app.include_router(demo.router, prefix="/api/demo", tags=["demo"])
 
 
 @app.get("/health")

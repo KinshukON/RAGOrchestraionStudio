@@ -1,0 +1,156 @@
+.obs-page-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.obs-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.obs-page-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.obs-page-header p {
+  margin: 0;
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.obs-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid #1f2937;
+  padding-bottom: 0;
+}
+
+.obs-tabs button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.obs-tabs button:hover {
+  color: #e2e8f0;
+}
+
+.obs-tabs button.obs-tab--active {
+  color: #38b2ac;
+  border-bottom-color: #38b2ac;
+}
+
+.obs-section {
+  margin-top: 1rem;
+}
+
+.obs-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: #e2e8f0;
+}
+
+.obs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.obs-table th,
+.obs-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #1f2937;
+}
+
+.obs-table th {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.obs-table td {
+  color: #e2e8f0;
+}
+
+.obs-table tbody tr {
+  cursor: pointer;
+}
+
+.obs-table tbody tr:hover {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.obs-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+.obs-badge--simulated {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.obs-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .obs-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.obs-detail-panel {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #1f2937;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.obs-detail-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.obs-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.obs-timeline li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #1e293b;
+  font-size: 0.85rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.obs-timeline li:last-child {
+  border-bottom: none;
+}
+
+.obs-timeline .obs-task-status {
+  min-width: 4rem;
+}
+
+.obs-empty {
+  color: #64748b;
+  font-size: 0.9rem;
+  padding: 1rem;
+}

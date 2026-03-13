@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import Column, JSON
 from sqlmodel import Field, SQLModel
 
 
@@ -13,6 +14,7 @@ class Project(SQLModel, table=True):
     use_case_description: str
     deployment_status: str = "draft"
     selected_architecture_type: str
+    owners: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -20,12 +22,12 @@ class Project(SQLModel, table=True):
 class Integration(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     project_id: Optional[int] = Field(default=None, foreign_key="project.id")
-    external_id: str  # matches the id used in the existing IntegrationConfig API
+    external_id: str = ""  # matches the id used in the existing IntegrationConfig API
     name: str
     provider_type: str
-    credentials_reference: str
-    environment_mapping: dict = Field(default_factory=dict)
-    default_usage_policies: dict = Field(default_factory=dict)
+    credentials_reference: str = ""
+    environment_mapping: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    default_usage_policies: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
     reusable: bool = True
     health_status: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -35,10 +37,30 @@ class Integration(SQLModel, table=True):
 class Environment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     project_id: Optional[int] = Field(default=None, foreign_key="project.id")
-    external_id: str  # matches the id used in the EnvironmentConfig API
+    external_id: str = ""  # matches the id used in the EnvironmentConfig API
     name: str
-    description: str
-    integration_bindings: dict = Field(default_factory=dict)
+    description: str = ""
+    integration_bindings: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    runtime_profile: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    promotion_status: str = "draft"  # draft | promoted | promoted_to_staging | promoted_to_prod
+    approval_state: str | None = None  # pending | approved | rejected
+    health_status: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class WorkflowDefinition(SQLModel, table=True):
+    """Main workflow definition persisted in core DB for the workflow builder."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    description: str = ""
+    architecture_type: str
+    project_id: Optional[int] = Field(default=None, foreign_key="project.id")
+    version: str = "1.0.0"
+    status: str = "draft"  # draft | active | deprecated
+    nodes: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    edges: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -49,8 +71,8 @@ class WorkflowRun(SQLModel, table=True):
     project_id: Optional[int] = Field(default=None, foreign_key="project.id")
     environment_id: Optional[int] = Field(default=None, foreign_key="environment.id")
     status: str = "pending"
-    input_payload: dict = Field(default_factory=dict)
-    output_payload: dict = Field(default_factory=dict)
+    input_payload: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    output_payload: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
@@ -62,10 +84,8 @@ class TaskExecution(SQLModel, table=True):
     node_id: str
     node_type: str
     status: str = "pending"
-    input_payload: dict = Field(default_factory=dict)
-    output_payload: dict = Field(default_factory=dict)
+    input_payload: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    output_payload: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
     error: Optional[str] = None
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
-
-

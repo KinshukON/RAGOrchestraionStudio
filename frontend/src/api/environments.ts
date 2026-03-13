@@ -5,6 +5,10 @@ export type EnvironmentConfig = {
   name: string
   description: string
   integration_bindings: Record<string, string>
+  runtime_profile?: Record<string, string>
+  promotion_status?: string
+  approval_state?: string | null
+  health_status?: string | null
 }
 
 export async function listEnvironments() {

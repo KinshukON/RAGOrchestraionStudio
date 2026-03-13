@@ -2,9 +2,11 @@ from typing import List, Literal, Optional, Dict, Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from sqlmodel import select
 
 from db import get_session
 from models_core import WorkflowRun, TaskExecution
+from repositories import WorkflowRepository
 
 
 NodeType = Literal[
@@ -59,45 +61,94 @@ class WorkflowDefinition(BaseModel):
 
 
 router = APIRouter()
+_workflow_repo = WorkflowRepository()
 
-_WORKFLOWS: Dict[str, WorkflowDefinition] = {}
+
+class WorkflowSummary(BaseModel):
+    id: str
+    name: str
+    description: str
+    version: str
+    architecture_type: str
+    is_active: bool
 
 
 @router.get("/", response_model=List[WorkflowDefinition])
 async def list_workflows() -> List[WorkflowDefinition]:
-    return list(_WORKFLOWS.values())
+    dicts = _workflow_repo.list_all()
+    return [WorkflowDefinition.model_validate(d) for d in dicts]
+
+
+@router.get("/by-architecture/{architecture_type}", response_model=List[WorkflowSummary])
+async def list_workflows_by_architecture(architecture_type: str) -> List[WorkflowSummary]:
+    dicts = _workflow_repo.list_by_architecture(architecture_type)
+    return [
+        WorkflowSummary(
+            id=d["id"],
+            name=d["name"],
+            description=d["description"],
+            version=d["version"],
+            architecture_type=d["architecture_type"],
+            is_active=d["is_active"],
+        )
+        for d in dicts
+    ]
 
 
 @router.get("/{workflow_id}", response_model=WorkflowDefinition)
 async def get_workflow(workflow_id: str) -> WorkflowDefinition:
-    wf = _WORKFLOWS.get(workflow_id)
-    if not wf:
+    d = _workflow_repo.get(workflow_id)
+    if not d:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return wf
+    return WorkflowDefinition.model_validate(d)
+
+
+@router.get("/{workflow_id}/summary", response_model=WorkflowSummary)
+async def get_workflow_summary(workflow_id: str) -> WorkflowSummary:
+    d = _workflow_repo.get(workflow_id)
+    if not d:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    return WorkflowSummary(
+        id=d["id"],
+        name=d["name"],
+        description=d["description"],
+        version=d["version"],
+        architecture_type=d["architecture_type"],
+        is_active=d["is_active"],
+    )
 
 
 @router.post("/", response_model=WorkflowDefinition)
 async def create_workflow(definition: WorkflowDefinition) -> WorkflowDefinition:
-    if definition.id in _WORKFLOWS:
-        raise HTTPException(status_code=400, detail="Workflow with this id already exists")
-    _WORKFLOWS[definition.id] = definition
-    return definition
+    try:
+        d = _workflow_repo.create(definition.model_dump())
+        return WorkflowDefinition.model_validate(d)
+    except ValueError as e:
+        if "already exists" in str(e):
+            raise HTTPException(status_code=400, detail="Workflow with this id already exists")
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.put("/{workflow_id}", response_model=WorkflowDefinition)
 async def update_workflow(workflow_id: str, definition: WorkflowDefinition) -> WorkflowDefinition:
-    if workflow_id not in _WORKFLOWS:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-    _WORKFLOWS[workflow_id] = definition
-    return definition
+    try:
+        d = _workflow_repo.update(workflow_id, definition.model_dump())
+        return WorkflowDefinition.model_validate(d)
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{workflow_id}")
 async def delete_workflow(workflow_id: str) -> Dict[str, str]:
-    if workflow_id not in _WORKFLOWS:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-    del _WORKFLOWS[workflow_id]
-    return {"status": "deleted"}
+    try:
+        _workflow_repo.delete(workflow_id)
+        return {"status": "deleted"}
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 class WorkflowSimulationRequest(BaseModel):

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from sqlalchemy import Column, JSON
 from sqlmodel import Field, SQLModel
 
 
@@ -11,7 +12,7 @@ class Role(SQLModel, table=True):
     name: str
     description: str = ""
     # JSON blob of high-level permissions (e.g., manageUsers, viewObservability).
-    permissions: Dict[str, Any] = Field(default_factory=dict, sa_column_kwargs={"nullable": False})
+    permissions: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
 
 
 class RolePermission(SQLModel, table=True):
@@ -69,7 +70,7 @@ class View(SQLModel, table=True):
     name: str
     description: str = ""
     # Default visibility / pinning configuration, by role name or id.
-    defaults: Dict[str, Any] = Field(default_factory=dict, sa_column_kwargs={"nullable": False})
+    defaults: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
 
 
 class UserPreference(SQLModel, table=True):
@@ -79,7 +80,7 @@ class UserPreference(SQLModel, table=True):
     time_zone: str | None = None
     density: str = "comfortable"
     default_view_id: Optional[int] = Field(default=None, foreign_key="view.id")
-    settings: Dict[str, Any] = Field(default_factory=dict, sa_column_kwargs={"nullable": False})
+    settings: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
 
 
 class AuditLog(SQLModel, table=True):
@@ -90,7 +91,7 @@ class AuditLog(SQLModel, table=True):
     action: str
     resource_type: str
     resource_id: str
-    metadata: Dict[str, Any] = Field(default_factory=dict, sa_column_kwargs={"nullable": False})
+    event_data: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
     ip: str | None = None
 
 
@@ -102,6 +103,4 @@ class ObservabilityEvent(SQLModel, table=True):
     category: str
     name: str
     value: float | None = None
-    metadata: Dict[str, Any] = Field(default_factory=dict, sa_column_kwargs={"nullable": False})
-
-
+    event_data: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))

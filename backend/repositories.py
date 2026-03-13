@@ -1,9 +1,10 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlmodel import select
 
 from db import get_session
 from models_core import Project, Integration, Environment
+from models_architecture import WorkflowDefinitionRecord
 
 
 class ProjectRepository:
@@ -89,7 +90,15 @@ class EnvironmentRepository:
             statement = select(Environment).where(Environment.external_id == external_id)
             existing = session.exec(statement).first()
             if existing:
-                for key in ("name", "description", "integration_bindings"):
+                for key in (
+                    "name",
+                    "description",
+                    "integration_bindings",
+                    "runtime_profile",
+                    "promotion_status",
+                    "approval_state",
+                    "health_status",
+                ):
                     if key in payload:
                         setattr(existing, key, payload[key])
                 session.add(existing)
@@ -102,9 +111,102 @@ class EnvironmentRepository:
                 name=payload["name"],
                 description=payload["description"],
                 integration_bindings=payload.get("integration_bindings") or {},
+                runtime_profile=payload.get("runtime_profile") or {},
+                promotion_status=payload.get("promotion_status") or "draft",
+                approval_state=payload.get("approval_state"),
+                health_status=payload.get("health_status"),
             )
             session.add(env)
             session.commit()
             session.refresh(env)
             return env
+
+
+class WorkflowRepository:
+    """Persist and load workflow definitions. Converts to/from the API shape (WorkflowDefinition)."""
+
+    def _record_to_definition_dict(self, r: WorkflowDefinitionRecord) -> Dict[str, Any]:
+        nodes = r.definition.get("nodes", [])
+        edges = r.definition.get("edges", [])
+        return {
+            "id": r.workflow_id,
+            "project_id": r.project_id or "",
+            "name": r.name,
+            "description": r.description,
+            "version": r.version,
+            "nodes": nodes,
+            "edges": edges,
+            "is_active": r.status == "active",
+            "architecture_type": r.architecture_type or "",
+        }
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        with get_session() as session:
+            rows = list(session.exec(select(WorkflowDefinitionRecord)))
+        return [self._record_to_definition_dict(r) for r in rows]
+
+    def list_by_architecture(self, architecture_type: str) -> List[Dict[str, Any]]:
+        with get_session() as session:
+            statement = select(WorkflowDefinitionRecord).where(
+                WorkflowDefinitionRecord.architecture_type == architecture_type
+            )
+            rows = list(session.exec(statement))
+        return [self._record_to_definition_dict(r) for r in rows]
+
+    def get(self, workflow_id: str) -> Optional[Dict[str, Any]]:
+        with get_session() as session:
+            row = session.get(WorkflowDefinitionRecord, workflow_id)
+        return self._record_to_definition_dict(row) if row else None
+
+    def create(self, definition_dict: Dict[str, Any]) -> Dict[str, Any]:
+        wf_id = definition_dict["id"]
+        with get_session() as session:
+            existing = session.get(WorkflowDefinitionRecord, wf_id)
+            if existing:
+                raise ValueError(f"Workflow with id {wf_id!r} already exists")
+            record = WorkflowDefinitionRecord(
+                workflow_id=wf_id,
+                project_id=definition_dict.get("project_id") or "",
+                architecture_type=definition_dict.get("architecture_type") or "",
+                name=definition_dict.get("name") or "",
+                description=definition_dict.get("description") or "",
+                version=definition_dict.get("version") or "1",
+                status="active" if definition_dict.get("is_active") else "draft",
+                definition={
+                    "nodes": definition_dict.get("nodes", []),
+                    "edges": definition_dict.get("edges", []),
+                },
+            )
+            session.add(record)
+            session.commit()
+            session.refresh(record)
+        return self._record_to_definition_dict(record)
+
+    def update(self, workflow_id: str, definition_dict: Dict[str, Any]) -> Dict[str, Any]:
+        with get_session() as session:
+            record = session.get(WorkflowDefinitionRecord, workflow_id)
+            if not record:
+                raise ValueError(f"Workflow {workflow_id!r} not found")
+            record.project_id = definition_dict.get("project_id") or ""
+            record.architecture_type = definition_dict.get("architecture_type") or ""
+            record.name = definition_dict.get("name") or ""
+            record.description = definition_dict.get("description") or ""
+            record.version = definition_dict.get("version") or record.version
+            record.status = "active" if definition_dict.get("is_active") else "draft"
+            record.definition = {
+                "nodes": definition_dict.get("nodes", []),
+                "edges": definition_dict.get("edges", []),
+            }
+            session.add(record)
+            session.commit()
+            session.refresh(record)
+        return self._record_to_definition_dict(record)
+
+    def delete(self, workflow_id: str) -> None:
+        with get_session() as session:
+            record = session.get(WorkflowDefinitionRecord, workflow_id)
+            if not record:
+                raise ValueError(f"Workflow {workflow_id!r} not found")
+            session.delete(record)
+            session.commit()
 
