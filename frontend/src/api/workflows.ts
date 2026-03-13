@@ -69,3 +69,87 @@ export async function updateWorkflow(id: string, definition: WorkflowDefinition)
   return res.data
 }
 
+
+// ── Real RAG Run API ─────────────────────────────────────────────────────────
+
+export type RAGSpan = {
+  step: string
+  latency_ms: number
+  simulated: boolean
+  [key: string]: unknown
+}
+
+export type RAGRunRequest = {
+  query: string
+  project_id?: string
+  environment_id?: string
+  architecture_type?: string
+  parameters?: Record<string, unknown>
+}
+
+export type RAGRunResponse = {
+  run_id: number
+  retrieved_sources: Record<string, unknown>[]
+  retrieval_path: string[]
+  vector_hits: Record<string, unknown>[]
+  metadata_matches: Record<string, unknown>[]
+  graph_traversal: Record<string, unknown>[]
+  temporal_filters: Record<string, unknown>[]
+  reranking_decisions: Record<string, unknown>[]
+  final_prompt_context: string
+  model_answer: string
+  grounded_citations: Record<string, unknown>[]
+  latency_ms: number
+  confidence_score: number
+  hallucination_risk: string
+  is_simulated: boolean
+  model_used: string
+  input_tokens: number
+  output_tokens: number
+  spans: RAGSpan[]
+}
+
+export type StrategyRunResult = {
+  strategy_id: string
+  trace: RAGRunResponse
+}
+
+export type MultiRunRequest = {
+  query: string
+  project_id?: string
+  environment_id?: string
+  strategies?: string[]
+  parameters?: Record<string, unknown>
+}
+
+export type MultiRunResponse = {
+  results: StrategyRunResult[]
+}
+
+export type WorkflowRunSummary = {
+  id: number
+  workflow_id: string
+  status: string
+  created_at: string
+  finished_at: string | null
+}
+
+export async function runWorkflow(workflowId: string, payload: RAGRunRequest): Promise<RAGRunResponse> {
+  const res = await apiClient.post<RAGRunResponse>(`/api/workflows/${workflowId}/run`, payload)
+  return res.data
+}
+
+export async function runWorkflowMulti(workflowId: string, payload: MultiRunRequest): Promise<MultiRunResponse> {
+  const res = await apiClient.post<MultiRunResponse>(`/api/workflows/${workflowId}/run-multi`, payload)
+  return res.data
+}
+
+export async function listWorkflowRuns(): Promise<WorkflowRunSummary[]> {
+  const res = await apiClient.get<WorkflowRunSummary[]>('/api/workflows/runs')
+  return res.data
+}
+
+export async function getRunTasks(workflowId: string, runId: number) {
+  const res = await apiClient.get(`/api/workflows/${workflowId}/runs/${runId}/tasks`)
+  return res.data
+}

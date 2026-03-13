@@ -1,10 +1,10 @@
-import type { StrategyTrace, WorkflowSimulationTrace } from '../../api/queryStudio'
+import type { StrategyRunResult, RAGRunResponse } from '../../api/workflows'
 import { TracePanels } from '../query-studio/TracePanels'
 import './query-lab.css'
 
 type ResultComparisonGridProps = {
-  results: StrategyTrace[]
-  onSaveAsTestCase?: (strategyId: string, trace: WorkflowSimulationTrace) => void
+  results: StrategyRunResult[]
+  onSaveAsTestCase?: (strategyId: string, trace: RAGRunResponse) => void
 }
 
 export function ResultComparisonGrid({ results, onSaveAsTestCase }: ResultComparisonGridProps) {
@@ -16,7 +16,10 @@ export function ResultComparisonGrid({ results, onSaveAsTestCase }: ResultCompar
           <article key={strategy_id} className="ql-result-card">
             <div className="ql-result-card-header">
               <h3>{strategy_id}</h3>
-              <span className="ql-badge ql-badge--simulated">Simulated</span>
+              {trace.is_simulated
+                ? <span className="ql-badge ql-badge--simulated">Simulated</span>
+                : <span className="ql-badge ql-badge--live">Live · {trace.model_used}</span>
+              }
             </div>
             <div className="ql-result-metrics">
               <div className="ql-metric">
@@ -38,11 +41,16 @@ export function ResultComparisonGrid({ results, onSaveAsTestCase }: ResultCompar
                 </div>
               </div>
               <div className="ql-metric ql-metric--hint">
-                <span className="ql-metric-label">Token usage / cost</span>
-                <span className="ql-metric-value">Simulated — not from real model</span>
+                <span className="ql-metric-label">Tokens</span>
+                <span className="ql-metric-value">
+                  {trace.is_simulated
+                    ? 'Simulated — connect API key for real tokens'
+                    : `↑${trace.input_tokens} in · ↓${trace.output_tokens} out`
+                  }
+                </span>
               </div>
             </div>
-            <TracePanels trace={trace} showSimulatedLabel />
+            <TracePanels trace={trace as never} showSimulatedLabel={trace.is_simulated ?? true} />
             <div className="ql-result-actions">
               {onSaveAsTestCase && (
                 <button
@@ -52,6 +60,16 @@ export function ResultComparisonGrid({ results, onSaveAsTestCase }: ResultCompar
                 >
                   Save as test case
                 </button>
+              )}
+              {trace.grounded_citations && trace.grounded_citations.length > 0 && (
+                <details className="ql-citations">
+                  <summary className="ql-btn ql-btn--ghost ql-btn--small">Sources ({trace.grounded_citations.length})</summary>
+                  <ul className="ql-source-list">
+                    {trace.grounded_citations.map((c, i) => (
+                      <li key={i}>{String((c as Record<string, unknown>).source ?? c)}</li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
           </article>

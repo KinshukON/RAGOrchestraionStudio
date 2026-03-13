@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import type { WorkflowSimulationTrace } from '../../api/queryStudio'
-import { listWorkflows } from '../../api/workflows'
-import { listWorkflowRuns } from '../../api/workflowRuns'
+import type { RAGRunResponse } from '../../api/workflows'
+import { listWorkflows, listWorkflowRuns, runWorkflowMulti } from '../../api/workflows'
 import { listEnvironments } from '../../api/environments'
-import { simulateWorkflowMulti } from '../../api/queryStudio'
 import { saveTestCase } from '../../api/evaluations'
 import { QueryInputPanel } from './QueryInputPanel'
 import { ResultComparisonGrid } from './ResultComparisonGrid'
@@ -24,7 +22,7 @@ export function QueryLabPage() {
 
   const workflowsQuery = useQuery({ queryKey: ['workflows'], queryFn: listWorkflows })
   const environmentsQuery = useQuery({ queryKey: ['environments'], queryFn: listEnvironments })
-  const runsQuery = useQuery({ queryKey: ['workflow-runs'], queryFn: listWorkflowRuns })
+  const runsQuery = useQuery({ queryKey: ['workflow-runs'], queryFn: listWorkflowRuns, refetchInterval: 5000 })
 
   const workflows = workflowsQuery.data ?? []
   const environments = environmentsQuery.data ?? []
@@ -34,10 +32,9 @@ export function QueryLabPage() {
 
   const simulation = useMutation({
     mutationFn: () =>
-      simulateWorkflowMulti(workflowId, {
-        project_id: 'demo-project',
-        environment_id: environmentId,
+      runWorkflowMulti(workflowId, {
         query,
+        environment_id: environmentId,
         strategies: strategies.length > 0 ? strategies : DEFAULT_STRATEGIES,
         parameters: { top_k: topK },
       }),
@@ -61,7 +58,7 @@ export function QueryLabPage() {
       }),
   })
 
-  function handleSaveAsTestCase(strategyId: string, trace: WorkflowSimulationTrace) {
+  function handleSaveAsTestCase(strategyId: string, trace: RAGRunResponse) {
     saveTestCaseMutation.mutate(
       { strategy_id: strategyId, expected_answer: trace.model_answer },
       {
@@ -86,7 +83,7 @@ export function QueryLabPage() {
       <header className="ql-header">
         <h1>Query Lab</h1>
         <p>
-          Run test queries against workflows, compare strategies, and inspect retrieval traces. Results are simulated until real execution is connected.
+          Run test queries against workflows, compare strategies side-by-side, and inspect retrieval traces. Uses real LLM connectors when API keys are configured.
         </p>
         {selectedWorkflow && (
           <p className="ql-arch-summary">
@@ -114,13 +111,13 @@ export function QueryLabPage() {
         environmentsLoading={environmentsQuery.isLoading}
       />
 
-      {simulation.isPending && !simulation.data && <LoadingMessage label="Running simulation…" />}
+      {simulation.isPending && !simulation.data && <LoadingMessage label="Running RAG pipeline…" />}
 
       {!simulation.isPending && !simulation.data && (
         <section className="ql-panel">
           <EmptyState
             title="No results yet"
-            description="Select a workflow and run a simulation to see answers, metrics, and strategy comparisons."
+            description="Select a workflow and click Run to execute a real RAG pipeline. API keys configured in .env enable live LLM + vector retrieval."
           />
         </section>
       )}

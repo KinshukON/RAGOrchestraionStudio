@@ -180,6 +180,34 @@
   border: 1px solid rgba(251, 191, 36, 0.4);
 }
 
+.ql-badge--live {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.ql-btn--ghost {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.ql-citations {
+  margin-top: 0.5rem;
+}
+
+.ql-source-list {
+  margin: 0.35rem 0 0 1rem;
+  padding: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  list-style: disc;
+}
+
+
 .ql-result-metrics {
   display: flex;
   flex-direction: column;
