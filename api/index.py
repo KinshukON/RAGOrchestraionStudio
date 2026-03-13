@@ -1,21 +1,24 @@
 """
-Vercel Python Serverless Function entry point.
-Routes all /api/* requests through FastAPI via the Mangum ASGI adapter.
+Vercel Python Serverless Function – FastAPI entry point.
+
+Vercel's Python runtime natively supports ASGI apps via the `app` export.
+No Mangum needed. The `app` object is the FastAPI instance from backend/main.py.
 """
 import sys
 import os
 
-# Add backend/ to the Python path so all our modules resolve
-_BACKEND_DIR = os.path.join(os.path.dirname(__file__), "..", "backend")
-sys.path.insert(0, os.path.abspath(_BACKEND_DIR))
+# Resolve backend/ relative to this file (api/index.py → ../backend)
+_BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-# Set a working directory so relative imports in backend modules resolve
-os.chdir(os.path.abspath(_BACKEND_DIR))
+# Put backend/ on the path so all relative imports in routers resolve
+if _BACKEND_DIR not in sys.path:
+    sys.path.insert(0, _BACKEND_DIR)
 
-from mangum import Mangum  # noqa: E402
-from main import app  # noqa: E402  (backend/main.py)
+# Change working directory so alembic.ini and other relative paths resolve
+os.chdir(_BACKEND_DIR)
 
-# Mangum wraps the ASGI app for AWS Lambda (which Vercel Functions use internally).
-# lifespan="off" disables startup/shutdown events since Vercel Functions are stateless
-# — Alembic migrations are run separately via `make db-upgrade` not at function startup.
-handler = Mangum(app, lifespan="off")
+# Import the FastAPI app — Vercel detects the `app` export automatically
+from main import app  # noqa: E402
+
+# Also expose as `handler` for older Vercel Python runtimes that look for it
+handler = app
