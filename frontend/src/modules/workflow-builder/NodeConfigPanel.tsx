@@ -41,8 +41,10 @@ export function NodeConfigPanel({ node, onNodeUpdate }: NodeConfigPanelProps) {
   const config = (node.data?.config as Record<string, unknown>) ?? {}
   const label = node.data?.label ?? NODE_LABELS[type] ?? type
 
+  const currentNode = node  // non-null: early return above guarantees this
+
   function updateConfig(key: string, value: unknown) {
-    onNodeUpdate(node.id, { config: { ...config, [key]: value } })
+    onNodeUpdate(currentNode.id, { config: { ...config, [key]: value } })
   }
 
   const hasTopK = ['vector_retriever', 'lexical_retriever'].includes(type)

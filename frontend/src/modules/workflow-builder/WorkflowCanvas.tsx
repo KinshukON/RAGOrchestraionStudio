@@ -29,7 +29,7 @@ export function WorkflowCanvas({
   onGraphChange,
   onNodeClick,
 }: WorkflowCanvasProps) {
-  const [internalNodes, setInternalNodes, onNodesChange] = useNodesState(initialNodes)
+  const [internalNodes, , onNodesChange] = useNodesState(initialNodes)
   const [internalEdges, setInternalEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   const nodes = controlledNodes ?? internalNodes
@@ -58,7 +58,7 @@ export function WorkflowCanvas({
             next = next.map((n) => (n.id === change.id ? { ...n, dragging: change.dragging } : n))
           }
         } else if (change.type === 'dimensions' && change.dimensions) {
-          next = next.map((n) => (n.id === change.id ? { ...n, measured: { ...n.measured, dimensions: change.dimensions } } : n))
+          next = next.map((n) => (n.id === change.id ? { ...n, width: change.dimensions!.width, height: change.dimensions!.height } : n))
         } else if (change.type === 'select') {
           next = next.map((n) => (n.id === change.id ? { ...n, selected: change.selected } : n))
         }
