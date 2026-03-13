@@ -7,10 +7,33 @@ from sqlmodel import SQLModel, create_engine, Session
 
 _DEFAULT_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/rag_studio"
 
-# Prefer the existing rag_POSTGRES_URL env var, then fall back to DATABASE_URL, then default.
-DATABASE_URL = os.getenv("rag_POSTGRES_URL") or os.getenv("DATABASE_URL") or _DEFAULT_URL
 
-engine = create_engine(DATABASE_URL, echo=False)
+def _fix_db_url(url: str) -> str:
+    """Convert postgres:// → postgresql+psycopg2:// and strip PgBouncer params."""
+    url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+    url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    # pgbouncer=true is not understood by psycopg2; strip it
+    url = url.replace("&pgbouncer=true", "").replace("?pgbouncer=true&", "?").replace("?pgbouncer=true", "")
+    return url
+
+
+# Pooled URL for the FastAPI connection pool (reads); non-pooling for migrations (DDL)
+_RAW_URL = os.getenv("rag_POSTGRES_URL") or os.getenv("DATABASE_URL") or _DEFAULT_URL
+DATABASE_URL = _fix_db_url(_RAW_URL)
+
+# Non-pooling URL is safer for Alembic DDL (no pgbouncer in the way)
+_RAW_MIGRATION_URL = (
+    os.getenv("rag_POSTGRES_URL_NON_POOLING")
+    or os.getenv("DATABASE_URL_NON_POOLING")
+    or _RAW_URL
+)
+MIGRATION_URL = _fix_db_url(_RAW_MIGRATION_URL)
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,
+    connect_args={"sslmode": "require"} if "supabase.com" in DATABASE_URL else {},
+)
 
 
 def init_db() -> None:
@@ -24,8 +47,8 @@ def init_db() -> None:
         # alembic.ini lives next to this file (backend/)
         ini_path = os.path.join(os.path.dirname(__file__), "alembic.ini")
         alembic_cfg = AlembicConfig(ini_path)
-        # Ensure the URL is set from our env var, not the blank ini entry
-        alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
+        # Use the non-pooling URL for DDL operations (safe for Supabase/pgbouncer)
+        alembic_cfg.set_main_option("sqlalchemy.url", MIGRATION_URL)
         logger.info("Running alembic upgrade head …")
         alembic_command.upgrade(alembic_cfg, "head")
         logger.info("Database schema is up to date.")

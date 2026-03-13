@@ -27,11 +27,21 @@ config = context.config
 
 # Patch the sqlalchemy.url from environment at runtime
 _DEFAULT_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/rag_studio"
-db_url = (
-    os.getenv("rag_POSTGRES_URL")
+
+def _fix_db_url(url: str) -> str:
+    url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+    url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    url = url.replace("&pgbouncer=true", "").replace("?pgbouncer=true&", "?").replace("?pgbouncer=true", "")
+    return url
+
+# Non-pooling URL preferred for Alembic DDL (no PgBouncer in the way)
+_raw = (
+    os.getenv("rag_POSTGRES_URL_NON_POOLING")
+    or os.getenv("rag_POSTGRES_URL")
     or os.getenv("DATABASE_URL")
     or _DEFAULT_URL
 )
+db_url = _fix_db_url(_raw)
 config.set_main_option("sqlalchemy.url", db_url)
 
 # Set up Python logging via alembic.ini [loggers] section
