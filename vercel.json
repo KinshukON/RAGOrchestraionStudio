@@ -1,9 +1,19 @@
 {
-    "buildCommand": "npm install && npm run build",
-    "outputDirectory": "dist",
-    "installCommand": "echo 'skipping root install'",
+    "buildCommand": "cd frontend && npm install && npm run build",
+    "outputDirectory": "frontend/dist",
+    "installCommand": "echo 'skipping root npm install'",
     "framework": null,
+    "functions": {
+        "api/index.py": {
+            "runtime": "python3.12",
+            "maxDuration": 60
+        }
+    },
     "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "/api/index"
+        },
         {
             "source": "/(.*)",
             "destination": "/index.html"
