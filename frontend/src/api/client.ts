@@ -3,7 +3,9 @@ import { QueryClient } from '@tanstack/react-query'
 
 export const queryClient = new QueryClient()
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+// Empty string = same-origin (works on Vercel where /api/* is served from the same domain).
+// Only falls back to localhost when explicitly running locally without VITE_API_BASE_URL set.
+const baseURL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')
 
 export const apiClient = axios.create({ baseURL })
 
