@@ -6,10 +6,11 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from models_governance import ApprovalRule, GovernanceBinding, GovernancePolicy
+from auth_middleware import TokenPayload, require_auth, require_permission
 
 router = APIRouter()
 
@@ -39,7 +40,10 @@ class PolicyUpdate(BaseModel):
 
 
 @router.get("/policies", response_model=List[GovernancePolicy])
-async def list_policies(scope: Optional[str] = None) -> List[GovernancePolicy]:
+async def list_policies(
+    scope: Optional[str] = None,
+    _user: TokenPayload = Depends(require_auth),
+) -> List[GovernancePolicy]:
     out = list(_policies.values())
     if scope:
         out = [p for p in out if p.scope == scope]
@@ -54,7 +58,10 @@ async def get_policy(policy_id: str) -> GovernancePolicy:
 
 
 @router.post("/policies", response_model=GovernancePolicy)
-async def create_policy(payload: PolicyCreate) -> GovernancePolicy:
+async def create_policy(
+    payload: PolicyCreate,
+    current_user: TokenPayload = Depends(require_permission("governance:write")),
+) -> GovernancePolicy:
     pid = str(uuid4())
     now = _now()
     policy = GovernancePolicy(
@@ -71,7 +78,11 @@ async def create_policy(payload: PolicyCreate) -> GovernancePolicy:
 
 
 @router.patch("/policies/{policy_id}", response_model=GovernancePolicy)
-async def update_policy(policy_id: str, payload: PolicyUpdate) -> GovernancePolicy:
+async def update_policy(
+    policy_id: str,
+    payload: PolicyUpdate,
+    current_user: TokenPayload = Depends(require_permission("governance:write")),
+) -> GovernancePolicy:
     if policy_id not in _policies:
         raise HTTPException(status_code=404, detail="Policy not found")
     p = _policies[policy_id]
@@ -86,7 +97,10 @@ async def update_policy(policy_id: str, payload: PolicyUpdate) -> GovernancePoli
 
 
 @router.delete("/policies/{policy_id}", status_code=204)
-async def delete_policy(policy_id: str) -> None:
+async def delete_policy(
+    policy_id: str,
+    _user: TokenPayload = Depends(require_permission("governance:admin")),
+) -> None:
     if policy_id not in _policies:
         raise HTTPException(status_code=404, detail="Policy not found")
     del _policies[policy_id]
@@ -129,7 +143,10 @@ async def get_approval_rule(rule_id: str) -> ApprovalRule:
 
 
 @router.post("/approval-rules", response_model=ApprovalRule)
-async def create_approval_rule(payload: ApprovalRuleCreate) -> ApprovalRule:
+async def create_approval_rule(
+    payload: ApprovalRuleCreate,
+    current_user: TokenPayload = Depends(require_permission("governance:write")),
+) -> ApprovalRule:
     rid = str(uuid4())
     now = _now()
     rule = ApprovalRule(
@@ -203,7 +220,10 @@ async def list_bindings(
 
 
 @router.post("/bindings", response_model=GovernanceBinding)
-async def create_binding(payload: BindingCreate) -> GovernanceBinding:
+async def create_binding(
+    payload: BindingCreate,
+    current_user: TokenPayload = Depends(require_permission("governance:write")),
+) -> GovernanceBinding:
     if payload.policy_id not in _policies:
         raise HTTPException(status_code=404, detail="Policy not found")
     bid = str(uuid4())

@@ -1,12 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { apiClient } from '../../api/client'
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 type User = {
   id: string
   name: string
   email: string
   picture?: string | null
-  // Optional permissions snapshot; in the future this can be hydrated from the backend.
-  permissions?: Record<string, boolean>
+  permissions: string[]
 }
 
 type AuthState = {
@@ -17,27 +18,25 @@ type AuthState = {
 type AuthContextValue = {
   user: User | null
   isAuthenticated: boolean
+  permissions: string[]
   signInWithGoogle: () => Promise<void>
-  signOut: () => void
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 const AUTH_STORAGE_KEY = 'rag-studio-auth'
+const REFRESH_TOKEN_KEY = 'rag-studio-refresh'
 
-type GoogleCredentialResponse = {
-  credential: string
-}
+// ── Google Identity Services types ────────────────────────────────────────────
+type GoogleCredentialResponse = { credential: string }
 
 declare global {
   interface Window {
     google?: {
       accounts: {
         id: {
-          initialize(options: {
-            client_id: string
-            callback: (response: GoogleCredentialResponse) => void
-          }): void
+          initialize(options: { client_id: string; callback: (r: GoogleCredentialResponse) => void }): void
           prompt(): void
         }
       }
@@ -49,152 +48,174 @@ let googleScriptPromise: Promise<void> | null = null
 
 function loadGoogleIdentityScript() {
   if (googleScriptPromise) return googleScriptPromise
-
   googleScriptPromise = new Promise<void>((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      'script[src="https://accounts.google.com/gsi/client"]',
-    )
-    if (existingScript) {
-      if (existingScript.dataset.loaded === 'true') {
-        resolve()
-        return
-      }
-      existingScript.addEventListener('load', () => resolve())
-      existingScript.addEventListener('error', () => reject(new Error('Failed to load Google script')))
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]')
+    if (existing) {
+      if (existing.dataset.loaded === 'true') { resolve(); return }
+      existing.addEventListener('load', () => resolve())
+      existing.addEventListener('error', () => reject(new Error('Failed to load Google script')))
       return
     }
-
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
     script.async = true
     script.defer = true
     script.dataset.loaded = 'false'
-    script.onload = () => {
-      script.dataset.loaded = 'true'
-      resolve()
-    }
+    script.onload = () => { script.dataset.loaded = 'true'; resolve() }
     script.onerror = () => reject(new Error('Failed to load Google script'))
     document.head.appendChild(script)
   })
-
   return googleScriptPromise
 }
 
+// ── Persistence helpers ───────────────────────────────────────────────────────
+function saveAuth(state: AuthState, refreshToken: string) {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state))
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+  // Also store access token separately so apiClient interceptor can read it
+  if (state.accessToken) localStorage.setItem('access_token', state.accessToken)
+}
+
+function clearAuth() {
+  localStorage.removeItem(AUTH_STORAGE_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('auth_user')
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, accessToken: null })
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const stored = window.localStorage.getItem(AUTH_STORAGE_KEY)
-    if (!stored) return
-    try {
-      const parsed = JSON.parse(stored) as AuthState
-      if (parsed.user && parsed.accessToken) {
-        setState(parsed)
+  const scheduleRefresh = useCallback((expiresInSeconds: number) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+    const msUntilRefresh = Math.max((expiresInSeconds - 60) * 1000, 30_000)
+    refreshTimerRef.current = setTimeout(async () => {
+      const rt = localStorage.getItem(REFRESH_TOKEN_KEY)
+      if (!rt) return
+      try {
+        const res = await apiClient.post<{ access_token: string; expires_in: number }>(
+          '/api/auth/refresh',
+          {},
+          { headers: { Authorization: `Bearer ${rt}` } }
+        )
+        localStorage.setItem('access_token', res.data.access_token)
+        setState(prev => ({ ...prev, accessToken: res.data.access_token }))
+        scheduleRefresh(res.data.expires_in)
+      } catch {
+        clearAuth()
+        setState({ user: null, accessToken: null })
       }
-    } catch {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY)
-    }
+    }, msUntilRefresh)
   }, [])
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user: state.user,
-      isAuthenticated: !!state.user,
-      async signInWithGoogle() {
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
-        if (!clientId) {
-          throw new Error('VITE_GOOGLE_CLIENT_ID is not configured')
-        }
+  // Hydrate from localStorage on mount
+  useEffect(() => {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY)
+    if (!raw) return
+    try {
+      const parsed = JSON.parse(raw) as AuthState
+      if (parsed.user && parsed.accessToken) {
+        setState(parsed)
+        scheduleRefresh(3600) // assume ~1h remaining; refresh fires at 59min
+      }
+    } catch {
+      clearAuth()
+    }
+    return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current) }
+  }, [scheduleRefresh])
 
-        await new Promise<void>((resolve, reject) => {
-          let resolved = false
+  // ── Google sign-in: load GIS, prompt, exchange ID token with backend ─────────
+  const signInWithGoogle = useCallback(async () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+    if (!clientId) throw new Error('VITE_GOOGLE_CLIENT_ID is not configured')
 
-          loadGoogleIdentityScript()
-            .then(() => {
-              if (!window.google?.accounts.id) {
-                throw new Error('Google Identity Services failed to initialize')
-              }
+    await new Promise<void>((resolve, reject) => {
+      let resolved = false
 
-              window.google.accounts.id.initialize({
-                client_id: clientId,
-                callback(response: GoogleCredentialResponse) {
-                  try {
-                    const token = response.credential
-                    const [, payloadBase64] = token.split('.')
-                    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/')
-                    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
-                    const payloadJson = atob(padded)
-                    const payload = JSON.parse(payloadJson) as {
-                      sub: string
-                      email?: string
-                      name?: string
-                      picture?: string
-                    }
+      loadGoogleIdentityScript()
+        .then(() => {
+          if (!window.google?.accounts.id) throw new Error('Google Identity Services failed to initialize')
 
-                    const nextState: AuthState = {
-                      user: {
-                        id: payload.sub,
-                        email: payload.email ?? '',
-                        name: payload.name ?? payload.email ?? 'Unknown User',
-                        picture: payload.picture,
-                      },
-                      accessToken: token,
-                    }
-
-                    setState(nextState)
-                    if (typeof window !== 'undefined') {
-                      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextState))
-                    }
-
-                    if (!resolved) {
-                      resolved = true
-                      resolve()
-                    }
-                  } catch (error) {
-                    if (!resolved) {
-                      resolved = true
-                      reject(error instanceof Error ? error : new Error('Failed to parse Google token'))
-                    }
-                  }
-                },
-              })
-
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            async callback(response: GoogleCredentialResponse) {
               try {
-                window.google?.accounts.id.prompt()
+                const idToken = response.credential
+
+                // Exchange with backend for our signed JWT
+                const res = await apiClient.post<{
+                  access_token: string
+                  refresh_token: string
+                  expires_in: number
+                  user: { id: string; name: string; email: string; picture?: string; permissions: string[] }
+                }>('/api/auth/google', { id_token: idToken })
+
+                const { access_token, refresh_token, expires_in, user } = res.data
+                const nextState: AuthState = { user, accessToken: access_token }
+
+                setState(nextState)
+                saveAuth(nextState, refresh_token)
+                scheduleRefresh(expires_in)
+
+                if (!resolved) { resolved = true; resolve() }
               } catch (error) {
-                if (!resolved) {
-                  resolved = true
-                  reject(error instanceof Error ? error : new Error('Failed to start Google sign-in'))
-                }
+                if (!resolved) { resolved = true; reject(error instanceof Error ? error : new Error(String(error))) }
               }
-            })
-            .catch(error => {
-              if (!resolved) {
-                resolved = true
-                reject(error instanceof Error ? error : new Error('Failed to load Google script'))
-              }
-            })
+            },
+          })
+
+          try {
+            window.google?.accounts.id.prompt()
+          } catch (error) {
+            if (!resolved) { resolved = true; reject(error instanceof Error ? error : new Error('Failed to start Google sign-in')) }
+          }
         })
-      },
-      signOut() {
-        setState({ user: null, accessToken: null })
-        if (typeof window !== 'undefined') {
-          window.localStorage.removeItem(AUTH_STORAGE_KEY)
-        }
-      },
-    }),
-    [state],
-  )
+        .catch(err => {
+          if (!resolved) { resolved = true; reject(err instanceof Error ? err : new Error('Failed to load Google script')) }
+        })
+    })
+  }, [scheduleRefresh])
+
+  const signOut = useCallback(async () => {
+    const rt = localStorage.getItem(REFRESH_TOKEN_KEY)
+    if (rt) {
+      try {
+        await apiClient.post('/api/auth/logout', {}, { headers: { Authorization: `Bearer ${rt}` } })
+      } catch { /* best-effort */ }
+    }
+    clearAuth()
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+    setState({ user: null, accessToken: null })
+  }, [])
+
+  const value = useMemo<AuthContextValue>(() => ({
+    user: state.user,
+    isAuthenticated: !!state.user,
+    permissions: state.user?.permissions ?? [],
+    signInWithGoogle,
+    signOut,
+  }), [state, signInWithGoogle, signOut])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function useAuth() {
+// ── Hooks ─────────────────────────────────────────────────────────────────────
+export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
-  if (!ctx) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
   return ctx
 }
 
+/**
+ * Returns true if the current user has the given permission.
+ * Also returns true if the user has super:admin.
+ *
+ * Usage: const canPublish = useHasPermission('workflow:publish')
+ */
+export function useHasPermission(permission: string): boolean {
+  const { permissions } = useAuth()
+  return permissions.includes(permission) || permissions.includes('super:admin')
+}

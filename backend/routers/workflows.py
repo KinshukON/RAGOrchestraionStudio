@@ -1,8 +1,10 @@
 from typing import List, Literal, Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import select
+
+from auth_middleware import TokenPayload, optional_auth, require_auth
 
 from db import get_session
 from models_core import WorkflowRun, TaskExecution
@@ -248,7 +250,9 @@ class MultiRunResponse(BaseModel):
 
 @router.post("/{workflow_id}/run", response_model=WorkflowRunResponse)
 async def run_workflow(
-    workflow_id: str, payload: WorkflowRunRequest
+    workflow_id: str,
+    payload: WorkflowRunRequest,
+    current_user: TokenPayload = Depends(require_auth),
 ) -> WorkflowRunResponse:
     """
     Execute a real RAG pipeline run for the given workflow.
@@ -325,7 +329,9 @@ async def run_workflow(
 
 @router.post("/{workflow_id}/run-multi", response_model=MultiRunResponse)
 async def run_workflow_multi(
-    workflow_id: str, payload: MultiRunRequest
+    workflow_id: str,
+    payload: MultiRunRequest,
+    current_user: TokenPayload = Depends(require_auth),
 ) -> MultiRunResponse:
     """
     Run the same query through multiple architecture strategies for side-by-side comparison.
