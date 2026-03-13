@@ -6,7 +6,11 @@ import sys
 import os
 
 # Add backend/ to the Python path so all our modules resolve
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
+_BACKEND_DIR = os.path.join(os.path.dirname(__file__), "..", "backend")
+sys.path.insert(0, os.path.abspath(_BACKEND_DIR))
+
+# Set a working directory so relative imports in backend modules resolve
+os.chdir(os.path.abspath(_BACKEND_DIR))
 
 from mangum import Mangum  # noqa: E402
 from main import app  # noqa: E402  (backend/main.py)
