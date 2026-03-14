@@ -6,7 +6,7 @@
     "rewrites": [
         {
             "source": "/api/:path*",
-            "destination": "https://rag-studio-api.onrender.com/api/:path*"
+            "destination": "https://ragorchestraionstudio-production.up.railway.app/api/:path*"
         },
         {
             "source": "/(.*)",
