@@ -29,9 +29,17 @@ app = FastAPI(
     description="Backend API for RAG Studio enterprise RAG orchestration platform.",
 )
 
+_CORS_ORIGINS = [
+    "http://localhost:5173",   # Vite dev server
+    "http://localhost:3000",
+    "https://ragorchestrationstudio.com",                           # production custom domain
+    "https://rag-orchestraion-studio.vercel.app",                   # Vercel preview
+    "https://rag-orchestraion-studio-git-main-kinshuk-duttas-projects.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
