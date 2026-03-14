@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import traceback
+from typing import Optional
 from http.server import BaseHTTPRequestHandler
 
 # ── Path setup ────────────────────────────────────────────────────────────────
@@ -15,25 +16,27 @@ if _BACKEND_DIR not in sys.path:
 os.chdir(_BACKEND_DIR)
 
 # ── Try importing the full FastAPI app ───────────────────────────────────────
-_import_error: str | None = None
-handler = None  # type: ignore[assignment]
+_import_error: Optional[str] = None
+_handler = None
 
 try:
     from mangum import Mangum
     from main import app  # backend/main.py
-    handler = Mangum(app, lifespan="off")
+    _handler = Mangum(app, lifespan="off")
 except Exception:
     _import_error = traceback.format_exc()
 
 
 # ── Fallback: surface the import error as JSON ────────────────────────────────
-if handler is None:
+if _handler is not None:
+    handler = _handler  # type: ignore[assignment]
+else:
     _err_body = json.dumps({
         "error": "Python function failed to import backend",
         "traceback": _import_error,
         "backend_dir": _BACKEND_DIR,
         "backend_exists": os.path.isdir(_BACKEND_DIR),
-        "sys_path": sys.path,
+        "sys_path": sys.path[:8],
     }, indent=2).encode()
 
     class handler(BaseHTTPRequestHandler):  # type: ignore[no-redef]
