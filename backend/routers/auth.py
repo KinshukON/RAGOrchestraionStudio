@@ -145,29 +145,39 @@ async def sign_in_with_google(payload: GoogleSignInRequest) -> AuthResponse:
     Exchange a Google ID token for application access + refresh tokens.
     Creates/updates the User row and persists a Session record.
     """
-    google_payload = _verify_google_id_token(payload.id_token)
-    user, permissions = _get_or_create_user(google_payload)
+    import traceback as _tb
+    try:
+        google_payload = _verify_google_id_token(payload.id_token)
+        user, permissions = _get_or_create_user(google_payload)
 
-    access_token, expires_in = create_access_token(
-        user_id=str(user.id),
-        email=user.email,
-        name=user.name,
-        permissions=permissions,
-    )
-    refresh_token = create_refresh_token(user_id=str(user.id))
-    _create_db_session(user.id or 0)
-
-    return AuthResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=expires_in,
-        user=AuthUser(
-            id=str(user.id),
-            name=user.name,
+        access_token, expires_in = create_access_token(
+            user_id=str(user.id),
             email=user.email,
+            name=user.name,
             permissions=permissions,
-        ),
-    )
+        )
+        refresh_token = create_refresh_token(user_id=str(user.id))
+        _create_db_session(user.id or 0)
+
+        return AuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+            user=AuthUser(
+                id=str(user.id),
+                name=user.name,
+                email=user.email,
+                permissions=permissions,
+            ),
+        )
+    except HTTPException:
+        raise  # let FastAPI handle 401/502 etc. normally
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Sign-in error: {type(exc).__name__}: {exc}\n\n{_tb.format_exc()}",
+        ) from exc
+
 
 
 @router.post("/refresh", response_model=RefreshResponse)
