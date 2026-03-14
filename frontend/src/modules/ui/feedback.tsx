@@ -24,19 +24,32 @@ export function EmptyState({
   title,
   description,
   icon,
+  action,
 }: {
   title: string
   description?: string
   icon?: string
+  action?: { label: string; onClick: () => void }
 }) {
   return (
     <div className="empty-state">
       {icon && <div className="empty-state__icon">{icon}</div>}
       <div className="empty-state__title">{title}</div>
       {description && <div className="empty-state__desc">{description}</div>}
+      {action && (
+        <button
+          type="button"
+          className="empty-state__action"
+          onClick={action.onClick}
+          style={{ marginTop: '.75rem', padding: '.45rem 1rem', borderRadius: '.5rem', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '.9rem' }}
+        >
+          {action.label}
+        </button>
+      )}
     </div>
   )
 }
+
 
 /** Inline loading indicator */
 export function LoadingMessage({ label = 'Loading…' }: { label?: string }) {

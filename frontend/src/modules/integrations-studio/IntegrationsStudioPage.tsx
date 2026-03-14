@@ -3,6 +3,8 @@ import type { IntegrationConfig } from '../../api/integrations'
 import { useEnvironments, useIntegrations, useSaveEnvironment } from '../admin-integrations/useIntegrationsEnvApi'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
 import { IntegrationWizard } from '../admin-integrations/IntegrationWizard'
+import { SkeletonGrid } from '../ui/Skeleton'
+import { useToast } from '../ui/ToastContext'
 import './integrations-studio.css'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -22,6 +24,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 export function IntegrationsStudioPage() {
+  const { success, error } = useToast()
   const integrationsQuery = useIntegrations()
   const environmentsQuery = useEnvironments()
   const integrations = integrationsQuery.data ?? []
@@ -101,7 +104,7 @@ export function IntegrationsStudioPage() {
               </label>
             </div>
             {integrationsQuery.isLoading ? (
-              <LoadingMessage label="Loading integrations…" />
+              <SkeletonGrid count={6} />
             ) : filteredIntegrations.length === 0 ? (
               <EmptyState
                 title="No integrations"
@@ -213,15 +216,22 @@ export function IntegrationsStudioPage() {
                           <td key={integration.id}>
                             <select
                               value={bound}
-                              onChange={(e) =>
-                                saveEnvironment.mutate({
-                                  ...env,
-                                  integration_bindings: {
-                                    ...(env.integration_bindings ?? {}),
-                                    [integration.id]: e.target.value,
+                              onChange={(e) => {
+                                const val = e.target.value
+                                saveEnvironment.mutate(
+                                  {
+                                    ...env,
+                                    integration_bindings: {
+                                      ...(env.integration_bindings ?? {}),
+                                      [integration.id]: val,
+                                    },
                                   },
-                                })
-                              }
+                                  {
+                                    onSuccess: () => success('Binding updated'),
+                                    onError: () => error('Failed to update binding'),
+                                  },
+                                )
+                              }}
                             >
                               <option value="">Unbound</option>
                               <option value={integration.id}>{integration.id}</option>

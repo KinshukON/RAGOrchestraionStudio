@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import './layout.css'
 import { useAuth } from '../auth/AuthContext'
@@ -54,6 +55,24 @@ export function AppShell() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  // ── Auto-seed demo data on first session load ──────────────────────────
+  useEffect(() => {
+    const SEED_KEY = 'rag_studio_demo_seeded'
+    if (sessionStorage.getItem(SEED_KEY)) return
+      ; (async () => {
+        try {
+          const res = await fetch('/api/demo/seed-status')
+          const status = await res.json()
+          if (!status.seeded) {
+            await fetch('/api/demo/seed', { method: 'POST' })
+          }
+          sessionStorage.setItem(SEED_KEY, '1')
+        } catch {
+          // Non-fatal: seeding failure should not break the app
+        }
+      })()
+  }, [])
 
   function handleSignOut() {
     signOut()

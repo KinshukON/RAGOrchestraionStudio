@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import './designer.css'
+import { createWorkflow } from '../../api/workflows'
 import { getDesignSession, updateDesignSession, type DesignSession } from '../../api/architectures'
 import { DesignerStepper } from './DesignerStepper'
+import { wizardStateToWorkflowDefinition } from './designerToWorkflow'
+import { useToast } from '../ui/ToastContext'
+import { SkeletonBar } from '../ui/Skeleton'
 import {
   createDefaultConfig,
   type DesignerWizardState,
@@ -42,6 +46,8 @@ function toWizardState(session: DesignSession): DesignerWizardState {
 
 export function DesignerPage() {
   const sessionId = useSessionIdFromQuery()
+  const navigate = useNavigate()
+  const { success, error } = useToast()
 
   const sessionQuery = useQuery({
     enabled: sessionId != null,
@@ -63,6 +69,24 @@ export function DesignerPage() {
       updateDesignSession(sessionId as number, {
         wizard_state: state as unknown as Record<string, unknown>,
       }),
+  })
+
+  const generateMutation = useMutation({
+    mutationFn: async (state: DesignerWizardState) => {
+      // 1. Save the wizard state first
+      await updateDesignSession(sessionId as number, {
+        wizard_state: state as unknown as Record<string, unknown>,
+      })
+      // 2. Convert wizard → workflow graph
+      const definition = wizardStateToWorkflowDefinition(state, sessionId as number)
+      // 3. Persist to backend
+      return createWorkflow(definition)
+    },
+    onSuccess: (workflow) => {
+      success(`Workflow "${workflow.name}" created — opening builder`)
+      navigate(`/app/workflow-builder?workflowId=${workflow.id}`)
+    },
+    onError: () => error('Failed to generate workflow — please try again'),
   })
 
   const steps = useMemo(
@@ -130,6 +154,7 @@ export function DesignerPage() {
   }
 
   const loading = sessionId == null || sessionQuery.isLoading || !wizardState
+  const busy = saveMutation.isPending || generateMutation.isPending
 
   return (
     <div className="designer-root">
@@ -154,7 +179,14 @@ export function DesignerPage() {
         <div className="designer-layout">
           <DesignerStepper steps={steps} activeStepId={activeStepId} onStepChange={id => setActiveStepId(id as typeof activeStepId)} />
           <div className="designer-main">
-            {loading && <p>Loading design session…</p>}
+            {sessionQuery.isLoading && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', padding: '1.5rem' }}>
+                <SkeletonBar width="40%" height="1.4rem" />
+                <SkeletonBar width="100%" height=".9rem" />
+                <SkeletonBar width="100%" height=".9rem" />
+                <SkeletonBar width="60%" height=".9rem" />
+              </div>
+            )}
             {!loading && (
               <>
                 {renderConfig()}
@@ -166,13 +198,18 @@ export function DesignerPage() {
                     <button
                       type="button"
                       className="designer-button designer-button--secondary"
-                      disabled={saveMutation.isPending}
+                      disabled={busy}
                       onClick={() => wizardState && saveMutation.mutate(wizardState)}
                     >
                       {saveMutation.isPending ? 'Saving…' : 'Save draft'}
                     </button>
-                    <button type="button" className="designer-button designer-button--primary" disabled>
-                      Generate workflow (coming soon)
+                    <button
+                      type="button"
+                      className="designer-button designer-button--primary"
+                      disabled={busy || !wizardState}
+                      onClick={() => wizardState && generateMutation.mutate(wizardState)}
+                    >
+                      {generateMutation.isPending ? 'Generating workflow…' : 'Generate workflow →'}
                     </button>
                   </div>
                 </div>
@@ -184,4 +221,3 @@ export function DesignerPage() {
     </div>
   )
 }
-

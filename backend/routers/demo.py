@@ -392,3 +392,25 @@ async def clear_demo_data() -> Dict[str, Any]:
             session.delete(user)
             session.commit()
     return {"status": "ok", "cleared": ["demo users and related session/preference rows"]}
+
+
+@router.get("/seed-status")
+async def get_seed_status() -> Dict[str, Any]:
+    """
+    Returns whether demo data has already been seeded.
+    The frontend uses this to auto-seed on first visit.
+    """
+    with get_session() as session:
+        workflow_count = len(list(session.exec(select(WorkflowDefinition)).all()))
+        integration_count = len(list(session.exec(select(Integration)).all()))
+        environment_count = len(list(session.exec(select(Environment)).all()))
+    seeded = workflow_count > 0
+    return {
+        "seeded": seeded,
+        "counts": {
+            "workflows": workflow_count,
+            "integrations": integration_count,
+            "environments": environment_count,
+        },
+    }
+
