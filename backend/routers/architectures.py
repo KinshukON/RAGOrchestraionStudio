@@ -159,22 +159,36 @@ def _seed_templates_if_empty() -> None:
 
 @router.get("/catalog", response_model=List[ArchitectureTemplateOut])
 async def list_architecture_catalog() -> List[ArchitectureTemplateOut]:
-    _seed_templates_if_empty()
-    with get_session() as session:
-        rows = list(session.exec(select(ArchitectureTemplate)))
-    return [
-        ArchitectureTemplateOut(
-            key=row.key,
-            type=row.type,
-            title=row.title,
-            short_definition=row.short_definition,
-            when_to_use=row.when_to_use,
-            strengths=row.strengths,
-            tradeoffs=row.tradeoffs,
-            typical_backends=row.typical_backends,
-        )
-        for row in rows
-    ]
+    import traceback as _tb
+    try:
+        _seed_templates_if_empty()
+    except Exception as seed_exc:
+        # Don't fail the whole request if seeding fails — table might already have data
+        import logging
+        logging.getLogger(__name__).warning("Seeding failed: %s", seed_exc)
+
+    try:
+        with get_session() as session:
+            rows = list(session.exec(select(ArchitectureTemplate)))
+        return [
+            ArchitectureTemplateOut(
+                key=row.key,
+                type=row.type,
+                title=row.title,
+                short_definition=row.short_definition,
+                when_to_use=row.when_to_use,
+                strengths=row.strengths,
+                tradeoffs=row.tradeoffs,
+                typical_backends=row.typical_backends,
+            )
+            for row in rows
+        ]
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Catalog error: {type(exc).__name__}: {exc}\n\n{_tb.format_exc()}",
+        ) from exc
+
 
 
 @router.post("/design-sessions", response_model=DesignSessionOut)
