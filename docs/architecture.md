@@ -1,24 +1,74 @@
-# RAG Studio – Architecture & Module Reference
+# RAG Studio — Architecture & Module Reference
 
-## Frontend Modules
+## 1. End-to-End Flow
+
+```
+Architecture Catalog
+  │  POST /api/architectures/design-sessions  →  DesignSession (draft)
+  ▼
+Guided Designer   (per-arch wizard: vector / vectorless / graph / temporal / hybrid / custom)
+  │  PATCH /api/architectures/design-sessions/{id}  →  wizard_state persisted
+  │
+  │  [Generate Workflow →]
+  │    wizardStateToWorkflowDefinition()   ← designerToWorkflow.ts
+  │    POST /api/workflows                 →  WorkflowDefinition (DB, is_active=false)
+  │    navigate /app/workflow-builder?workflowId={id}
+  ▼
+Workflow Builder   (?workflowId= loads from API)
+  │  GET  /api/workflows/{id}             →  fetch saved graph
+  │  POST /api/workflows                  →  create new
+  │  PATCH /api/workflows/{id}            →  save draft / publish
+  │  navigate /app/workflow-builder?workflowId={saved.id}   (URL updated on save)
+  ▼
+Query Lab   (auto-selects first workflow)
+  │  GET  /api/workflows                  →  pick workflows[0] if no selection
+  │  POST /api/workflows/{id}/simulate-multi
+  │  POST /api/evaluations/query-cases    →  save test case
+  ▼
+Governance
+  │  GET/POST /api/governance/policies, /approval-rules, /bindings
+  ▼
+Environments   (binding matrix + promotion)
+  │  PATCH /api/environments/{id}         →  update integration_bindings
+  ▼
+Observability
+     GET /api/observability/runs
+     GET /api/observability/runs/{id}/tasks
+```
+
+---
+
+## 2. Frontend Modules
 
 | Module | Path | Key Files |
 |---|---|---|
-| Shell | `modules/layout/` | `AppShell.tsx`, `layout.css` |
-| Architecture Catalog | `modules/architecture-catalog/` | `ArchitectureCatalogPage.tsx`, `architecture-catalog.css` |
-| Guided Designer | `modules/guided-designer/` | `DesignerPage.tsx`, `DesignerStepper.tsx`, `steps/` |
-| Workflow Builder | `modules/workflow-builder/` | `WorkflowBuilderPage.tsx`, `NodeConfigPanel.tsx`, `ArchitectureSummaryPanel.tsx` |
+| Shell | `modules/layout/` | `AppShell.tsx` (sidebar, breadcrumb, **auto-seed**), `layout.css` |
+| Architecture Catalog | `modules/architecture-catalog/` | `ArchitectureCatalogPage.tsx` |
+| Guided Designer | `modules/guided-designer/` | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerToWorkflow.ts`, `designerTypes.ts`, `designer{Vector,Vectorless,Graph,Temporal,Hybrid,Custom}.tsx` |
+| Workflow Builder | `modules/workflow-builder/` | `WorkflowBuilderPage.tsx`, `NodeConfigPanel.tsx`, `ArchitectureSummaryPanel.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx`, `modelMapping.ts`, `workflowTemplates.ts`, `useWorkflowApi.ts` |
 | Query Lab | `modules/query-lab/` | `QueryLabPage.tsx`, `QueryInputPanel.tsx`, `ResultComparisonGrid.tsx`, `RunHistoryPanel.tsx` |
 | Integrations Studio | `modules/integrations-studio/` | `IntegrationsStudioPage.tsx` |
 | Environments | `modules/environments/` | `EnvironmentsPage.tsx`, `EnvironmentDetailPanel.tsx` |
-| Governance | `modules/governance/` | `GovernancePage.tsx`, `governance.css` |
+| Governance | `modules/governance/` | `GovernancePage.tsx` |
 | Observability | `modules/observability/` | `ObservabilityPage.tsx` |
 | Admin | `modules/admin-*/` | Users, Roles, Teams, Views, Preferences, Observability |
-| Shared UI | `modules/ui/` | `feedback.tsx` (PageHeader, StatusBadge, EmptyState, SimBanner…) |
+| Shared UI | `modules/ui/` | `feedback.tsx` (PageHeader, StatusBadge, EmptyState+action, SimBanner), `ErrorBoundary.tsx`, `ToastContext.tsx`, `Skeleton.tsx` |
+| API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts` |
 
-### Design Tokens
+### designerToWorkflow.ts — Architecture Mapping
 
-All CSS variables are defined in `src/index.css`:
+Converts wizard UI config into a typed `WorkflowDefinition` with pre-positioned nodes and pre-configured edges, one canonical graph per architecture type:
+
+| Architecture | Nodes generated |
+|---|---|
+| `vector` | input_query → embedding_generator → vector_retriever → [metadata_filter] → [reranker] → llm_answer_generator |
+| `vectorless` | input_query → lexical_retriever + metadata_filter → context_assembler → llm_answer_generator |
+| `graph` | input_query → graph_retriever → reranker → context_assembler → llm_answer_generator |
+| `temporal` | input_query → temporal_filter → vector_retriever → llm_answer_generator |
+| `hybrid` | input_query → query_classifier → vector_retriever + lexical_retriever → reranker → llm_answer_generator |
+| `custom` | input_query → vector_retriever → llm_answer_generator (minimal starter graph) |
+
+### Design Tokens (`index.css`)
 
 | Token | Purpose |
 |---|---|
@@ -34,39 +84,39 @@ All CSS variables are defined in `src/index.css`:
 
 ---
 
-## Backend Router Map
+## 3. Backend Router Map
 
 | Router | Prefix | Key Endpoints |
 |---|---|---|
 | `auth` | `/api/auth` | `POST /signin`, `POST /bootstrap-user` |
 | `projects` | `/api/projects` | CRUD for `Project` |
-| `architectures` | `/api/architectures` | `GET /catalog`, `POST /design-sessions`, `GET/PATCH /design-sessions/{id}` |
-| `workflows` | `/api/workflows` | CRUD + `POST /simulate-multi`, `GET /by-architecture/{type}` |
+| `architectures` | `/api/architectures` | `GET /catalog`, `POST /design-sessions`, `GET /design-sessions/{id}`, `PATCH /design-sessions/{id}` |
+| `workflows` | `/api/workflows` | `GET /`, `GET /{id}`, `POST /`, `PATCH /{id}`, `DELETE /{id}`, `POST /{id}/simulate-multi`, `GET /by-architecture/{type}` |
 | `integrations` | `/api/integrations` | CRUD for `Integration` |
 | `environments` | `/api/environments` | CRUD for `Environment` |
 | `governance` | `/api/governance` | `policies/`, `approval-rules/`, `bindings/` |
 | `evaluations` | `/api/evaluations` | `POST /query-cases`, `POST /runs` |
 | `observability` | `/api/observability` | `GET /runs`, `GET /runs/{id}`, `GET /runs/{id}/tasks` |
 | `admin_users` | `/api/admin/users` | CRUD + `POST /bootstrap` |
-| `admin_roles` | `/api/admin/roles` | CRUD for `Role` with `permissions` blob |
+| `admin_roles` | `/api/admin/roles` | CRUD for `Role` with `permissions` JSON |
 | `admin_teams` | `/api/admin/teams` | CRUD for `Team` |
 | `admin_sessions` | `/api/admin/sessions` | `GET /`, `POST /`, `PATCH /{id}/revoke`, `DELETE /by-user/{uid}` |
 | `admin_views` | `/api/admin/views` | CRUD for `View` (upsert-by-key) |
-| `admin_preferences` | `/api/admin/preferences` | `GET /me`, `PATCH /me` (get-or-create by `user_id`) |
+| `admin_preferences` | `/api/admin/preferences` | `GET /me`, `PATCH /me` |
 | `admin_observability` | `/api/admin/observability` | `GET/POST /audit-logs`, `GET/POST /events` |
-| `demo` | `/api/demo` | `POST /seed`, `DELETE /seed` |
+| `demo` | `/api/demo` | `POST /seed`, `GET /seed-status`, `DELETE /seed` |
 
 ---
 
-## SQLModel Table Summary
+## 4. SQLModel Table Summary
 
 ### `models_core.py`
 | Table | Key Fields |
 |---|---|
-| `Project` | `id`, `name`, `business_domain`, `selected_architecture_type`, `deployment_status` |
-| `WorkflowDefinition` | `id`, `project_id`, `architecture_type`, `nodes` (JSON), `edges` (JSON), `status`, `version` |
-| `Integration` | `id`, `name`, `provider_type`, `credentials_reference`, `health_status` |
-| `Environment` | `id`, `name`, `external_id`, `runtime_profile` (JSON), `promotion_status`, `health_status` |
+| `Project` | `id`, `name`, `business_domain`, `selected_architecture_type`, `deployment_status`, `owners` (JSON) |
+| `WorkflowDefinition` | `id`, `project_id`, `architecture_type`, `name`, `description`, `version`, `nodes` (JSON), `edges` (JSON), `status`, `is_active` |
+| `Integration` | `id`, `name`, `provider_type`, `credentials_reference`, `health_status`, `reusable`, `environment_mapping` (JSON) |
+| `Environment` | `id`, `name`, `external_id`, `runtime_profile` (JSON), `promotion_status`, `health_status`, `integration_bindings` (JSON) |
 | `WorkflowRun` | `id`, `workflow_id`, `strategy_id`, `status`, `metrics` (JSON) |
 | `TaskExecution` | `id`, `run_id`, `node_id`, `status`, `trace_metadata` (JSON) |
 
@@ -87,27 +137,60 @@ All CSS variables are defined in `src/index.css`:
 | Table | Key Fields |
 |---|---|
 | `User` | `id`, `email`, `name`, `role_id`, `team_id`, `is_active`, `external_provider` |
-| `Role` | `id`, `name`, `permissions` (JSON) |
+| `Role` | `id`, `name`, `permissions` (JSON — see §5) |
 | `Team` | `id`, `name`, `default_role_id` |
 | `Session` | `id`, `user_id`, `status`, `ip`, `last_activity_at` |
 | `View` | `id`, `key`, `name`, `defaults` (JSON) |
 | `UserPreference` | `id`, `user_id`, `theme`, `density`, `default_view_id`, `settings` (JSON) |
-| `AuditLog` | `id`, `action`, `resource_type`, `resource_id`, `metadata` (JSON) |
-| `ObservabilityEvent` | `id`, `category`, `name`, `value`, `metadata` (JSON) |
+| `AuditLog` | `id`, `action`, `resource_type`, `resource_id`, `event_data` (JSON) |
+| `ObservabilityEvent` | `id`, `category`, `name`, `value`, `event_data` (JSON) |
 
 ---
 
-## RBAC Permission Keys
+## 5. RBAC Permission Keys
 
-Defined in `Role.permissions` JSON blob:
+Stored in `Role.permissions` JSON blob. Checked via `useHasPermission` hook on the frontend.
 
 | Key | Who needs it |
 |---|---|
 | `administer_platform` | Platform Admin only |
-| `design_architecture` | Architects, Engineers |
+| `design_architecture` | Architects, Knowledge Engineers |
 | `manage_integrations` | Architects |
 | `manage_environments` | Architects |
-| `run_evaluations` | Architects, Engineers |
+| `run_evaluations` | Architects, Knowledge Engineers |
 | `publish_workflows` | Architects |
 | `approve_promotions` | Platform Admin |
 | `view_observability` | All authenticated roles |
+
+---
+
+## 6. UX System
+
+| Primitive | File | Notes |
+|---|---|---|
+| `ErrorBoundary` | `modules/ui/ErrorBoundary.tsx` | Class component, wraps every route; shows "Try again" on crash |
+| `ToastProvider` / `useToast` | `modules/ui/ToastContext.tsx` | `success`, `error`, `warning`, `info`; 4 s auto-dismiss, max 5 stacked |
+| `SkeletonBar`, `SkeletonTable`, `SkeletonGrid`, `PageSkeleton` | `modules/ui/Skeleton.tsx` | Shimmer loading states used across all pages |
+| `EmptyState` | `modules/ui/feedback.tsx` | Accepts optional `action: {label, onClick}` for CTA buttons |
+| `StatusBadge` / `statusVariant` | `modules/ui/feedback.tsx` | Maps raw status strings to `success/warning/danger/info/neutral` |
+| `SimBanner` | `modules/ui/feedback.tsx` | Clearly marks simulated behaviour inline |
+| `PageHeader` | `modules/ui/feedback.tsx` | Compound header with title, description, optional action, optional SimBanner |
+
+---
+
+## 7. Demo Data Seed
+
+The `POST /api/demo/seed` endpoint idempotently inserts:
+
+- **5 Roles** (Platform Admin, AI Architect, Knowledge Engineer, Auditor, Viewer)
+- **4 Teams** (Platform Engineering, AI/ML, Data Engineering, Compliance & Audit)
+- **4 Users** (admin, architect, engineer, auditor demo accounts)
+- **8 Integrations** (OpenAI Embeddings, Anthropic Claude, pgvector, Neo4j, Elasticsearch, S3, Datadog, Cohere Reranker)
+- **4 Environments** (dev, test, staging, prod with runtime profiles)
+- **3 Projects** (Support Portal, Claims Processing, Compliance Q&A)
+- **3 Workflows** (Hybrid, Graph, and Temporal RAG — active, with real node/edge graphs)
+- **3 Governance policies** + 2 approval rules + 2 bindings
+- **3 Design sessions** linked to the workflows
+- **Sample audit logs and observability events**
+
+`GET /api/demo/seed-status` returns `{ seeded: bool, counts: { workflows, integrations, environments } }` — used by `AppShell` to silently auto-seed on first app load (stored in `sessionStorage` to run once per browser session).
