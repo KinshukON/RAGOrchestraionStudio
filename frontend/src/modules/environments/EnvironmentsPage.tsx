@@ -5,9 +5,12 @@ import { listEnvironments } from '../../api/environments'
 import { listIntegrations } from '../../api/integrations'
 import { useSaveEnvironment } from '../admin-integrations/useIntegrationsEnvApi'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
+import { SkeletonTable } from '../ui/Skeleton'
+import { useToast } from '../ui/ToastContext'
 import './environments.css'
 
 export function EnvironmentsPage() {
+  const { success, error } = useToast()
   const environmentsQuery = useQuery({ queryKey: ['environments'], queryFn: listEnvironments })
   const integrationsQuery = useQuery({ queryKey: ['integrations'], queryFn: listIntegrations })
   const saveEnvironment = useSaveEnvironment()
@@ -22,12 +25,13 @@ export function EnvironmentsPage() {
     e.preventDefault()
     if (!newName.trim()) return
     const id = newName.toLowerCase().replace(/\s+/g, '-')
-    saveEnvironment.mutate({
-      id,
-      name: newName,
-      description: newDescription,
-      integration_bindings: {},
-    })
+    saveEnvironment.mutate(
+      { id, name: newName, description: newDescription, integration_bindings: {} },
+      {
+        onSuccess: () => success(`Environment "${newName}" created`),
+        onError: () => error('Failed to create environment'),
+      },
+    )
     setIsCreating(false)
     setNewName('')
     setNewDescription('')
@@ -38,10 +42,10 @@ export function EnvironmentsPage() {
     : 0
   const readiness = selectedEnv
     ? {
-        hasBindings: boundCount > 0,
-        approved: selectedEnv.approval_state === 'approved',
-        promoted: (selectedEnv.promotion_status ?? 'draft') !== 'draft',
-      }
+      hasBindings: boundCount > 0,
+      approved: selectedEnv.approval_state === 'approved',
+      promoted: (selectedEnv.promotion_status ?? 'draft') !== 'draft',
+    }
     : null
 
   return (
@@ -91,7 +95,7 @@ export function EnvironmentsPage() {
       <div className="env-page-layout">
         <div className="env-page-list">
           {environmentsQuery.isLoading ? (
-            <LoadingMessage label="Loading environments…" />
+            <SkeletonTable rows={3} cols={3} />
           ) : environments.length === 0 ? (
             <EmptyState
               title="No environments"
@@ -170,15 +174,22 @@ export function EnvironmentsPage() {
                             <span>{int.name}</span>
                             <select
                               value={bound}
-                              onChange={(e) =>
-                                saveEnvironment.mutate({
-                                  ...selectedEnv,
-                                  integration_bindings: {
-                                    ...(selectedEnv.integration_bindings ?? {}),
-                                    [int.id]: e.target.value,
+                              onChange={(e) => {
+                                const val = e.target.value
+                                saveEnvironment.mutate(
+                                  {
+                                    ...selectedEnv,
+                                    integration_bindings: {
+                                      ...(selectedEnv.integration_bindings ?? {}),
+                                      [int.id]: val,
+                                    },
                                   },
-                                })
-                              }
+                                  {
+                                    onSuccess: () => success('Bindings updated'),
+                                    onError: () => error('Failed to update bindings'),
+                                  },
+                                )
+                              }}
                             >
                               <option value="">Unbound</option>
                               <option value={int.id}>{int.id}</option>

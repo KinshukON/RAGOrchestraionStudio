@@ -9,6 +9,7 @@ import {
 import { listWorkflows } from '../../api/workflows'
 import { AdminObservabilityPage } from '../admin-observability/AdminObservabilityPage'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
+import { SkeletonTable } from '../ui/Skeleton'
 import './observability.css'
 
 type Tab = 'runs' | 'audit'
@@ -118,7 +119,7 @@ export function ObservabilityPage() {
                 </select>
               </label>
             </div>
-            {runsQuery.isLoading && <LoadingMessage label="Loading runs…" />}
+            {runsQuery.isLoading && <SkeletonTable rows={4} cols={5} />}
             {!runsQuery.isLoading && runs.length === 0 && (
               <EmptyState
                 title="No runs yet"

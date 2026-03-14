@@ -17,11 +17,13 @@ import {
   deleteBinding,
 } from '../../api/governance'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
+import { useToast } from '../ui/ToastContext'
 import './governance.css'
 
 type Tab = 'policies' | 'approvals' | 'bindings'
 
 export function GovernancePage() {
+  const { success, error } = useToast()
   const [tab, setTab] = useState<Tab>('policies')
   const [newPolicyName, setNewPolicyName] = useState('')
   const [newPolicyScope, setNewPolicyScope] = useState('workflow')
@@ -45,22 +47,34 @@ export function GovernancePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['governance-policies'] })
       setNewPolicyName('')
+      success('Policy created')
     },
+    onError: () => error('Failed to create policy'),
   })
   const deletePolicyMutation = useMutation({
     mutationFn: deletePolicy,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['governance-policies', 'governance-bindings'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['governance-policies', 'governance-bindings'] })
+      success('Policy deleted')
+    },
+    onError: () => error('Failed to delete policy'),
   })
   const createRuleMutation = useMutation({
     mutationFn: createApprovalRule,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['governance-approval-rules'] })
       setNewRuleName('')
+      success('Approval rule created')
     },
+    onError: () => error('Failed to create rule'),
   })
   const deleteRuleMutation = useMutation({
     mutationFn: deleteApprovalRule,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['governance-approval-rules'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['governance-approval-rules'] })
+      success('Rule deleted')
+    },
+    onError: () => error('Failed to delete rule'),
   })
   const createBindingMutation = useMutation({
     mutationFn: createBinding,
@@ -68,11 +82,17 @@ export function GovernancePage() {
       queryClient.invalidateQueries({ queryKey: ['governance-bindings'] })
       setNewBindingPolicyId('')
       setNewBindingValue('')
+      success('Binding created')
     },
+    onError: () => error('Failed to create binding'),
   })
   const deleteBindingMutation = useMutation({
     mutationFn: deleteBinding,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['governance-bindings'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['governance-bindings'] })
+      success('Binding deleted')
+    },
+    onError: () => error('Failed to delete binding'),
   })
 
   function handleCreatePolicy(e: React.FormEvent) {

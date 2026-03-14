@@ -2,6 +2,8 @@ import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
+import { useToast } from '../ui/ToastContext'
+import { SkeletonTable } from '../ui/Skeleton'
 
 type AdminTeam = {
   id: number
@@ -17,6 +19,7 @@ async function fetchTeams() {
 
 export function AdminTeamsPage() {
   const queryClient = useQueryClient()
+  const { success, error } = useToast()
   const { data, isLoading } = useQuery({
     queryKey: ['admin-teams'],
     queryFn: fetchTeams,
@@ -27,15 +30,14 @@ export function AdminTeamsPage() {
 
   const createTeam = useMutation({
     mutationFn: () =>
-      apiClient.post('/api/admin/teams', {
-        name,
-        description,
-      }),
+      apiClient.post('/api/admin/teams', { name, description }),
     onSuccess: () => {
+      success(`Team "${name}" created`)
       setName('')
       setDescription('')
       queryClient.invalidateQueries({ queryKey: ['admin-teams'] })
     },
+    onError: () => error('Failed to create team'),
   })
 
   function handleSubmit(e: FormEvent) {
@@ -70,7 +72,7 @@ export function AdminTeamsPage() {
           {createTeam.isPending ? 'Creating…' : 'Create team'}
         </button>
       </form>
-      {isLoading && <p>Loading teams…</p>}
+      {isLoading && <SkeletonTable rows={3} cols={4} />}
       {!isLoading && (!data || data.length === 0) && <p>No teams defined yet.</p>}
       {!isLoading && data && data.length > 0 && (
         <ul>

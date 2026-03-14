@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import './architecture-catalog.css'
 import { createDesignSession, listArchitectureCatalog, type ArchitectureTemplate } from '../../api/architectures'
 import { PageHeader } from '../ui/feedback'
+import { PageSkeleton } from '../ui/Skeleton'
+import { useToast } from '../ui/ToastContext'
 
 type CatalogTileProps = {
   template: ArchitectureTemplate
@@ -64,6 +66,7 @@ function CatalogTile({ template, onDesign, isDesigning }: CatalogTileProps) {
 
 export function ArchitectureCatalogPage() {
   const navigate = useNavigate()
+  const { error } = useToast()
 
   const catalogQuery = useQuery({
     queryKey: ['architecture-catalog'],
@@ -73,14 +76,16 @@ export function ArchitectureCatalogPage() {
   const designMutation = useMutation({
     mutationFn: createDesignSession,
     onSuccess: session => {
-      // Route into the Guided Designer, carrying the design session id in the URL.
       navigate(`/app/designer?sessionId=${session.id}`)
     },
+    onError: () => error('Failed to start design session — please try again'),
   })
 
   const isLoading = catalogQuery.isLoading
   const isError = catalogQuery.isError
   const templates = catalogQuery.data ?? []
+
+  if (isLoading) return <PageSkeleton cards={6} columns={3} title />
 
   return (
     <div className="arch-catalog-root">

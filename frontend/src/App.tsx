@@ -19,6 +19,8 @@ import { AdminTeamsPage } from './modules/admin-teams/AdminTeamsPage'
 import { AdminViewsPage } from './modules/admin-views/AdminViewsPage'
 import { AdminPreferencesPage } from './modules/admin-preferences/AdminPreferencesPage'
 import { AdminObservabilityPage } from './modules/admin-observability/AdminObservabilityPage'
+import { ErrorBoundary } from './modules/ui/ErrorBoundary'
+import { ToastProvider } from './modules/ui/ToastContext'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -26,6 +28,11 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/" replace />
   }
   return children
+}
+
+/** Wraps a page element in an ErrorBoundary named after the section. */
+function Page({ name, children }: { name: string; children: ReactNode }) {
+  return <ErrorBoundary section={name}>{children}</ErrorBoundary>
 }
 
 function AppRouter() {
@@ -41,24 +48,22 @@ function AppRouter() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<ArchitectureCatalogPage />} />
-          <Route path="workflow-builder" element={<WorkflowBuilderPage />} />
-          <Route path="designer" element={<DesignerPage />} />
-          {/* Preserve the existing query-studio route for backward compatibility while adding query-lab as the primary entry. */}
-          <Route path="query-studio" element={<QueryStudioPage />} />
-          <Route path="query-lab" element={<QueryLabPage />} />
-          <Route path="integrations" element={<IntegrationsStudioPage />} />
-          <Route path="environments" element={<EnvironmentsPage />} />
-          <Route path="governance" element={<GovernancePage />} />
-          <Route path="observability" element={<ObservabilityPage />} />
-          {/* Admin section retains detailed routes but is grouped under a single Admin nav item in the shell. */}
-          <Route path="admin/integrations" element={<IntegrationsStudioPage />} />
-          <Route path="admin/users" element={<AdminUsersPage />} />
-          <Route path="admin/roles" element={<AdminRolesPage />} />
-          <Route path="admin/teams" element={<AdminTeamsPage />} />
-          <Route path="admin/views" element={<AdminViewsPage />} />
-          <Route path="admin/preferences" element={<AdminPreferencesPage />} />
-          <Route path="admin/observability" element={<AdminObservabilityPage />} />
+          <Route index element={<Page name="Architecture Catalog"><ArchitectureCatalogPage /></Page>} />
+          <Route path="workflow-builder" element={<Page name="Workflow Builder"><WorkflowBuilderPage /></Page>} />
+          <Route path="designer" element={<Page name="Guided Designer"><DesignerPage /></Page>} />
+          <Route path="query-studio" element={<Page name="Query Studio"><QueryStudioPage /></Page>} />
+          <Route path="query-lab" element={<Page name="Query Lab"><QueryLabPage /></Page>} />
+          <Route path="integrations" element={<Page name="Integrations"><IntegrationsStudioPage /></Page>} />
+          <Route path="environments" element={<Page name="Environments"><EnvironmentsPage /></Page>} />
+          <Route path="governance" element={<Page name="Governance"><GovernancePage /></Page>} />
+          <Route path="observability" element={<Page name="Observability"><ObservabilityPage /></Page>} />
+          <Route path="admin/integrations" element={<Page name="Admin › Integrations"><IntegrationsStudioPage /></Page>} />
+          <Route path="admin/users" element={<Page name="Admin › Users"><AdminUsersPage /></Page>} />
+          <Route path="admin/roles" element={<Page name="Admin › Roles"><AdminRolesPage /></Page>} />
+          <Route path="admin/teams" element={<Page name="Admin › Teams"><AdminTeamsPage /></Page>} />
+          <Route path="admin/views" element={<Page name="Admin › Views"><AdminViewsPage /></Page>} />
+          <Route path="admin/preferences" element={<Page name="Admin › Preferences"><AdminPreferencesPage /></Page>} />
+          <Route path="admin/observability" element={<Page name="Admin › Observability"><AdminObservabilityPage /></Page>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -68,8 +73,10 @@ function AppRouter() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRouter />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
+    </ToastProvider>
   )
 }
