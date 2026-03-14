@@ -16,10 +16,10 @@ const BRAIN = '/Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-
 const IMG = path.resolve(__dirname, '../frontend/public/guide-images')
 
 function imgSrc(filename) {
-    // read from public/guide-images which already has the copies
-    const p = path.join(IMG, filename)
-    if (!fs.existsSync(p)) return ''
-    return 'data:image/png;base64,' + fs.readFileSync(p).toString('base64')
+  // read from public/guide-images which already has the copies
+  const p = path.join(IMG, filename)
+  if (!fs.existsSync(p)) return ''
+  return 'data:image/png;base64,' + fs.readFileSync(p).toString('base64')
 }
 
 // ── Build HTML ─────────────────────────────────────────────────────────────
@@ -242,6 +242,10 @@ const html = /* html */`<!DOCTYPE html>
 <section id="signing-in">
   <h2>1 · Signing In</h2>
   <p>Navigate to <strong>ragorchestrationstudio.com</strong> and click <strong>Continue with Google</strong>. The platform uses Google OAuth — you will be redirected back immediately after authentication.</p>
+  <figure>
+    <img src="${imgSrc('landing.png')}" alt="RAG Studio landing page" />
+    <figcaption>RAG Studio — landing page with Continue with Google</figcaption>
+  </figure>
   <div class="callout">All results are <strong>simulated</strong> until real LLM API keys are connected via <strong>Integrations</strong>. A banner is shown on every page as a reminder.</div>
 </section>
 
@@ -262,7 +266,7 @@ const html = /* html */`<!DOCTYPE html>
     <tr><td>Graph RAG</td><td>Entity-rich data requiring multi-hop reasoning</td></tr>
   </table>
 
-  <h3>Row 2 — Advanced architectures</h3>
+  <h3 style="page-break-before: always; padding-top: 1rem;">Row 2 — Advanced architectures</h3>
   <figure>
     <img src="${imgSrc('catalog-row2.png')}" alt="Architecture Catalog — Temporal, Hybrid, Custom RAG" />
     <figcaption>Architecture Catalog — Temporal, Hybrid and Custom RAG cards</figcaption>
@@ -296,7 +300,7 @@ const html = /* html */`<!DOCTYPE html>
     </div>
   </div>
 
-  <div class="step">
+  <div class="step" style="page-break-before: always; padding-top: 1rem;">
     <div class="step-badge">2</div>
     <div class="step-body">
       <p class="step-title">Retrieval &amp; routing</p>
@@ -311,7 +315,7 @@ const html = /* html */`<!DOCTYPE html>
     </div>
   </div>
 
-  <div class="step">
+  <div class="step" style="page-break-before: always; padding-top: 1rem;">
     <div class="step-badge">3</div>
     <div class="step-body">
       <p class="step-title">Answering &amp; governance</p>
@@ -480,44 +484,44 @@ const html = /* html */`<!DOCTYPE html>
 
 // ── Write HTML to temp file, then render to PDF with puppeteer ────────────
 async function main() {
-    console.log('Installing puppeteer (if needed)…')
+  console.log('Installing puppeteer (if needed)…')
 
-    let puppeteer
-    try {
-        puppeteer = require('puppeteer')
-    } catch {
-        const { execSync } = require('child_process')
-        execSync('npm install puppeteer --no-save', { stdio: 'inherit', cwd: __dirname + '/..' })
-        puppeteer = require('puppeteer')
-    }
+  let puppeteer
+  try {
+    puppeteer = require('puppeteer')
+  } catch {
+    const { execSync } = require('child_process')
+    execSync('npm install puppeteer --no-save', { stdio: 'inherit', cwd: __dirname + '/..' })
+    puppeteer = require('puppeteer')
+  }
 
-    console.log('Launching headless Chrome…')
-    const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] })
-    const page = await browser.newPage()
+  console.log('Launching headless Chrome…')
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] })
+  const page = await browser.newPage()
 
-    // Large base64 images make networkidle0 hang — use domcontentloaded + extra wait
-    page.setDefaultNavigationTimeout(120_000)
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 120_000 })
-    // Give images a moment to decode
-    await new Promise(r => setTimeout(r, 3000))
+  // Large base64 images make networkidle0 hang — use domcontentloaded + extra wait
+  page.setDefaultNavigationTimeout(120_000)
+  await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  // Give images a moment to decode
+  await new Promise(r => setTimeout(r, 3000))
 
-    const outPath = path.resolve(__dirname, '../frontend/public/user-guide.pdf')
-    await page.pdf({
-        path: outPath,
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '18mm', right: '16mm', bottom: '18mm', left: '16mm' },
-        displayHeaderFooter: true,
-        headerTemplate: `<div style="width:100%;font-size:8px;color:#888;padding:0 16mm;display:flex;justify-content:space-between;">
+  const outPath = path.resolve(__dirname, '../frontend/public/user-guide.pdf')
+  await page.pdf({
+    path: outPath,
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '18mm', right: '16mm', bottom: '18mm', left: '16mm' },
+    displayHeaderFooter: true,
+    headerTemplate: `<div style="width:100%;font-size:8px;color:#888;padding:0 16mm;display:flex;justify-content:space-between;">
       <span>RAG Orchestration Studio — User Guide</span><span></span>
     </div>`,
-        footerTemplate: `<div style="width:100%;font-size:8px;color:#888;padding:0 16mm;display:flex;justify-content:flex-end;">
+    footerTemplate: `<div style="width:100%;font-size:8px;color:#888;padding:0 16mm;display:flex;justify-content:flex-end;">
       <span class="pageNumber"></span> / <span class="totalPages"></span>
     </div>`,
-    })
+  })
 
-    await browser.close()
-    console.log('✅  PDF saved to', outPath)
+  await browser.close()
+  console.log('✅  PDF saved to', outPath)
 }
 
 main().catch(err => { console.error(err); process.exit(1) })
