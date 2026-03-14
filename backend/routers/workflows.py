@@ -97,6 +97,26 @@ async def list_workflows_by_architecture(architecture_type: str) -> List[Workflo
     ]
 
 
+# ── Run History (must be registered BEFORE /{workflow_id} to avoid shadowing) ───
+@router.get("/runs", response_model=List[WorkflowRunSummary])
+async def list_workflow_runs() -> List[WorkflowRunSummary]:
+    with get_session() as session:
+        runs = list(session.exec(select(WorkflowRun)))
+    summaries: List[WorkflowRunSummary] = []
+    for run in runs:
+        summaries.append(
+            WorkflowRunSummary(
+                id=run.id or 0,
+                workflow_id=run.workflow_id,
+                status=run.status,
+                created_at=run.created_at.isoformat(),
+                finished_at=run.finished_at.isoformat() if run.finished_at else None,
+            )
+        )
+    summaries.sort(key=lambda r: r.created_at, reverse=True)
+    return summaries
+
+
 @router.get("/{workflow_id}", response_model=WorkflowDefinition)
 async def get_workflow(workflow_id: str) -> WorkflowDefinition:
     d = _workflow_repo.get(workflow_id)
@@ -465,25 +485,7 @@ async def simulate_workflow_multi(
     return MultiStrategySimulationTrace(results=results)
 
 
-# ── Run History ────────────────────────────────────────────────────────────────
-
-@router.get("/runs", response_model=List[WorkflowRunSummary])
-async def list_workflow_runs() -> List[WorkflowRunSummary]:
-    with get_session() as session:
-        runs = list(session.exec(select(WorkflowRun)))
-    summaries: List[WorkflowRunSummary] = []
-    for run in runs:
-        summaries.append(
-            WorkflowRunSummary(
-                id=run.id or 0,
-                workflow_id=run.workflow_id,
-                status=run.status,
-                created_at=run.created_at.isoformat(),
-                finished_at=run.finished_at.isoformat() if run.finished_at else None,
-            )
-        )
-    summaries.sort(key=lambda r: r.created_at, reverse=True)
-    return summaries
+# ── Run Tasks (list_workflow_runs moved above /{workflow_id} to avoid shadowing) ─
 
 
 @router.get("/{workflow_id}/runs/{run_id}/tasks")
