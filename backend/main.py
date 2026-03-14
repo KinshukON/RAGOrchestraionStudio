@@ -27,6 +27,9 @@ app = FastAPI(
     title="RAG Studio API",
     version="0.1.0",
     description="Backend API for RAG Studio enterprise RAG orchestration platform.",
+    # Disable trailing-slash redirects: they generate http:// Location headers behind Vercel
+    # proxy which causes 502 Bad Gateway and Mixed Content browser errors.
+    redirect_slashes=False,
 )
 
 _CORS_ORIGINS = [

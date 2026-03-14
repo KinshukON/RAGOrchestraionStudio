@@ -35,7 +35,7 @@ router = APIRouter()
 _env_repo = EnvironmentRepository()
 
 
-@router.get("/", response_model=List[EnvironmentConfig])
+@router.get("", response_model=List[EnvironmentConfig])
 async def list_environments() -> List[EnvironmentConfig]:
     envs = _env_repo.list_environments()
     return [EnvironmentConfig.from_model(env) for env in envs]
@@ -49,7 +49,7 @@ async def get_environment(environment_id: str) -> EnvironmentConfig:
     return EnvironmentConfig.from_model(env)
 
 
-@router.post("/", response_model=EnvironmentConfig)
+@router.post("", response_model=EnvironmentConfig)
 async def create_environment(env: EnvironmentConfig) -> EnvironmentConfig:
     created = _env_repo.upsert_from_payload(env.model_dump())
     return EnvironmentConfig.from_model(created)

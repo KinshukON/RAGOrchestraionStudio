@@ -52,7 +52,7 @@ router = APIRouter()
 _int_repo = IntegrationRepository()
 
 
-@router.get("/", response_model=List[IntegrationConfig])
+@router.get("", response_model=List[IntegrationConfig])
 async def list_integrations() -> List[IntegrationConfig]:
     integrations = _int_repo.list_integrations()
     return [IntegrationConfig.from_model(i) for i in integrations]
@@ -66,7 +66,7 @@ async def get_integration(integration_id: str) -> IntegrationConfig:
     return IntegrationConfig.from_model(model)
 
 
-@router.post("/", response_model=IntegrationConfig)
+@router.post("", response_model=IntegrationConfig)
 async def create_integration(integration: IntegrationConfig) -> IntegrationConfig:
     created = _int_repo.upsert_from_payload(integration.model_dump())
     return IntegrationConfig.from_model(created)

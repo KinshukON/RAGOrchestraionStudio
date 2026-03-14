@@ -27,7 +27,7 @@ class SessionOut(BaseModel):
     status: str
 
 
-@router.get("/", response_model=List[SessionOut])
+@router.get("", response_model=List[SessionOut])
 async def list_sessions(user_id: int | None = None) -> List[SessionOut]:
     """List all sessions, optionally filtered by user_id."""
     with get_session() as db:
@@ -49,7 +49,7 @@ async def list_sessions(user_id: int | None = None) -> List[SessionOut]:
     ]
 
 
-@router.post("/", response_model=SessionOut)
+@router.post("", response_model=SessionOut)
 async def create_session(payload: SessionCreate) -> SessionOut:
     """Create a new active session for a user."""
     with get_session() as db:

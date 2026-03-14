@@ -84,7 +84,7 @@ class WorkflowRunSummary(BaseModel):
     finished_at: str | None = None
 
 
-@router.get("/", response_model=List[WorkflowDefinition])
+@router.get("", response_model=List[WorkflowDefinition])
 async def list_workflows() -> List[WorkflowDefinition]:
     dicts = _workflow_repo.list_all()
     return [WorkflowDefinition.model_validate(d) for d in dicts]
@@ -156,7 +156,7 @@ async def get_workflow_summary(workflow_id: str) -> WorkflowSummary:
     )
 
 
-@router.post("/", response_model=WorkflowDefinition)
+@router.post("", response_model=WorkflowDefinition)
 async def create_workflow(definition: WorkflowDefinition) -> WorkflowDefinition:
     try:
         d = _workflow_repo.create(definition.model_dump())

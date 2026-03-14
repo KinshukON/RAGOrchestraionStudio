@@ -23,13 +23,13 @@ class TeamUpdate(BaseModel):
     default_role_id: int | None = None
 
 
-@router.get("/", response_model=List[Team])
+@router.get("", response_model=List[Team])
 async def list_teams() -> List[Team]:
     with get_session() as session:
         return list(session.exec(select(Team)))
 
 
-@router.post("/", response_model=Team)
+@router.post("", response_model=Team)
 async def create_team(payload: TeamCreate) -> Team:
     with get_session() as session:
         team = Team(

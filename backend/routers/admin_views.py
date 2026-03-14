@@ -23,14 +23,14 @@ class ViewUpdate(BaseModel):
     defaults: Dict[str, Any] | None = None
 
 
-@router.get("/", response_model=List[View])
+@router.get("", response_model=List[View])
 async def list_views() -> List[View]:
     """List all registered views."""
     with get_session() as db:
         return list(db.exec(select(View)))
 
 
-@router.post("/", response_model=View)
+@router.post("", response_model=View)
 async def create_view(payload: ViewCreate) -> View:
     """Create a view, or return the existing one if the key is already registered."""
     with get_session() as db:

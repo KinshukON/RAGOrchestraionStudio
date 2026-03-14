@@ -75,14 +75,14 @@ def _ensure_seed_roles() -> None:
         session.commit()
 
 
-@router.get("/", response_model=List[Role])
+@router.get("", response_model=List[Role])
 async def list_roles() -> List[Role]:
     _ensure_seed_roles()
     with get_session() as session:
         return list(session.exec(select(Role)))
 
 
-@router.post("/", response_model=Role)
+@router.post("", response_model=Role)
 async def create_role(payload: RoleCreate) -> Role:
     with get_session() as session:
         statement = select(Role).where(Role.name == payload.name)

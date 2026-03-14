@@ -32,13 +32,13 @@ class BootstrapUser(BaseModel):
     external_subject: str | None = None
 
 
-@router.get("/", response_model=List[User])
+@router.get("", response_model=List[User])
 async def list_users() -> List[User]:
     with get_session() as session:
         return list(session.exec(select(User)))
 
 
-@router.post("/", response_model=User)
+@router.post("", response_model=User)
 async def create_user(payload: UserCreate) -> User:
     with get_session() as session:
         statement = select(User).where(User.email == payload.email)

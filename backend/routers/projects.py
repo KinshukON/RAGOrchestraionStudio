@@ -31,13 +31,13 @@ router = APIRouter()
 _projects_repo = ProjectRepository()
 
 
-@router.get("/", response_model=List[ProjectConfig])
+@router.get("", response_model=List[ProjectConfig])
 async def list_projects() -> List[ProjectConfig]:
     projects = _projects_repo.list_projects()
     return [ProjectConfig.from_model(p) for p in projects]
 
 
-@router.post("/", response_model=ProjectConfig)
+@router.post("", response_model=ProjectConfig)
 async def create_project(project: ProjectConfig) -> ProjectConfig:
     created = _projects_repo.create_project(
         Project(
