@@ -27,7 +27,7 @@ export type IntegrationConfig = {
 }
 
 export async function listIntegrations() {
-  const res = await apiClient.get<IntegrationConfig[]>('/api/integrations/')
+  const res = await apiClient.get<IntegrationConfig[]>('/api/integrations')
   return res.data
 }
 
@@ -37,7 +37,7 @@ export async function getIntegration(id: string) {
 }
 
 export async function createIntegration(config: IntegrationConfig) {
-  const res = await apiClient.post<IntegrationConfig>('/api/integrations/', config)
+  const res = await apiClient.post<IntegrationConfig>('/api/integrations', config)
   return res.data
 }
 

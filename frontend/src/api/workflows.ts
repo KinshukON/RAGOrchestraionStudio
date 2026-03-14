@@ -50,7 +50,7 @@ export type WorkflowDefinition = {
 }
 
 export async function listWorkflows() {
-  const res = await apiClient.get<WorkflowDefinition[]>('/api/workflows/')
+  const res = await apiClient.get<WorkflowDefinition[]>('/api/workflows')
   return res.data
 }
 
@@ -60,7 +60,7 @@ export async function getWorkflow(id: string) {
 }
 
 export async function createWorkflow(definition: WorkflowDefinition) {
-  const res = await apiClient.post<WorkflowDefinition>('/api/workflows/', definition)
+  const res = await apiClient.post<WorkflowDefinition>('/api/workflows', definition)
   return res.data
 }
 

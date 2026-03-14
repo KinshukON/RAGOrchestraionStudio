@@ -12,7 +12,7 @@ export type EnvironmentConfig = {
 }
 
 export async function listEnvironments() {
-  const res = await apiClient.get<EnvironmentConfig[]>('/api/environments/')
+  const res = await apiClient.get<EnvironmentConfig[]>('/api/environments')
   return res.data
 }
 
@@ -22,7 +22,7 @@ export async function getEnvironment(id: string) {
 }
 
 export async function createEnvironment(config: EnvironmentConfig) {
-  const res = await apiClient.post<EnvironmentConfig>('/api/environments/', config)
+  const res = await apiClient.post<EnvironmentConfig>('/api/environments', config)
   return res.data
 }
 
