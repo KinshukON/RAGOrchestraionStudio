@@ -54,16 +54,17 @@ export function UserGuidePage() {
                         <h1 className="guide-hero-title">User Guide</h1>
                         <p className="guide-hero-sub">RAG Orchestration Studio · v1.0</p>
                     </div>
-                    <button
+                    <a
+                        href="/user-guide.pdf"
+                        download="RAG Orchestration Studio - User Guide.pdf"
                         className="guide-download-btn"
-                        onClick={() => window.print()}
-                        title="Opens the print dialog — choose 'Save as PDF'"
+                        title="Download the User Guide as a PDF"
                     >
                         <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fillRule="evenodd" clipRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
                         </svg>
                         Download PDF
-                    </button>
+                    </a>
                 </div>
             </div>
 
