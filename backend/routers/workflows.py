@@ -109,21 +109,28 @@ async def list_workflows_by_architecture(architecture_type: str) -> List[Workflo
 # ── Run History (must be registered BEFORE /{workflow_id} to avoid shadowing) ───
 @router.get("/runs", response_model=List[WorkflowRunSummary])
 async def list_workflow_runs() -> List[WorkflowRunSummary]:
-    with get_session() as session:
-        runs = list(session.exec(select(WorkflowRun)))
-    summaries: List[WorkflowRunSummary] = []
-    for run in runs:
-        summaries.append(
-            WorkflowRunSummary(
-                id=run.id or 0,
-                workflow_id=run.workflow_id,
-                status=run.status,
-                created_at=run.created_at.isoformat(),
-                finished_at=run.finished_at.isoformat() if run.finished_at else None,
+    import traceback as _tb
+    try:
+        with get_session() as session:
+            runs = list(session.exec(select(WorkflowRun)))
+        summaries: List[WorkflowRunSummary] = []
+        for run in runs:
+            summaries.append(
+                WorkflowRunSummary(
+                    id=run.id or 0,
+                    workflow_id=run.workflow_id,
+                    status=run.status,
+                    created_at=run.created_at.isoformat(),
+                    finished_at=run.finished_at.isoformat() if run.finished_at else None,
+                )
             )
-        )
-    summaries.sort(key=lambda r: r.created_at, reverse=True)
-    return summaries
+        summaries.sort(key=lambda r: r.created_at, reverse=True)
+        return summaries
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Runs error: {type(exc).__name__}: {exc}\n\n{_tb.format_exc()}",
+        ) from exc
 
 
 @router.get("/{workflow_id}", response_model=WorkflowDefinition)

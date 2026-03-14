@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import './auth.css'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -6,14 +7,18 @@ export function LandingPage() {
   const { signInWithGoogle, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
+  // Must be in useEffect — calling navigate() during render corrupts React Router state
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/app', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
   async function handleSignIn() {
     await signInWithGoogle()
     navigate('/app')
   }
 
-  if (isAuthenticated) {
-    navigate('/app')
-  }
 
   return (
     <div className="landing-root">
