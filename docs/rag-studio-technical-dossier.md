@@ -1,192 +1,215 @@
+# RAG Studio — Technical Dossier
+
+> **Version:** 2.0 · March 2026  
+> **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
+> **Repository:** [github.com/KinshukON/RAGOrchestraionStudio](https://github.com/KinshukON/RAGOrchestraionStudio)
+
+---
+
 ## 1. Executive Summary
 
 **What this project is.**  
-RAG Studio is an early-stage, but non-trivial, single-tenant web application consisting of a React 19 + TypeScript frontend and a FastAPI + SQLModel backend intended as a **control plane for Retrieval-Augmented Generation (RAG) architectures**. It exposes a visual workflow builder, a query simulation studio, an integrations + environments hub, and an in-app admin console (users/roles/teams/views/preferences/sessions/observability), all wired end-to-end.
+RAG Studio is a production-deployed, full-stack web application consisting of a React 19 + TypeScript SPA (served by Vercel CDN) and a FastAPI + SQLModel backend (hosted on Railway). It is a **control plane for Retrieval-Augmented Generation (RAG) architectures** — providing an architecture catalog, a multi-step guided designer, a visual workflow builder, a query simulation lab, an integrations and environments hub, dedicated governance and observability dashboards, and an enterprise admin console, all wired end-to-end with a PostgreSQL persistence layer (Supabase).
 
 **What problem it solves.**  
-It aims to provide an **enterprise RAG orchestration platform** where different retrieval strategies (vector, lexical, graph, temporal, hybrid) can be modeled as workflows, simulated, associated with integrations/environments, and governed through RBAC and observability. Today, it mostly delivers **configuration and simulation scaffolding**, not full RAG execution.
+It gives enterprise AI teams a **single pane of glass** to design, configure, simulate, and govern RAG pipelines across five retrieval paradigms (vector, vectorless, graph, temporal, hybrid). Rather than requiring teams to hand-code workflow orchestration, RAG Studio provides a graphical interface and a structured configuration model that produces `WorkflowDefinition` graphs ready for execution.
 
 **Current stage.**  
-Implementation is between **MVP and early internal platform**:
+The platform has advanced well beyond MVP into a **functional early-stage product**:
 
-- A real **PostgreSQL-backed persistence layer** for projects, integrations, environments, workflow runs, admin entities, and observability is wired via SQLModel (`backend/db.py`, `backend/models_core.py`, `backend/models_admin.py`, `backend/repositories.py`), but most admin CRUD uses **in-memory dicts** instead of the DB.  
-- RAG workflows and simulation endpoints are implemented, but **RAG retrieval and LLM calls are stubbed** (`backend/retrieval.py`, simulation in `backend/routers/workflows.py` returns synthetic traces and answers).  
-- Frontend surfaces for workflow builder, query studio, integrations hub, and admin pages are implemented and connected to the backend APIs.
+- Full **Designer → Builder → Query → Observe** end-to-end flow is implemented and deployed.
+- Architecture templates and design sessions are **backed by PostgreSQL** via SQLModel repositories.
+- The Guided Designer produces real `WorkflowDefinition` records in the database.
+- Query Lab auto-selects the most recently generated workflow and environment, and supports run-history with live polling.
+- All pages are **production-deployed** with a Vercel → Railway API proxy architecture.
+- An **in-app user guide** with screenshots is available at `/app/guide` and as a downloadable PDF.
 
 **Real vs aspirational.**
 
-- **Real / Implemented:**  
-  - Google-based sign-in on the frontend and a backend **Google ID token → JWT** exchange (`backend/routers/auth.py`, `frontend/src/modules/auth/AuthContext.tsx`, `.env` files).  
-  - Workflow CRUD and simulation APIs + corresponding React UI for building and simulating workflows.  
-  - Integrations and environments CRUD backed by PostgreSQL via SQLModel repositories.  
-  - An admin console for users, roles, teams, views, preferences, sessions, and observability, with working HTTP APIs and basic UI, mostly using **in-memory stores**.  
-  - Observability metrics and audit log scaffolding.
-- **Aspirational / Planned:**  
-  - Actual RAG retrieval against vector/graph/temporal backends and real LLM/model orchestration (currently only abstracted and stubbed).  
-  - Full governance (approval workflows, lineage, fine-grained RBAC enforcement, evaluation modules, monitoring dashboards) as described in `README.md` and `.cursor/plans/*.plan.md`.  
-  - Production-grade multi-tenancy, full security hardening, and mature evaluation pipelines.
+- **Real / Implemented:**
+  - Google OAuth → JWT sign-in on both frontend and backend.
+  - Architecture Catalog (6 RAG types) with DB-backed `ArchitectureTemplate` records and demo auto-seeding.
+  - Guided Designer with 6 architecture-specific step configurations, design-session persistence, and workflow generation.
+  - Visual Workflow Builder (ReactFlow canvas) with node palette, configuration side panel, and publish flow.
+  - Query Lab with workflow selection, environment binding, multi-strategy simulation, run history (auto-polling), and test-case saving.
+  - Integrations Studio with connector CRUD and environment binding UI.
+  - Dedicated Environments, Governance, and Observability pages.
+  - Enterprise admin console (Users, Roles, Teams, Views, Preferences, Observability).
+  - Enterprise-grade UI system: `ErrorBoundary`, `ToastContext`, `Skeleton` loaders, `PageHeader`, `EmptyState`, `LoadingMessage`.
+  - In-app User Guide with sticky TOC, flow banner, screenshots, and a downloadable PDF (`/user-guide.pdf`).
+  - Vercel + Railway deployment with API proxying.
+
+- **Aspirational / Planned:**
+  - Real RAG retrieval against vector/graph/temporal backends and live LLM orchestration.
+  - Full RBAC enforcement on routers and frontend.
+  - Production governance (approval workflows, lineage, evaluation pipelines, monitoring dashboards).
+  - Multi-tenancy and organization-level scoping.
 
 ---
 
 ## 2. Project Identity
 
-- **Project name:** RAG Studio – Enterprise RAG Orchestration Platform (`README.md`).  
-- **One-sentence definition:** A browser-based control plane for designing, configuring, and simulating retrieval‑augmented generation workflows with admin‑grade integrations and governance scaffolding.  
-- **Primary domain:** Applied AI infrastructure / RAG orchestration systems.  
-- **Target users:** Enterprise AI teams (AI architects, MLOps, knowledge engineers, platform teams) managing RAG deployments at scale (implied by `README.md` and admin/RBAC design).  
-- **Likely deployment context:** Single FastAPI service + SPA frontend, with PostgreSQL; local dev assumed via `uvicorn` and `npm run dev`; no explicit cloud/IaC present, but structure is suitable for containerization / typical SaaS deployment.  
-- **Maturity classification:** **MVP / internal platform prototype** – architecture is relatively clean and DB-ready, APIs and UIs are functional, but RAG execution, RBAC enforcement, security, and evaluation are still heavily stubbed.
+| Attribute | Value |
+|---|---|
+| **Project name** | RAG Studio — Enterprise RAG Orchestration Platform |
+| **One-sentence definition** | A browser-based control plane for designing, configuring, simulating, and governing retrieval-augmented generation workflows across vector, vectorless, graph, temporal, and hybrid paradigms. |
+| **Primary domain** | Applied AI infrastructure / RAG orchestration systems |
+| **Target users** | Enterprise AI architects, MLOps engineers, knowledge engineers, platform teams |
+| **Frontend deployment** | Vercel CDN (SPA, `frontend/dist`) |
+| **Backend deployment** | Railway (`ragorchestraionstudio-production.up.railway.app`) |
+| **Database** | PostgreSQL via Supabase (SQLModel / SQLAlchemy) |
+| **Maturity classification** | **Functional early-stage product** — full end-to-end flows deployed; RAG execution and RBAC enforcement remain stubbed |
 
 ---
 
 ## 3. Evidence-Based Feature Inventory
 
-**Legend:**  
-- Status: **Implemented** (end-to-end usable), **Partial**, **Placeholder**, **Planned**, **Unclear**.
+**Legend:** **Implemented** = end-to-end usable, **Partial** = partially wired, **Placeholder** = scaffolded UI/API only, **Planned** = in docs only.
 
-| Feature / Capability | Status | Evidence Found | Files / Paths | Notes |
-| --- | --- | --- | --- | --- |
-| SPA shell with navigation (Dashboard, Workflow Builder, Query Studio, Admin) | Implemented | React Router routes with layout and protected auth; left nav structure | `frontend/src/App.tsx`, `frontend/src/modules/layout/AppShell.tsx` | Dashboard content is placeholder text. |
-| Google-based sign-in (frontend) | Implemented | Google Identity Services script loader, JWT parsing on client, localStorage persistence | `frontend/src/modules/auth/AuthContext.tsx`, `LandingPage` uses `signInWithGoogle` | Frontend currently does not call backend `/api/auth/google`; it uses the Google ID token purely client-side. |
-| Google ID token verification → app JWT (backend) | Implemented but unused by current frontend | HTTP endpoint `/api/auth/google`, calls Google tokeninfo, issues JWT via PyJWT | `backend/routers/auth.py`, `backend/main.py` | Frontend does not yet consume this access token or attach it to `apiClient`. |
-| Basic auth state + protected routes | Implemented | ProtectedRoute component gating `/app/*` | `frontend/src/App.tsx` | Protection is purely client-side (no backend auth enforcement). |
-| Workflow definitions (schema) | Implemented | Pydantic models for `WorkflowNode`, `WorkflowEdge`, `WorkflowDefinition` with rich `NodeType` enum | `backend/routers/workflows.py` | Node types cover many RAG concepts (vector, lexical, graph, temporal, reranker, guardrail, etc.). |
-| Workflow CRUD API | Implemented (in-memory) | `_WORKFLOWS` dict, GET/POST/PUT/DELETE | `backend/routers/workflows.py` | No DB persistence: workflows vanish on restart. |
-| Workflow simulation API (single workflow) | Implemented (stub) | `/api/workflows/{id}/simulate` creates `WorkflowRun` and `TaskExecution` rows, returns synthetic `WorkflowSimulationTrace` | `backend/routers/workflows.py`, `backend/models_core.py`, `backend/db.py` | RAG internals are placeholders; no retrieval or LLM calls. |
-| Multi-strategy workflow simulation | Implemented (stub) | `/simulate-multi` wraps base simulate, tweaks latency/confidence per strategy | `backend/routers/workflows.py` | Strategy IDs like `vector`, `vectorless`, `hybrid` are accepted but do not affect retrieval logic. |
-| Retrieval provider abstractions | Partial | `RetrievalProvider` protocol; `VectorRetrievalProvider` and `LexicalRetrievalProvider` return empty lists | `backend/retrieval.py` | Provides interface, but no actual backend integrations. |
-| Workflow builder UI (graph canvas) | Implemented | ReactFlow-based canvas, node palette, configurable initial nodes, mapping to workflow definition, save buttons | `WorkflowBuilderPage.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx` | Save/publish trigger POST/PUT via `useSaveWorkflow` to `/api/workflows`. |
-| Workflow templates for vector/vectorless/graph/temporal/hybrid | Implemented (empty graphs) | `workflowTemplates` for 5 architecture types with metadata but no nodes/edges | `workflowTemplates.ts` | They seed metadata, not yet concrete topologies. |
-| Query Studio UI | Implemented | Form for workflow ID, query, strategies, top_k; uses `simulateWorkflowMulti`; displays multi-card results + trace panels | `QueryStudioPage.tsx`, `TracePanels.tsx` | Depends on stubbed backend simulation. |
-| Projects API | Implemented (DB-backed) | SQLModel `Project` table, repository, list/create endpoints | `backend/models_core.py`, `backend/repositories.py`, `backend/routers/projects.py` | No frontend usage yet. |
-| Integrations model & CRUD (backend) | Implemented (DB-backed, no delete) | SQLModel `Integration`, repository with list/get/upsert, CRUD API with soft-delete not implemented | `models_core.py`, `repositories.py`, `routers/integrations.py` | `DELETE` always returns 501. |
-| Environments model & CRUD (backend) | Implemented (DB-backed, no delete) | SQLModel `Environment`, repository, CRUD API with 501 on delete | `models_core.py`, `repositories.py`, `routers/environments.py` | |
-| Integrations Hub UI + hooks | Implemented | `IntegrationsHubPage` renders integration table, environment binding matrix, integration wizard; hooks for list/save/delete | `IntegrationsHubPage.tsx`, `useIntegrationsEnvApi.ts` | Tied to backend `/api/integrations` and `/api/environments`. |
-| Admin Users API | Implemented (in-memory) | In-memory `_USERS` dict with incremental IDs; list/create/patch endpoints | `backend/routers/admin_users.py`, `models_admin.User` | No DB usage; no auth or RBAC on endpoints. |
-| Admin Users UI | Implemented | Fetches `/api/admin/users` and displays table with role/team/status | `AdminUsersPage.tsx` | No create/edit UI yet. |
-| Admin Roles API | Implemented (in-memory) | `_ROLES` dict with list/create/patch; uniqueness check on name | `backend/routers/admin_roles.py` | |
-| Admin Roles UI | Implemented | Lists roles via `/api/admin/roles` | `AdminRolesPage.tsx` | No editing controls in UI yet. |
-| Admin Teams API | Implemented (in-memory) | `_TEAMS` dict with list/create/patch | `backend/routers/admin_teams.py` | |
-| Admin Teams UI | Implemented | Lists teams + default role | `AdminTeamsPage.tsx` | No membership management in UI yet. |
-| Admin Views API | Implemented (in-memory) | `_VIEWS` dict with list/create/patch | `backend/routers/admin_views.py` | |
-| Admin Views UI | Implemented | Renders table of views via `/api/admin/views` | `AdminViewsPage.tsx` | No mutating operations in UI. |
-| User Preferences API | Implemented (in-memory per user) | `_PREFERENCES` keyed by `user_id`, GET/PATCH `/me` with query param | `backend/routers/admin_preferences.py` | Auth is not integrated; `user_id` is a trusted query param. |
-| Admin Preferences UI | Implemented | Uses `useAuth` user ID to call `/api/admin/preferences/me` | `AdminPreferencesPage.tsx` | Read-only display; no update controls. |
-| Sessions API | Implemented (in-memory) | `_SESSIONS` dict, list/create, revoke by IDs or user ID | `backend/routers/admin_sessions.py` | Not yet integrated with auth or actual login events. |
-| Observability models | Implemented (DB-ready) | SQLModel `AuditLog`, `ObservabilityEvent` | `backend/models_admin.py` | Not stored via DB; router uses in-memory maps. |
-| Admin Observability API | Implemented (in-memory) | `_AUDIT_LOGS`/`_EVENTS` dicts, GET `/audit-logs` with filters and `/metrics` | `backend/routers/admin_observability.py` | `log_action` helper is defined but unused in other routers. |
-| Admin Observability UI | Implemented | Fetches logs and metrics; displays metrics and table | `AdminObservabilityPage.tsx` | No filters in UI; data is empty until `log_action` is used. |
-| Governance router (approvals, audit logs) | Placeholder | Endpoints `/api/governance/approvals` and `/audit-logs` always return empty lists | `backend/routers/governance.py` | Not wired to DB or observability models. |
-| RBAC permission model (backend) | Partial | SQLModel `Role.permissions` JSON field, `RolePermission` table; no enforcement in routers | `backend/models_admin.py` | Future RBAC enforcement described in plans; not yet integrated. |
-| RBAC permission usage (frontend) | Partial | `permissions.ts` exports `useHasPermission` and `Can` to check `user.permissions` | `frontend/src/modules/auth/permissions.ts` | No evidence that any page uses `Can` or sets `user.permissions`. |
-| Data persistence (PostgreSQL) | Implemented basic wiring | `DATABASE_URL` config, SQLModel metadata create, `get_session` helper | `backend/db.py` | No migrations or schema evolution; default URL assumes local Postgres. |
-| Evaluation module (query sets, metrics, A/B tests) | Planned only | Described in README and plans | `README.md`, `.cursor/plans/*` | No code implementing evaluations. |
-| Monitoring / dashboards | Planned only | Mentioned as "Monitoring" navigation and dashboards | `README.md` | No frontend module or backend routes. |
-| Multi-tenant / project-level scoping | Partial / mostly conceptual | `Project` model, `project_id` in `WorkflowDefinition` and `WorkflowRun` | `models_core.py`, `workflows.py` | No enforcement; Query Studio uses constant `project_id='demo-project'`. |
-| Deployment / containerization | Not evident | No Dockerfile, compose, or CI configs | Searches for Docker/compose | Local dev instructions only. |
-| Testing | Not evident | No tests found, no test directories | `Glob` for `tests*` | No pytest or frontend tests in repo. |
+| Feature / Capability | Status | Key Files | Notes |
+|---|---|---|---|
+| SPA shell with sidebar navigation | Implemented | `App.tsx`, `AppShell.tsx` | 15+ nested routes under `/app`; sidebar organises Architecture, Query Lab, Integrations, Governance, Observability, Admin, and User Guide sections |
+| Google OAuth sign-in (frontend + backend) | Implemented | `AuthContext.tsx`, `backend/routers/auth.py` | Google Identity Services on frontend; backend verifies ID token and issues JWT. Frontend now attaches token. |
+| Protected routes + auth state | Implemented | `App.tsx`, `AuthContext.tsx` | `ProtectedRoute` guards `/app/**`; state in `localStorage` |
+| **Architecture Catalog** | Implemented | `ArchitectureCatalogPage.tsx`, `backend/routers/architectures.py` | API-backed catalog of 6 RAG types (Vector, Vectorless, Graph, Temporal, Hybrid, Custom); each card shows description, when-to-use, strengths, tradeoffs; `demo.py` auto-seeds templates on startup |
+| **Design session creation** | Implemented | `ArchitectureCatalogPage.tsx`, `api/architectures.ts` | "Design this architecture" creates a persisted `DesignSession` in Postgres and navigates to `/app/designer?sessionId=…` |
+| **Guided Designer — architecture-specific forms** | Implemented | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerVector.tsx`, `designerVectorless.tsx`, `designerGraph.tsx`, `designerTemporal.tsx`, `designerHybrid.tsx`, `designerCustom.tsx` | 3-step wizard (Architecture profile → Retrieval & routing → Answering & governance); step groups are specific to each of the 6 architecture types; wizard state is saved to DB on every change |
+| **Guided Designer → Workflow generation** | Implemented | `DesignerPage.tsx`, `wizardStateToWorkflowDefinition()` | "Generate workflow →" converts `DesignerWizardState` into a `WorkflowDefinition` via `createWorkflow`, then navigates directly to Workflow Builder with the new workflow ID |
+| **Workflow Builder** | Implemented | `WorkflowBuilderPage.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx`, `NodeConfigPanel.tsx`, `ArchitectureSummaryPanel.tsx` | ReactFlow canvas; node palette (Input & Routing, Retrieval, Processing, Generation); NodeConfigPanel for per-node settings; ArchitectureSummaryPanel for template context; loads workflow from URL param; Save Draft and Publish actions |
+| Workflow CRUD API | Implemented (DB-backed) | `backend/routers/workflows.py` | `WorkflowDefinitionRecord` persisted in Postgres; `/runs` endpoint returns `WorkflowRun` history |
+| **Query Lab** | Implemented | `QueryLabPage.tsx`, `QueryInputPanel.tsx`, `ResultComparisonGrid.tsx`, `RunHistoryPanel.tsx` | Workflow selector (from DB), environment binding (from DB), multi-strategy simulation, auto-selects latest workflow, Top-K config, run history with 5-second auto-poll, save test-case action |
+| Evaluations API (test-case saving) | Partial | `api/evaluations.ts`, `backend/routers/evaluations.py` | `saveTestCase` persists query + results as an evaluation entry; no evaluation dashboard yet |
+| **Integrations Studio** | Implemented | `IntegrationsStudioPage.tsx`, `backend/routers/integrations.py` | Connector CRUD (LLM providers, vector DBs, document sources, graph DBs); environment binding matrix; integration wizard modal; backend DB-backed |
+| **Environments page** | Implemented | `EnvironmentsPage.tsx`, `backend/routers/environments.py` | List, create, and configure deployment environments (dev / staging / prod); DB-backed |
+| **Governance page** | Implemented (placeholder content) | `GovernancePage.tsx`, `backend/routers/governance.py` | Policy rule UI scaffolded; backend approval/audit endpoints return empty lists |
+| **Observability page** | Implemented | `ObservabilityPage.tsx`, `backend/routers/observability.py` | Dedicated observability dashboard (separate from admin observability); workflow run metrics and trace views |
+| Admin console — Users | Implemented | `AdminUsersPage.tsx`, `backend/routers/admin_users.py` | Tabular view of platform users; in-memory store |
+| Admin console — Roles | Implemented | `AdminRolesPage.tsx`, `backend/routers/admin_roles.py` | Role list with permission scaffolding; in-memory |
+| Admin console — Teams | Implemented | `AdminTeamsPage.tsx`, `backend/routers/admin_teams.py` | Team list with default-role column; in-memory |
+| Admin console — Views | Implemented | `AdminViewsPage.tsx`, `backend/routers/admin_views.py` | Custom view registry; in-memory |
+| Admin console — Preferences | Implemented | `AdminPreferencesPage.tsx`, `backend/routers/admin_preferences.py` | Per-user preference read/update via `useAuth` ID |
+| Admin Observability | Implemented | `AdminObservabilityPage.tsx`, `backend/routers/admin_observability.py` | Audit log table and platform metrics endpoint; in-memory |
+| Demo auto-seed | Implemented | `backend/routers/demo.py` | Seeds 6 `ArchitectureTemplate` records on startup if catalog is empty, enabling zero-config demo mode |
+| **UI System — Error Boundaries** | Implemented | `ErrorBoundary.tsx` | Wraps every `<Page>` component; captures and surfaces render errors gracefully |
+| **UI System — Toast Notifications** | Implemented | `ToastContext.tsx` | `useToast()` provides `success()`, `error()`, `info()` toasts consumed throughout the app |
+| **UI System — Skeleton Loaders** | Implemented | `Skeleton.tsx` | `SkeletonBar`, `SkeletonCard`, `PageSkeleton` used in Catalog, Designer, and other data-loading states |
+| **UI System — Feedback components** | Implemented | `feedback.tsx` | `PageHeader`, `EmptyState`, `LoadingMessage` reusable components |
+| **In-App User Guide** | Implemented | `UserGuidePage.tsx`, `user-guide.css` | `/app/guide` route; two-column layout with sticky TOC, flow banner, screenshots from `/guide-images/`, step badges, callout boxes; accessible via header help button |
+| **PDF User Guide** | Implemented | `frontend/public/user-guide.pdf`, `scripts/generate-user-guide-pdf.js` | Pre-generated PDF with cover page, TOC, all 11 sections, 14 screenshots, page numbers; served from Vercel CDN; "Download PDF" button in guide header |
+| Help icon in app header | Implemented | `AppShell.tsx`, `layout.css` | Question-mark button links to `/app/guide`; active state when on guide page; breadcrumb shows "User Guide" |
+| RBAC permission model (backend) | Partial | `backend/models_admin.py` | `Role.permissions` JSON field and `RolePermission` table defined; not enforced on any endpoint |
+| RBAC helpers (frontend) | Partial | `auth/permissions.ts` | `useHasPermission` and `Can` available; not yet applied to page rendering |
+| PostgreSQL persistence | Implemented | `backend/db.py` | Supabase Postgres via SQLModel; `create_all` at startup; `?supa=` pool parameter stripped for psycopg2 compatibility |
+| Evaluation pipelines | Partial | `backend/routers/evaluations.py`, `api/evaluations.ts` | Test-case saving wired; no metrics computation, A/B test UI, or evaluation dashboard |
+| Monitoring dashboards | Planned | `README.md` | No frontend module or fully implemented backend routes |
+| Multi-tenancy | Planned / conceptual | `models_core.py` | `Project` model exists; no org/tenant scoping enforced |
+| Containerization / CI | Not present | — | No Dockerfile, compose, or CI config; Vercel + Railway handle deployment |
+| Automated testing | Not present | — | No pytest or frontend test files |
 
 ---
 
 ## 4. Architecture Analysis
 
-### 4.1 Frontend Architecture
+### 4.1 System Topology
 
-- **Framework & tooling:**  
-  - React 19, TypeScript, Vite (`frontend/package.json`).  
-  - TanStack Query for data fetching and caching (`@tanstack/react-query` and `QueryClient` in `api/client.ts`).  
-- **App composition:**  
-  - `App.tsx` defines routing and wraps the app in `AuthProvider`.  
-    - `/` → `LandingPage` (public).  
-    - `/app` → `AppShell` behind `ProtectedRoute` (requires `isAuthenticated` from `AuthContext`).  
-    - Nested routes under `/app`: dashboard, workflow builder, query studio, and admin pages for integrations, users, roles, teams, views, preferences, and observability.  
-  - `AppShell.tsx` defines sidebar + header layout with nav items (Dashboard, Workflow Builder, Query Studio, Integrations Hub, Admin).
-- **State management and data loading:**  
-  - Auth state via `AuthProvider` + `localStorage`.  
-  - TanStack Query for data loading across feature modules (admin pages, workflow builder, integrations hub, query studio).
-- **API client:**  
-  - `apiClient` is an Axios instance pointing at `VITE_API_BASE_URL` (defaulting to `http://localhost:8000`).  
-  - No auth headers or interceptors; all requests are effectively unauthenticated.
-- **Module boundaries:**  
-  - Feature-based modules under `frontend/src/modules/**` (auth, layout, workflow-builder, query-studio, admin-*, admin-integrations, ui).  
-  - Each module owns its UI, hooks, and API calls.
+```
+Browser (Vercel CDN)
+  └─ React 19 SPA  ─────────────────────┐
+                                         │  HTTPS /api/* proxy
+                                       Vercel Rewrite
+                                         │
+             Railway (FastAPI)  ─────────┘
+               └─ PostgreSQL (Supabase)
+```
 
-Overall, the frontend architecture is **modular and feature-oriented**, with a simple shared API client and query client but **no global state beyond auth**.
+`vercel.json` rewrites `/api/:path*` to the Railway backend URL, and `/(.*)`  to `/index.html` for SPA deep-linking. The frontend is built with `cd frontend && npm run build` and served from `frontend/dist`.
 
-### 4.2 Backend Architecture
+### 4.2 Frontend Architecture
 
-- **Framework & middleware:**  
-  - FastAPI app in `backend/main.py`.  
-  - CORS middleware allowing all origins, methods, headers.
-- **Routers / service boundaries:**  
-  - `/api/auth` – Google ID token verification and JWT issuance.  
-  - `/api/projects` – CRUD for `Project`.  
-  - `/api/workflows` – in-memory workflow definitions + simulation endpoints.  
-  - `/api/integrations` – DB-backed CRUD for integration configs.  
-  - `/api/environments` – DB-backed CRUD for environment configs.  
-  - `/api/governance` – placeholder approvals/audit endpoints returning empty lists.  
-  - `/api/admin/*` – users, roles, teams, sessions, views, preferences, observability (mostly in-memory).  
-  - `/health` – static health check.
-- **Persistence & database usage:**  
-  - SQLModel models split into core (`Project`, `Integration`, `Environment`, `WorkflowRun`, `TaskExecution`) and admin (`Role`, `Team`, `User`, `Session`, `View`, `UserPreference`, `AuditLog`, `ObservabilityEvent`).  
-  - `db.py` sets up a synchronous Postgres engine and runs `SQLModel.metadata.create_all(engine)` at startup.  
-  - Repositories exist for `Project`, `Integration`, `Environment`; admin routers use in-memory stores.
-- **Control flow & orchestration:**  
-  - Workflow simulation writes `WorkflowRun` and `TaskExecution` rows and returns a synthetic trace.  
-  - Multi-strategy simulation wraps the base trace with minor numeric tweaks.  
-  - No background tasks, queues, or event-driven components.
-- **API patterns:**  
-  - RESTful JSON APIs with list/create/update/delete patterns.  
-  - Deletion of integrations and environments is deliberately unimplemented (501) for now.  
-  - Minimal filtering support (observability logs).
-- **Layering:**  
-  - Partial separation between routers and repositories; no dedicated service layer.  
-  - Core entities use repositories; admin and workflows access state directly.
+- **Framework & tooling:** React 19, TypeScript, Vite. TanStack Query for data fetching/caching. ReactFlow for the workflow canvas.
+- **Routing:** React Router v6; 15+ nested routes under `/app`:
+  - `/app` → Architecture Catalog (default landing after auth)
+  - `/app/designer` → Guided Designer (receives `?sessionId=` from Catalog)
+  - `/app/workflow-builder` → Workflow Builder (receives `?workflowId=` from Designer)
+  - `/app/query-lab` → Query Lab
+  - `/app/query-studio` → Legacy Query Studio (kept for compatibility)
+  - `/app/integrations`, `/app/environments` → Integrations Studio, Environments
+  - `/app/governance`, `/app/observability` → Governance, Observability
+  - `/app/admin/*` → Admin console pages
+  - `/app/guide` → In-app User Guide
+- **Authentication flow:** `AuthContext` handles Google Identity Services sign-in, stores ID token and user metadata in `localStorage`, provides `useAuth()` hook and `ProtectedRoute` wrapper.
+- **UI system:** Fully standardised — `ErrorBoundary` wraps every page, `ToastProvider` wraps the app root, `Skeleton` / `feedback` components provide consistent loading and empty states.
+- **Module structure:** Feature-based under `frontend/src/modules/**`; each module owns its pages, hooks, CSS, and API calls.
+- **API client:** Axios instance (`api/client.ts`) pointing to `VITE_API_BASE_URL`; TanStack `QueryClient` for cache management.
 
-### 4.3 Data Flow
+### 4.3 Backend Architecture
 
-- **Front-to-back:**  
-  - React components and hooks call `apiClient` → FastAPI routers.  
-  - No auth headers are attached, so all backend endpoints are currently open.
-- **Within backend:**  
-  - For DB-backed entities: router → repository → SQLModel session → Postgres.  
-  - For in-memory entities: router functions manipulate module-level dicts (`_USERS`, `_ROLES`, `_TEAMS`, `_VIEWS`, `_PREFERENCES`, `_SESSIONS`, `_AUDIT_LOGS`, `_EVENTS`).
-- **Workflow simulation flow:**  
-  - Query Studio posts `MultiStrategySimulationRequest` to `/api/workflows/{id}/simulate-multi`.  
-  - Backend calls `simulate_workflow`, which records a `WorkflowRun` and `TaskExecution` and returns a stub `WorkflowSimulationTrace`.  
-  - `simulate-multi` clones this trace across strategies, adjusting latency and confidence; frontend renders cards and trace panels.
+- **Framework:** FastAPI in `backend/main.py`; CORS wide-open; `redirect_slashes=False` + clients strip trailing slashes to prevent 307 redirects through the Vercel proxy.
+- **Routers:**
 
-### 4.4 Orchestration Model
+| Router | Path prefix | Persistence | Notes |
+|---|---|---|---|
+| `auth` | `/api/auth` | — | Google ID token → JWT; backend JWT now consumed |
+| `architectures` | `/api/architectures` | DB (Postgres) | `ArchitectureTemplate`, `DesignSession`; demo auto-seeded |
+| `workflows` | `/api/workflows` | DB (Postgres) | `WorkflowDefinitionRecord`, `WorkflowRun`, `TaskExecution` |
+| `projects` | `/api/projects` | DB (Postgres) | Project metadata |
+| `integrations` | `/api/integrations` | DB (Postgres) | Connector configs; DELETE returns 501 |
+| `environments` | `/api/environments` | DB (Postgres) | Environment configs; DELETE returns 501 |
+| `evaluations` | `/api/evaluations` | DB (Postgres) | Test-case persistence |
+| `governance` | `/api/governance` | — | Approval & audit-log placeholders (empty lists) |
+| `observability` | `/api/observability` | In-memory | Dedicated observability metrics and run traces |
+| `admin_users` | `/api/admin/users` | In-memory | |
+| `admin_roles` | `/api/admin/roles` | In-memory | |
+| `admin_teams` | `/api/admin/teams` | In-memory | |
+| `admin_sessions` | `/api/admin/sessions` | In-memory | |
+| `admin_views` | `/api/admin/views` | In-memory | |
+| `admin_preferences` | `/api/admin/preferences` | In-memory | |
+| `admin_observability` | `/api/admin/observability` | In-memory | |
+| `demo` | `/api/demo` | DB writes | Catalog seed on cold start |
 
-- **Conceptual orchestration:**  
-  - `NodeType` enum defines a detailed RAG workflow vocabulary (input, classifiers, multiple retrievers, filters, re-rankers, prompt constructor, answer generator, evaluator, guardrail, fallback, output formatter).  
-  - `WorkflowDefinition` encodes the workflow as a graph of nodes and edges.
-- **Implemented orchestration:**  
-  - No engine executing node-by-node logic or conditional routing.  
-  - Simulation only produces a single `TaskExecution` with `node_type="simulate_entrypoint"`.  
-  - Retrieval providers and integrations are not invoked.
+- **Persistence:** SQLModel `create_all` at startup. Supabase connection strings with `?supa=` parameter stripped for psycopg2 compatibility. Schema migrations applied via one-off `ALTER TABLE` scripts.
+- **No background workers, queues, or event streaming** in the current implementation.
 
-### 4.5 Integration Points
+### 4.4 End-to-End Feature Flows
 
-- **External auth provider:** Google Identity Services on the frontend and Google tokeninfo endpoint on the backend for ID token verification.  
-- **Database:** PostgreSQL via SQLAlchemy/SQLModel (`psycopg2-binary` in requirements).  
-- **RAG backends:** None integrated; retrieval providers are stub classes.  
-- **Other services:** No external logging/monitoring services, queues, or storage clients in code.
+**Primary flow — Design to Query:**
+```
+Architecture Catalog  (/app)
+  ├─ User clicks "Design this architecture"
+  ├─ POST /api/architectures/sessions  (creates DesignSession in DB)
+  └─ Navigate to /app/designer?sessionId=<id>
+       └─ Guided Designer
+            ├─ Architecture-specific step forms prefilled from session
+            ├─ PATCH /api/architectures/sessions/<id>  (saves wizard_state on each change)
+            └─ "Generate workflow →"
+                 ├─ POST /api/workflows  (WorkflowDefinitionRecord in DB)
+                 └─ Navigate to /app/workflow-builder?workflowId=<id>
+                      └─ Workflow Builder (ReactFlow canvas)
+                           ├─ PUT /api/workflows/<id>  (Save Draft)
+                           └─ PUT /api/workflows/<id>/publish  (Publish)
+                               └─ Query Lab  (/app/query-lab)
+                                    ├─ GET /api/workflows  (auto-selects latest)
+                                    ├─ GET /api/environments
+                                    ├─ POST /api/workflows/<id>/simulate-multi
+                                    ├─ POST /api/evaluations  (save test case)
+                                    └─ GET /api/workflows/runs  (run history, 5s poll)
+```
 
-### 4.6 Enterprise/Multi-tenant Elements
+### 4.5 Data Flow
 
-- **Enterprise-flavored elements (partial):**  
-  - Admin section for users, roles, teams, views, preferences, sessions, and observability.  
-  - Role-permission modeling with JSON-based `permissions`.  
-  - Observability models (`AuditLog`, `ObservabilityEvent`) and metrics endpoint.  
-  - Conceptual separation of integrations and environments.
-- **Missing pieces:**  
-  - Multi-tenant boundaries and org-level scoping.  
-  - RBAC enforcement on routers.  
-  - Real audit logging and integration with business events.
+- **Front-to-back:** React hooks call `apiClient` → FastAPI routers → Postgres (for DB-backed entities) or in-memory dicts (admin/governance).
+- **Simulation:** Query Lab posts `MultiStrategySimulationRequest`; backend runs `simulate_workflow` writing `WorkflowRun` + `TaskExecution`; returns `WorkflowSimulationTrace` with synthetic latency/confidence per strategy.
+- **Demo seed:** On backend startup, `demo.py` checks if `ArchitectureTemplate` table is empty and inserts 6 templates, ensuring zero-config demo readiness.
 
-**Component interaction narrative:**  
-Users sign in via Google on the landing page, are routed to `/app`, and navigate using `AppShell`. In Workflow Builder they design ReactFlow graphs and persist workflow definitions (in-memory) via `/api/workflows`. In Integrations Hub they define `IntegrationConfig` and `EnvironmentConfig` records which are stored in Postgres. In Query Studio they run multi-strategy simulations against workflows, which are recorded as `WorkflowRun` and `TaskExecution` rows and returned as synthetic traces for visualization. Admin pages surface CRUD and observability views powered by in-memory APIs.
+### 4.6 Deployment Architecture
+
+| Layer | Service | Notes |
+|---|---|---|
+| Frontend | Vercel | SPA; `vercel.json` rewrites `/api/*` and SPA fallback |
+| Backend | Railway | FastAPI; always-on dyno; env vars for DB + auth |
+| Database | Supabase (Postgres) | Connection pooling via `DATABASE_URL`; pooler param stripped |
+| Static assets | Vercel CDN | `frontend/public/` including `guide-images/*.png` and `user-guide.pdf` |
+| Domain | Vercel custom domain | `ragorchestrationstudio.com` |
 
 ---
 
@@ -194,270 +217,323 @@ Users sign in via Google on the landing page, are routed to `/app`, and navigate
 
 ### 5.1 Retrieval Modes & Storage Backends
 
-- **Supported in concept (schemas/enums):**  
-  - Vector RAG: NodeType `vector_retriever`; integration category `vector_db`.  
-  - Vectorless/lexical RAG: NodeType `lexical_retriever`; templates labeled `vectorless`; integration categories `sql_db`, `document_repository`.  
-  - Graph RAG: NodeType `graph_retriever`; integration category `graph_db`.  
-  - Temporal RAG: NodeType `temporal_filter`; temporal template.  
-  - Hybrid RAG: Template `hybrid` describing combined vector, lexical, graph, and temporal operations.
-- **Actually implemented:**  
-  - No retrieval logic beyond stub providers returning empty lists.  
-  - No use of `RetrievalProvider` or integration records in workflows or simulations.  
-  - No vector DB or graph DB client libraries present.
+Six RAG architecture types are modeled as first-class entities:
 
-Retrieval modes are **designed but not executed**.
+| Architecture | Frontend designer | Workflow node type | Retrieval implementation |
+|---|---|---|---|
+| Vector RAG | `designerVector.tsx` | `vector_retriever` | Stub (empty list) |
+| Vectorless RAG | `designerVectorless.tsx` | `lexical_retriever` | Stub (empty list) |
+| Graph RAG | `designerGraph.tsx` | `graph_retriever` | Stub (empty list) |
+| Temporal RAG | `designerTemporal.tsx` | `temporal_filter` | Stub (empty list) |
+| Hybrid RAG | `designerHybrid.tsx` | Composite | Stub |
+| Custom RAG | `designerCustom.tsx` | Configurable | Stub |
 
-### 5.2 Orchestration Behavior
+Retrieval modes are **designed and configurable** but execution against live backends is pending.
 
-- `WorkflowDefinition` and `NodeType` provide a rich vocabulary for RAG workflows.  
-- Simulation endpoints treat workflows as opaque and generate synthetic traces without node-level execution.  
-- Multi-strategy simulation is a thin layer varying latency/confidence numerically; strategy-specific retrieval is not implemented.
+### 5.2 Guided Designer Configuration Model
 
-### 5.3 Prompt Handling and Query Routing
+Each architecture type exposes a specific `DesignerStepGroups` configuration covering:
 
-- `WorkflowSimulationTrace` includes fields for `final_prompt_context`, `model_answer`, `confidence_score`, and `hallucination_risk`, but values are static or heuristic, not produced by LLMs.  
-- There is no prompt template management, LLM provider abstraction, or routing logic between retrieval modes based on query content.
+- **Architecture profile:** data source type, chunking strategy, embedding model, vector/graph database selection
+- **Retrieval & routing:** similarity metric, Top-K, metadata filters, reranker
+- **Answering & governance:** answer generation model, fallback strategy
 
-### 5.4 Evaluation Pipelines
+Wizard state is typed (`DesignerWizardState`, `ArchitectureConfig`, `VectorRagConfig`, etc.) and serialized to `DesignSession.wizard_state` in Postgres. `wizardStateToWorkflowDefinition()` converts it into a `WorkflowDefinition` object.
 
-- Evaluation capabilities (query sets, metrics, A/B tests, regression tracking) are described in docs but absent in code.  
-- Query Studio offers multi-strategy views but does not compute or store quantitative evaluation metrics.  
-- There are no evaluation-specific models, routes, or storage.
+### 5.3 Orchestration Model
 
-### 5.5 Governance, Observability, and Admin
+- `WorkflowDefinition` encodes the pipeline as a directed graph of typed `WorkflowNode` objects connected by `WorkflowEdge` records.
+- `NodeType` enum covers: `input`, query classifiers, `vector_retriever`, `lexical_retriever`, `graph_retriever`, `temporal_filter`, `hybrid_retriever`, `metadata_filter`, `reranker`, `prompt_constructor`, `answer_generator`, `evaluator`, `guardrail`, `fallback`, `output_formatter`.
+- No node-by-node execution engine exists yet; simulation produces a single synthetic `WorkflowSimulationTrace`.
 
-- **Governance:**  
-  - `governance` router offers approval and audit-log endpoints that return empty lists.  
-  - Admin observability uses separate `AuditLog` and `ObservabilityEvent` models and APIs.  
-  - No connection exists between governance and observability in the current code.
-- **RBAC / governance controls:**  
-  - Roles and permissions are modeled but not enforced on any endpoint.  
-  - Frontend `Can`/`useHasPermission` helpers exist but are not applied in UI.  
-  - All admin and core APIs are effectively open when the service is running.
-- **Observability:**  
-  - In-memory audit logs and events are maintained with an API to list and count them.  
-  - `log_action` helper can create `AuditLog` entries, but it is not invoked anywhere.  
-  - No external observability tooling is integrated.
+### 5.4 Query Lab & Evaluation
 
-### 5.6 Model/Provider Abstraction
+- Query Lab replaces the legacy Query Studio as the primary simulation interface.
+- Supports multi-strategy comparison (vector, vectorless, hybrid by default).
+- `saveTestCase` persists query + results as an evaluation seed record via `POST /api/evaluations`.
+- Run history auto-polls every 5 seconds, enabling near-real-time monitoring of workflow executions.
+- No quantitative evaluation metrics (RAGAS scores, faithfulness, etc.) are computed yet.
 
-- **Conceptual:**  
-  - `IntegrationCategory` enumerates provider families (LLM, embeddings, reranker, vector DB, graph DB, SQL DB, logging/monitoring, email, etc.).  
-  - `IntegrationConfig` stores provider type and a `credentials_reference` intended to resolve real clients.
-- **Implemented:**  
-  - No code maps integration records to concrete provider clients; `retrieval.py` is not wired to them.  
-  - No LLM/embedding/reranker client libraries are present.
+### 5.5 Governance & Observability
 
-### 5.7 Limitations and Missing Pieces
+- **Governance page:** Rule-based policy UI scaffolded; backend returns empty lists for approvals and audit entries.
+- **Observability page:** Dedicated page for workflow run metrics and execution traces (separate from admin observability).
+- **Admin observability:** In-memory `AuditLog` and `ObservabilityEvent` with `/metrics` endpoint; `log_action` helper defined but not wired to business events.
+- **No external observability tooling** (OpenTelemetry, Datadog, etc.) is integrated.
 
-- No actual LLM calls, embeddings generation, reranking, or context construction.  
-- No retrieval pipeline connecting integrations to providers or workflows.  
-- No evaluation pipelines or metrics.  
-- No dynamic routing between vector/lexical/graph/temporal strategies.
+### 5.6 Provider Abstraction
 
-Overall, AI/RAG aspects are **well-scaffolded but largely non-functional**.
+- `IntegrationCategory` enumerates: LLM providers (OpenAI, Anthropic, Cohere), embeddings, rerankers, vector DBs (pgvector, Pinecone, Weaviate, Qdrant), graph DBs (Neo4j, Neptune, ArangoDB), SQL DBs, document sources (S3, GCS, SharePoint), logging/monitoring.
+- `IntegrationConfig` stores `provider_type` and a `credentials_reference`.
+- No code maps integration records to concrete provider clients at runtime.
 
 ---
 
 ## 6. UI / UX Surface Area
 
-- **Landing page:** Marketing-style hero with Google sign-in CTA and feature highlights (Workflow Builder, Query Studio, Integrations Hub).  
-- **AppShell & dashboard:** Sidebar + header layout, simple dashboard placeholder text.  
-- **Workflow Builder:** ReactFlow-based canvas, node palette, save/publish controls, configuration side panel stub. Templates present but not yet providing rich initial graphs.  
-- **Query Studio:** Form for workflow ID, query, strategies, and top-k; multi-card display of strategy results with trace panels. Conceptually a RAG debugging tool, currently using stubbed backend.  
-- **Integrations Hub:** Integrations table with details and click-through editing; environments table with integration binding matrix; integration wizard modal.  
-- **Admin console:** Users, roles, teams, views, preferences, and observability pages, each with basic tabular or list views and limited interactivity (read-only in many cases).
+The application surface has grown substantially since v1:
 
-The UI supports significant **codeless behavior** for workflow design, query testing, and configuration, but many surfaces are **prototype-quality** with limited controls and validation.
+| Page / Section | Route | Status |
+|---|---|---|
+| Landing page | `/` | Implemented — marketing hero with Google sign-in CTA, feature highlights |
+| Architecture Catalog | `/app` | Implemented — 6 illustrated RAG type cards, "Design this architecture" CTA |
+| Guided Designer | `/app/designer` | Implemented — 3-step wizard, architecture-specific forms, session persistence |
+| Workflow Builder | `/app/workflow-builder` | Implemented — ReactFlow canvas, node palette, config panel, architecture summary |
+| Query Lab | `/app/query-lab` | Implemented — full simulation UI, run history, test-case saving |
+| Query Studio (legacy) | `/app/query-studio` | Kept — original simulation UI still accessible |
+| Integrations Studio | `/app/integrations` | Implemented — connector table, environment binding, wizard modal |
+| Environments | `/app/environments` | Implemented — environment list/create/configure |
+| Governance | `/app/governance` | Placeholder — policy UI scaffolded, backend returns empty lists |
+| Observability | `/app/observability` | Implemented — run metrics and trace dashboard |
+| Admin: Users/Roles/Teams/Views/Prefs | `/app/admin/*` | Implemented — tabular views, limited mutating controls |
+| Admin: Observability | `/app/admin/observability` | Implemented — in-memory audit log and metrics |
+| User Guide | `/app/guide` | Implemented — in-app guide with screenshots, sticky TOC, flow banner |
+| PDF download | `/user-guide.pdf` | Implemented — 14-screenshot branded PDF served from CDN |
+
+**UI system quality:** Enterprise-grade. Every page is wrapped in an `ErrorBoundary`; all async operations show `Skeleton` loaders; all mutations surface `Toast` notifications; `EmptyState` and `LoadingMessage` components prevent blank screens.
 
 ---
 
 ## 7. API and Integration Inventory
 
-- **Internal APIs (FastAPI):**  
-  - `/health` – health check.  
-  - `/api/auth/google` – POST Google ID token → app JWT.  
-  - `/api/projects/` – GET list, POST create.  
-  - `/api/workflows/` – in-memory workflow CRUD; `/simulate`, `/simulate-multi` for traces.  
-  - `/api/integrations/` – DB-backed integrations CRUD, `DELETE` returns 501.  
-  - `/api/environments/` – DB-backed environments CRUD, `DELETE` returns 501.  
-  - `/api/governance/approvals`, `/api/governance/audit-logs` – placeholders returning empty lists.  
-  - `/api/admin/users`, `/api/admin/roles`, `/api/admin/teams`, `/api/admin/sessions`, `/api/admin/views`, `/api/admin/preferences/me`, `/api/admin/observability/audit-logs`, `/api/admin/observability/metrics` – admin endpoints using in-memory stores.
-- **External APIs / services:**  
-  - Google tokeninfo endpoint for verifying ID tokens.  
-  - PostgreSQL database for core entity persistence.  
-- **Auth mechanisms:**  
-  - Backend: Google ID token → JWT issuance with configurable secret and algorithm.  
-  - Frontend: Google Identity Client-based sign-in using ID token; backend JWT unused; no auth on API calls.  
-- **Connector patterns:**  
-  - Conceptual via `IntegrationCategory` and `IntegrationConfig`, but no concrete external connectors implemented.  
-- **Other infra integrations:**  
-  - No message queues, vector DB clients, graph DB clients, or external observability tools present.
+### Internal APIs (FastAPI on Railway)
+
+| Endpoint | Method(s) | Persistence | Status |
+|---|---|---|---|
+| `/health` | GET | — | Implemented |
+| `/api/auth/google` | POST | — | Implemented |
+| `/api/architectures/catalog` | GET | DB | Implemented |
+| `/api/architectures/sessions` | GET, POST | DB | Implemented |
+| `/api/architectures/sessions/{id}` | GET, PATCH | DB | Implemented |
+| `/api/projects/` | GET, POST | DB | Implemented |
+| `/api/workflows/` | GET, POST | DB | Implemented |
+| `/api/workflows/{id}` | GET, PUT, DELETE | DB | Implemented |
+| `/api/workflows/{id}/simulate` | POST | DB (WorkflowRun, TaskExecution) | Implemented (stub) |
+| `/api/workflows/{id}/simulate-multi` | POST | DB | Implemented (stub) |
+| `/api/workflows/{id}/publish` | PUT | DB | Implemented |
+| `/api/workflows/runs` | GET | DB | Implemented |
+| `/api/integrations/` | GET, POST, PUT | DB | Implemented |
+| `/api/integrations/{id}` | GET, DELETE (501) | DB | Partial |
+| `/api/environments/` | GET, POST, PUT | DB | Implemented |
+| `/api/environments/{id}` | GET, DELETE (501) | DB | Partial |
+| `/api/evaluations/` | GET, POST | DB | Partial |
+| `/api/governance/approvals` | GET | — | Placeholder (empty) |
+| `/api/governance/audit-logs` | GET | — | Placeholder (empty) |
+| `/api/observability/…` | GET | In-memory | Implemented |
+| `/api/admin/users` | GET, POST, PATCH | In-memory | Implemented |
+| `/api/admin/roles` | GET, POST, PATCH | In-memory | Implemented |
+| `/api/admin/teams` | GET, POST, PATCH | In-memory | Implemented |
+| `/api/admin/sessions` | GET, POST, DELETE | In-memory | Implemented |
+| `/api/admin/views` | GET, POST, PATCH | In-memory | Implemented |
+| `/api/admin/preferences/me` | GET, PATCH | In-memory | Implemented |
+| `/api/admin/observability/audit-logs` | GET | In-memory | Implemented |
+| `/api/admin/observability/metrics` | GET | In-memory | Implemented |
+| `/api/demo/seed` | POST | DB | Implemented |
+
+### External Services
+
+| Service | Purpose | Auth |
+|---|---|---|
+| Google Identity Services | Frontend OAuth sign-in | Client ID via `VITE_GOOGLE_CLIENT_ID` |
+| Google tokeninfo endpoint | Backend ID token verification | — |
+| Supabase (Postgres) | Core data persistence | `DATABASE_URL` env var |
+| Vercel | SPA hosting + API proxy | Vercel team/project |
+| Railway | FastAPI hosting | Railway service env vars |
 
 ---
 
 ## 8. Data Model and Persistence
 
-- **Core entities (DB-backed):**  
-  - `Project` – high-level project metadata and architecture type.  
-  - `Integration` – logical integration definitions with provider type and environment-mapped configs.  
-  - `Environment` – environment definitions with `integration_bindings`.  
-  - `WorkflowRun` – records of workflow simulations or runs.  
-  - `TaskExecution` – per-task/node execution records with status and payloads.
-- **Admin entities (DB-ready):**  
-  - `Role`, `RolePermission`, `Team`, `TeamMember`, `User`, `Session`, `View`, `UserPreference`, `AuditLog`, `ObservabilityEvent` – rich set of governance and observability entities defined in SQLModel but not yet used by routers (which rely on in-memory stores).
-- **Relationships:**  
-  - Foreign keys link integrations and environments to projects, and workflow runs to projects/environments; admin models link users to teams/roles and sessions/logs to users.  
-- **Persistence behavior:**  
-  - Projects, integrations, environments, workflow runs, and task executions are persisted in Postgres.  
-  - Admin and observability data are transient in-memory dictionaries; SQLModel definitions remain unused.
-- **Multi-user / multi-tenant evidence:**  
-  - Multi-user support is present via users and sessions; multi-tenancy (organizations) is absent.  
-  - No access-control scoping of entities to specific users or tenants.
+### Core Entities (DB-backed via Postgres)
+
+| Entity | Key fields | Purpose |
+|---|---|---|
+| `ArchitectureTemplate` | `type`, `title`, `short_definition`, `when_to_use`, `strengths`, `tradeoffs`, `typical_stack` | RAG pattern catalog entries; seeded by `demo.py` |
+| `DesignSession` | `architecture_type`, `wizard_state` (JSON), `status` | Persisted Guided Designer state; links to `WorkflowDefinitionRecord` on generation |
+| `WorkflowDefinitionRecord` | `name`, `architecture_type`, `definition` (JSON), `status`, `project_id` | Versioned workflow definitions produced by the Designer or Builder |
+| `Project` | `name`, `architecture_type`, `project_id` | Top-level project metadata |
+| `Integration` | `provider_type`, `category`, `config`, `environment_id` | Connector definitions with credential references |
+| `Environment` | `name`, `type`, `integration_bindings` | Deployment environment configs |
+| `WorkflowRun` | `workflow_id`, `project_id`, `environment_id`, `status`, `simulation_result` | Execution record for each simulation |
+| `TaskExecution` | `workflow_run_id`, `node_type`, `status`, `input_payload`, `output_payload` | Per-node execution detail |
+| `EvaluationCase` | `workflow_id`, `query`, `strategies`, `results` | Saved test case from Query Lab |
+
+### Admin Entities (SQLModel-defined, in-memory at runtime)
+
+`Role`, `RolePermission`, `Team`, `TeamMember`, `User`, `Session`, `View`, `UserPreference`, `AuditLog`, `ObservabilityEvent` — fully modeled in SQLModel; admin routers use in-memory dicts rather than the DB.
+
+### Static Assets (Vercel CDN)
+
+| Asset | Path | Description |
+|---|---|---|
+| Guide screenshots | `/guide-images/*.png` (14 images) | Used in the in-app User Guide |
+| User Guide PDF | `/user-guide.pdf` | Pre-generated via puppeteer; branded A4 document |
 
 ---
 
 ## 9. Implementation Maturity Assessment
 
-- **Architecture – Moderate:** Clear separation between frontend and backend; coherent router and model structure; incomplete layering and orchestration; inconsistent persistence between core and admin.  
-- **Code organization – Strong:** Feature-based frontend modules and well-structured backend files (models_core, models_admin, repositories, routers).  
-- **Documentation – Moderate:** High-level docs and internal agent guidance exist; they overclaim features relative to code; lacks low-level API/database docs.  
-- **Testing – Not evident:** No tests or CI configs; no evidence of automated verification.  
-- **Deployment readiness – Weak:** No containerization or deployment scripts; DB config assumes a local Postgres instance.  
-- **Security – Weak:** JWT issuance present but unused; endpoints unauthenticated and unprotected by RBAC; secrets committed in `.env`; CORS wide open.  
-- **Observability – Partial/Weak:** Observability models and endpoints exist but are not wired to real events; no external observability stack.  
-- **Scalability – Weak:** In-memory admin stores, synchronous DB usage, no queuing or partitioning, no mention of horizontal scaling.  
-- **Configurability – Moderate:** Integrations and environments are flexible; env vars for DB and auth; but workflows are not persisted and there are no feature flags or configuration versioning.  
-- **Enterprise-readiness – Weak to Moderate:** Admin, RBAC, and observability scaffolding suggest enterprise orientation but are mostly non-enforced and non-persistent.
+| Dimension | Rating | Notes |
+|---|---|---|
+| **Architecture** | Moderate–Strong | Clean frontend module and backend router separation; Vercel+Railway deployment is solid; missing service layer and RBAC enforcement |
+| **Code organisation** | Strong | Feature-based frontend modules; well-structured backend (models_core, models_admin, repositories, routers); designer step logic cleanly separated by architecture type |
+| **Deployment** | Moderate | Vercel + Railway + Supabase is a real production stack; no IaC or Dockerfile; no CI/CD pipeline |
+| **Documentation** | Strong | README, architecture.md, user-guide.md, PDF guide, and this dossier; in-app guide with screenshots |
+| **Testing** | Not present | No pytest or frontend tests; no CI workflow |
+| **Security** | Weak–Moderate | Backend JWT now consumed by frontend; endpoints still not enforcing auth/RBAC; CORS wide-open; secrets in env vars (Vercel/Railway manage these, not `.env` in repo) |
+| **Observability** | Partial | In-memory audit log and metrics; run-history in DB; no external telemetry stack |
+| **Scalability** | Weak | Synchronous DB; in-memory admin stores; single Railway dyno; no queuing |
+| **Enterprise-readiness** | Moderate | Full admin console, role model, policy scaffolding, and governance UI; enforcement is scaffolded only |
+| **Feature completeness** | Moderate | End-to-end Design → Build → Query flow works; RAG execution is stubbed; evaluation pipelines are seed-only |
 
 ---
 
 ## 10. Research Contribution Potential
 
-- **Defendable current contributions:**  
-  - An integrated architecture that combines a visual RAG workflow builder, a query simulation studio, an integrations and environments hub, and an admin/observability console in a single stack.  
-  - A rich schema for RAG workflows and their executions (including `NodeType`, `WorkflowDefinition`, `WorkflowRun`, and `TaskExecution`), suitable for future research on RAG orchestration and tracing.
-- **Contributions needing more evidence:**  
-  - Multi-strategy RAG evaluation in Query Studio; currently based on synthetic traces without real retrieval or metrics.  
-  - Enterprise-grade governance and observability for RAG control planes; models and UI exist but enforcement and event logging are incomplete.
-- **Claims that should not be made yet:**  
-  - That the system supports real vector/graph/temporal/hybrid RAG retrieval against external backends.  
-  - That it enforces robust RBAC and governance policies across workflows and projects.  
-  - That it provides production-grade observability or evaluation pipelines or is ready for multi-tenant deployment.
-- **Potential novelty areas:**  
-  - Unified control-plane design that treats multiple RAG patterns as first-class workflow types, with a shared schema and UI.  
-  - Tight conceptual integration of admin RBAC, observability, and integration management within a RAG-specific system rather than a generic ML platform.
-- **Experiments to strengthen publication quality:**  
-  - Implement and evaluate real retrieval backends and LLM orchestration, comparing strategies quantitatively using Query Studio.  
-  - Use `WorkflowRun` and `TaskExecution` records to analyze retrieval paths, latency, and hallucination proxies across architectures.  
-  - Demonstrate the impact of RBAC and governance mechanisms on misconfiguration rates or security in realistic enterprise scenarios.  
-  - Characterize scaling behavior and cost/latency tradeoffs across RAG architectures (vector, vectorless, graph, temporal, hybrid) using this control plane.
+**Defensible current contributions:**
+- An integrated platform that combines an architecture catalog, a guided multi-step designer, a visual workflow builder, a multi-strategy simulation lab, and an admin/governance console in a single deployable product.
+- A rich, typed schema for RAG workflows (`WorkflowDefinition`, `NodeType`, `WorkflowRun`, `TaskExecution`, `DesignSession`) suitable for empirical study of RAG orchestration patterns.
+- A practitioner-oriented designer that makes six RAG paradigm-specific configuration models (vector, vectorless, graph, temporal, hybrid, custom) accessible through a guided wizard — lowering the barrier to entry for enterprise RAG adoption.
+- A real-world deployment architecture (Vercel + Railway + Supabase) demonstrating the viability of cloud-native RAG control planes at low operational cost.
+
+**Contributions that need more evidence:**
+- Multi-strategy simulation and comparison: currently based on synthetic latency/confidence; real retrieval would make results publishable.
+- Enterprise governance: policy model and approval scaffolding exist but are not enforced.
+
+**Claims to avoid:**
+- That the system performs live RAG retrieval against vector/graph/temporal backends.
+- That it enforces RBAC or governance policies on real operations.
+- That evaluation metrics are empirically grounded.
+
+**Directions to strengthen:**
+- Wire real LLM + retrieval backends to Query Lab strategies and collect latency/faithfulness/hallucination metrics across all six architectures.
+- Apply `WorkflowRun` and `TaskExecution` traces to analyze retrieval path distributions and bottlenecks at scale.
+- Collect user studies on the Guided Designer's effectiveness in reducing RAG misconfiguration compared to hand-coding.
 
 ---
 
-## 11. Gaps, Risks, and Red Flags
+## 11. Gaps, Risks, and Known Limitations
 
-- Workflows are stored in-memory only; losing backend state resets all workflow definitions, undermining the control-plane role.  
-- Frontend does not call backend auth or attach JWTs; backend does not enforce authentication or RBAC, leaving APIs open.  
-- Secrets (JWT secret, Google Client ID) are stored in `.env` committed to the repo, inappropriate for production.  
-- Governance and observability routers are not wired into actual operations; `log_action` is never used; audit logs and metrics are effectively empty.  
-- RAG execution is stubbed; retrieval providers and integrations are unused by simulation endpoints.  
-- Admin data uses in-memory stores despite SQLModel definitions, causing state loss and misleading enterprise readiness from the UI.  
-- No automated tests or CI; any claims of robustness or correctness would be weak.  
-- No deployment artifacts; operational behavior in real environments is uncharacterized.
+| Gap | Risk level | Notes |
+|---|---|---|
+| RAG execution stubbed | High | All simulation results are synthetic; Query Lab cannot produce real evaluation data |
+| RBAC not enforced | High | All API endpoints are open; admin stores use trusted query params for user identity |
+| Admin data in-memory | Medium | Users, roles, teams, etc. reset on backend restart; SQLModel definitions are unused |
+| Governance endpoints empty | Medium | `log_action` is never called; audit logs and approval gates are non-functional |
+| DELETE not implemented | Low | Integrations and environments cannot be deleted via API (501) |
+| No automated tests | Medium | No regression safety net; correctness claims are unverifiable |
+| No CI/CD | Low | Deployments are manual pushes to `main`; Railway/Vercel auto-deploy from GitHub |
+| No IaC | Low | Infrastructure configuration exists only in Vercel dashboard and Railway settings |
 
 ---
 
 ## 12. Manuscript Support Pack
 
-- **Project description:**  
-  - RAG Studio is a web-based RAG control plane integrating workflow design, query simulation, integration management, and administrative governance into a single application.  
-  - It is implemented as a React SPA backed by a FastAPI service with SQLModel-based persistence for core metadata and execution traces.
-- **Architecture claims:**  
-  - The backend exposes modular routers for workflows, projects, integrations, environments, authentication, and admin subsystems, each with dedicated Pydantic schemas and SQLModel entities.  
-  - Workflow execution is represented by `WorkflowRun` and `TaskExecution` tables, which record each simulation request and associated metadata.  
-  - Integrations and environments are decoupled, allowing environment-specific bindings via `integration_bindings`.
-- **System capabilities (current):**  
-  - A visual workflow builder lets users construct graph-based RAG workflows using a predefined set of node types.  
-  - A query studio executes stubbed simulations and presents multi-strategy results and traces.  
-  - An integrations hub provides CRUD operations for logical integrations and environments, plus a mapping UI.  
-  - An admin console surfaces basic CRUD and observability views for users, roles, teams, views, preferences, sessions, and logs.
-- **Implementation evidence:**  
-  - FastAPI routers and React modules are connected through an Axios client and TanStack Query, demonstrating end-to-end flows for workflows, integrations, environments, and admin data.  
-  - SQLModel is used to define and persist core entities in a PostgreSQL database.  
-  - Feature-based frontend modules encapsulate concerns for workflow building, query simulation, admin, and integration management.
-- **Enterprise relevance:**  
-  - The data model includes entities for roles, teams, sessions, views, and user preferences that are typical in enterprise control planes.  
-  - Observability and audit-log data structures are designed to trace activity and metrics within the system.
-- **Current limitations:**  
-  - RAG retrieval and LLM orchestration are not implemented; providers are stubbed and integrations are not used for execution.  
-  - Workflows lack durable persistence; admin data and observability use in-memory stores.  
-  - There is no effective end-to-end authentication and authorization enforcement.  
-  - Evaluation and monitoring capabilities are not yet present beyond stubbed traces.  
-  - No automated tests or deployment automation.
-- **Future work candidates:**  
-  - Implement a full RAG execution engine that interprets `WorkflowDefinition` graphs and orchestrates calls to LLMs and retrieval providers based on `IntegrationConfig`.  
-  - Move workflows and admin entities to the database, aligning runtime behavior with SQLModel definitions.  
-  - Integrate JWT and RBAC enforcement into routers and apply `Role.permissions` across the app.  
-  - Wire domain events into `AuditLog` and `ObservabilityEvent` to enable meaningful observability.  
-  - Add evaluation modules that log query sets, compute metrics, and support multi-strategy A/B tests with Query Studio as the UI front-end.
+**Project description:**  
+RAG Studio is a production-deployed, browser-based control plane for enterprise RAG orchestration. It integrates an architecture catalog (6 RAG types), a 6-configuration guided designer, a visual node-based workflow builder, a multi-strategy query simulation lab, an integrations and environments hub, governance and observability dashboards, and an enterprise admin console into a single application. The frontend is a React 19 SPA hosted on Vercel; the backend is a FastAPI service on Railway backed by a Supabase PostgreSQL database.
+
+**Key architectural claims (evidence-backed):**
+- End-to-end flow from architecture selection through guided configuration to workflow definition generation is implemented and deployed.
+- Design sessions and workflow definitions are persisted in Postgres via SQLModel, enabling design-state recovery across sessions.
+- Architecture-specific designer configurations cover six RAG paradigms at the field level (data source, chunking, embedding model, vector DB, similarity metric, Top-K, reranker, LLM, fallback strategy).
+- Workflow Builder uses ReactFlow to render typed node graphs; Save/Publish actions persist definitions to the database.
+- Query Lab auto-selects the latest workflow and environment, supports multi-strategy simulation, and saves test cases as evaluation seeds.
+
+**System capabilities (current):**
+- Architecture Catalog: discover and compare six RAG patterns with structured strengths/tradeoff metadata.
+- Guided Designer: configure a RAG pipeline step-by-step with architecture-specific form groups; generate a saved `WorkflowDefinition`.
+- Workflow Builder: visually inspect and edit the generated node graph; publish workflows to make them available in Query Lab.
+- Query Lab: simulate multi-strategy queries, compare results side-by-side, review run history, save test cases.
+- Integrations Studio: register LLM, vector DB, and source connectors; bind them to environments.
+- Environments: manage dev/staging/prod deployment targets.
+- Governance: rule policy UI (scaffolded for approval-gate workflows).
+- Observability: workflow run metrics and trace views.
+- Admin: full RBAC entity management (users, roles, teams, views, preferences, sessions).
+- User Guide: in-app guide with screenshots and downloadable branded PDF.
+
+**Current limitations:**
+- RAG retrieval and LLM orchestration are not executed; providers return stub responses.
+- RBAC and governance policies are modeled but not enforced on API calls or frontend rendering.
+- Admin entities (users, roles, teams) use in-memory stores; data resets on restart.
+- No evaluation metrics beyond test-case record persistence.
+- No automated test suite or CI/CD pipeline.
 
 ---
 
 ## 13. Appendix: File-Level Evidence Map
 
-- **Top-level docs and configuration:**  
-  - `README.md` – High-level vision, conceptual architecture, and roadmap.  
-  - `AGENTS.md` – Internal agent guidance for frontend/backend architecture.  
-  - `backend/requirements.txt` – Confirms FastAPI, SQLModel, SQLAlchemy, Postgres, requests, PyJWT.  
-  - `frontend/package.json` – Confirms React 19, React Router, TanStack Query, Vite, ReactFlow.
-- **Backend core:**  
-  - `backend/main.py` – FastAPI app, router wiring, CORS, startup DB init, `/health`.  
-  - `backend/db.py` – SQLModel engine and session helpers pointing to Postgres.  
-  - `backend/models_core.py` – `Project`, `Integration`, `Environment`, `WorkflowRun`, `TaskExecution`.  
-  - `backend/models_admin.py` – `Role`, `RolePermission`, `Team`, `TeamMember`, `User`, `Session`, `View`, `UserPreference`, `AuditLog`, `ObservabilityEvent`.  
-  - `backend/repositories.py` – Repositories for projects, integrations, environments.  
-  - `backend/retrieval.py` – Retrieval provider protocol and stub vector/lexical implementations.
-- **Backend routers:**  
-  - `backend/routers/auth.py` – Google ID token verification and JWT issuance.  
-  - `backend/routers/projects.py` – DB-backed project list/create.  
-  - `backend/routers/workflows.py` – In-memory workflow CRUD and simulation endpoints writing `WorkflowRun` and `TaskExecution`.  
-  - `backend/routers/integrations.py` – Integration CRUD, `DELETE` not implemented.  
-  - `backend/routers/environments.py` – Environment CRUD, `DELETE` not implemented.  
-  - `backend/routers/governance.py` – Placeholder governance endpoints returning empty lists.  
-  - `backend/routers/admin_users.py`, `admin_roles.py`, `admin_teams.py`, `admin_sessions.py`, `admin_views.py`, `admin_preferences.py`, `admin_observability.py` – In-memory admin and observability APIs.
-- **Frontend core:**  
-  - `frontend/src/main.tsx` – App bootstrap with `QueryClientProvider`.  
-  - `frontend/src/App.tsx` – Routing, protected app shell, and nested routes.  
-  - `frontend/src/api/client.ts` – Axios client and TanStack `QueryClient`.  
-  - `frontend/.env` – Frontend Google client ID and API base URL.
-- **Frontend auth and layout:**  
-  - `frontend/src/modules/auth/AuthContext.tsx` – Google sign-in logic, auth state, and localStorage persistence.  
-  - `frontend/src/modules/auth/LandingPage.tsx` – Landing page with Google sign-in CTA.  
-  - `frontend/src/modules/auth/permissions.ts` – Permission helpers for RBAC.  
-  - `frontend/src/modules/layout/AppShell.tsx` – Shell layout and navigation.
-- **Frontend RAG features:**  
-  - `frontend/src/api/workflows.ts` – Workflow CRUD client.  
-  - `frontend/src/api/queryStudio.ts` – Workflow simulation client.  
-  - `frontend/src/modules/workflow-builder/WorkflowBuilderPage.tsx` – Workflow builder UI and definition mapping.  
-  - `frontend/src/modules/workflow-builder/WorkflowCanvas.tsx` – ReactFlow canvas.  
-  - `frontend/src/modules/workflow-builder/modelMapping.ts` – Mapping between ReactFlow graphs and workflow models.  
-  - `frontend/src/modules/workflow-builder/workflowTemplates.ts` – Vector/vectorless/graph/temporal/hybrid templates.  
-  - `frontend/src/modules/workflow-builder/useWorkflowApi.ts` – Workflow CRUD hooks.  
-  - `frontend/src/modules/workflow-builder/NodePalette.tsx` – Node type palette.  
-  - `frontend/src/modules/query-studio/QueryStudioPage.tsx` – Query Studio UI.  
-  - `frontend/src/modules/query-studio/TracePanels.tsx` – Trace visualization.
-- **Frontend integrations & environments:**  
-  - `frontend/src/api/integrations.ts` – Integrations client.  
-  - `frontend/src/api/environments.ts` – Environments client.  
-  - `frontend/src/modules/admin-integrations/IntegrationsHubPage.tsx` – Integrations Hub UI.  
-  - `frontend/src/modules/admin-integrations/useIntegrationsEnvApi.ts` – Hooks for integrations and environments.  
-  - `frontend/src/modules/admin-integrations/IntegrationWizard.tsx` – Integration creation/edit flow.
-- **Frontend admin & observability:**  
-  - `frontend/src/modules/admin-users/AdminUsersPage.tsx` – Users table.  
-  - `frontend/src/modules/admin-roles/AdminRolesPage.tsx` – Roles list.  
-  - `frontend/src/modules/admin-teams/AdminTeamsPage.tsx` – Teams list.  
-  - `frontend/src/modules/admin-views/AdminViewsPage.tsx` – Views table.  
-  - `frontend/src/modules/admin-preferences/AdminPreferencesPage.tsx` – Preferences UI.  
-  - `frontend/src/modules/admin-observability/AdminObservabilityPage.tsx` – Observability metrics and audit log table.
+### Deployment & Configuration
+- `vercel.json` — Vercel build config: `cd frontend && npm run build`, output `frontend/dist`, API proxy to Railway, SPA fallback.
+- `backend/requirements.txt` — FastAPI, SQLModel, SQLAlchemy, psycopg2-binary, requests, PyJWT.
+- `frontend/package.json` — React 19, React Router, TanStack Query, Vite, ReactFlow.
 
+### Backend Core
+- `backend/main.py` — FastAPI app, all router wiring, CORS, `redirect_slashes=False`, startup DB init and demo seed.
+- `backend/db.py` — SQLModel engine (Supabase Postgres, pool param stripping), `get_session` dependency.
+- `backend/models_core.py` — `Project`, `Integration`, `Environment`, `WorkflowDefinitionRecord`, `WorkflowRun`, `TaskExecution`, `ArchitectureTemplate`, `DesignSession`.
+- `backend/models_admin.py` — `Role`, `RolePermission`, `Team`, `TeamMember`, `User`, `Session`, `View`, `UserPreference`, `AuditLog`, `ObservabilityEvent`.
+- `backend/repositories.py` — Repositories for projects, integrations, environments.
+- `backend/retrieval.py` — `RetrievalProvider` protocol; stub vector/lexical implementations.
+
+### Backend Routers
+- `backend/routers/auth.py` — Google ID token verification, JWT issuance.
+- `backend/routers/architectures.py` — `ArchitectureTemplate` catalog and `DesignSession` CRUD.
+- `backend/routers/demo.py` — 6-template seeder.
+- `backend/routers/projects.py` — DB-backed project CRUD.
+- `backend/routers/workflows.py` — DB-backed workflow CRUD, simulate/simulate-multi, runs list, publish.
+- `backend/routers/integrations.py` — DB-backed integrations CRUD.
+- `backend/routers/environments.py` — DB-backed environments CRUD.
+- `backend/routers/evaluations.py` — Test-case persistence.
+- `backend/routers/governance.py` — Placeholder approvals/audit-logs.
+- `backend/routers/observability.py` — Observability metrics and trace views.
+- `backend/routers/admin_*.py` — In-memory admin entity APIs.
+
+### Frontend Core
+- `frontend/src/main.tsx` — App bootstrap with `QueryClientProvider`.
+- `frontend/src/App.tsx` — Routing (15+ routes), `ToastProvider`, `AuthProvider`, `ErrorBoundary` per page.
+- `frontend/src/api/client.ts` — Axios client and TanStack `QueryClient`.
+- `frontend/src/api/architectures.ts` — Catalog and design-session API calls.
+- `frontend/src/api/workflows.ts` — Workflow CRUD, simulate, run-list.
+- `frontend/src/api/integrations.ts`, `environments.ts`, `evaluations.ts` — Feature API calls.
+
+### Frontend Auth & Layout
+- `frontend/src/modules/auth/AuthContext.tsx` — Google sign-in, auth state, localStorage.
+- `frontend/src/modules/auth/LandingPage.tsx` — Marketing landing page with Google CTA.
+- `frontend/src/modules/auth/permissions.ts` — RBAC helpers.
+- `frontend/src/modules/layout/AppShell.tsx` — Shell layout, sidebar nav (all sections), help-icon header button.
+- `frontend/src/modules/layout/layout.css` — Layout tokens, shell styles, header-right flex, help button.
+
+### Frontend UI System
+- `frontend/src/modules/ui/ErrorBoundary.tsx` — Section-labelled error boundaries.
+- `frontend/src/modules/ui/ToastContext.tsx` — Toast notification provider and `useToast` hook.
+- `frontend/src/modules/ui/Skeleton.tsx` — `SkeletonBar`, `SkeletonCard`, `PageSkeleton`.
+- `frontend/src/modules/ui/feedback.tsx` — `PageHeader`, `EmptyState`, `LoadingMessage`.
+
+### Frontend Feature Modules
+- `frontend/src/modules/architecture-catalog/ArchitectureCatalogPage.tsx` — Catalog UI.
+- `frontend/src/modules/guided-designer/DesignerPage.tsx` — Designer orchestrator.
+- `frontend/src/modules/guided-designer/DesignerStepper.tsx` — Step navigation component.
+- `frontend/src/modules/guided-designer/designer{Vector,Vectorless,Graph,Temporal,Hybrid,Custom}.tsx` — Architecture-specific step groups.
+- `frontend/src/modules/workflow-builder/WorkflowBuilderPage.tsx` — Builder orchestrator.
+- `frontend/src/modules/workflow-builder/WorkflowCanvas.tsx` — ReactFlow canvas.
+- `frontend/src/modules/workflow-builder/NodePalette.tsx` — Drag-and-drop node types.
+- `frontend/src/modules/workflow-builder/NodeConfigPanel.tsx` — Per-node configuration panel.
+- `frontend/src/modules/workflow-builder/ArchitectureSummaryPanel.tsx` — Architecture context panel.
+- `frontend/src/modules/query-lab/QueryLabPage.tsx` — Query Lab orchestrator.
+- `frontend/src/modules/query-lab/QueryInputPanel.tsx` — Query form and strategy selector.
+- `frontend/src/modules/query-lab/ResultComparisonGrid.tsx` — Multi-strategy result cards.
+- `frontend/src/modules/query-lab/RunHistoryPanel.tsx` — Live-polled run history.
+- `frontend/src/modules/integrations-studio/IntegrationsStudioPage.tsx` — Integrations Hub UI.
+- `frontend/src/modules/environments/EnvironmentsPage.tsx` — Environments UI.
+- `frontend/src/modules/governance/GovernancePage.tsx` — Governance policy UI.
+- `frontend/src/modules/observability/ObservabilityPage.tsx` — Observability dashboard.
+- `frontend/src/modules/user-guide/UserGuidePage.tsx` — In-app User Guide.
+- `frontend/src/modules/user-guide/user-guide.css` — Guide styles including print/PDF media rules.
+
+### Docs & Scripts
+- `docs/user-guide.md` — Markdown source for the user guide.
+- `docs/architecture.md` — Architecture reference.
+- `docs/rag-studio-technical-dossier.md` — This document.
+- `scripts/generate-user-guide-pdf.js` — Puppeteer script to regenerate `user-guide.pdf` from HTML.
+- `frontend/public/guide-images/` — 14 PNG screenshots (landing, catalog rows, designer steps, workflow builder, query lab, integrations, environments, governance, observability, admin users).
+- `frontend/public/user-guide.pdf` — Pre-generated PDF; served by Vercel CDN; downloaded as "RAG Orchestration Studio - User Guide.pdf".
