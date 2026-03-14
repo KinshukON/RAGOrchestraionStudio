@@ -1,4 +1,5 @@
 import os
+import re
 from contextlib import contextmanager
 from typing import Generator
 
@@ -9,11 +10,15 @@ _DEFAULT_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/rag_studi
 
 
 def _fix_db_url(url: str) -> str:
-    """Convert postgres:// → postgresql+psycopg2:// and strip PgBouncer params."""
+    """Convert postgres:// → postgresql+psycopg2:// and strip unknown query params."""
     url = url.replace("postgres://", "postgresql+psycopg2://", 1)
     url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    # pgbouncer=true is not understood by psycopg2; strip it
+    # Strip params not understood by psycopg2
     url = url.replace("&pgbouncer=true", "").replace("?pgbouncer=true&", "?").replace("?pgbouncer=true", "")
+    # Supabase pooling URLs include ?supa=base-pooler.x — also unknown to psycopg2
+    url = re.sub(r"[?&]supa=[^&]*", "", url)
+    # Clean up any dangling ? left after param removal
+    url = re.sub(r"\?$", "", url)
     return url
 
 
