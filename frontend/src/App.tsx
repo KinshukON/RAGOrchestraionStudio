@@ -19,6 +19,7 @@ import { AdminTeamsPage } from './modules/admin-teams/AdminTeamsPage'
 import { AdminViewsPage } from './modules/admin-views/AdminViewsPage'
 import { AdminPreferencesPage } from './modules/admin-preferences/AdminPreferencesPage'
 import { AdminObservabilityPage } from './modules/admin-observability/AdminObservabilityPage'
+import { UserGuidePage } from './modules/user-guide/UserGuidePage'
 import { ErrorBoundary } from './modules/ui/ErrorBoundary'
 import { ToastProvider } from './modules/ui/ToastContext'
 
@@ -64,6 +65,7 @@ function AppRouter() {
           <Route path="admin/views" element={<Page name="Admin › Views"><AdminViewsPage /></Page>} />
           <Route path="admin/preferences" element={<Page name="Admin › Preferences"><AdminPreferencesPage /></Page>} />
           <Route path="admin/observability" element={<Page name="Admin › Observability"><AdminObservabilityPage /></Page>} />
+          <Route path="guide" element={<Page name="User Guide"><UserGuidePage /></Page>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
