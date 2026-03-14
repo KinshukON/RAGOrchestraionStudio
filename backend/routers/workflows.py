@@ -75,6 +75,15 @@ class WorkflowSummary(BaseModel):
     is_active: bool
 
 
+# Defined here (before the /runs route) so the route decorator can reference it
+class WorkflowRunSummary(BaseModel):
+    id: int
+    workflow_id: str
+    status: str
+    created_at: str
+    finished_at: str | None = None
+
+
 @router.get("/", response_model=List[WorkflowDefinition])
 async def list_workflows() -> List[WorkflowDefinition]:
     dicts = _workflow_repo.list_all()
@@ -208,13 +217,6 @@ class StrategyTrace(BaseModel):
 class MultiStrategySimulationTrace(BaseModel):
     results: List[StrategyTrace]
 
-
-class WorkflowRunSummary(BaseModel):
-    id: int
-    workflow_id: str
-    status: str
-    created_at: str
-    finished_at: str | None = None
 
 
 # ── Real RAG Run Endpoints ────────────────────────────────────────────────────
