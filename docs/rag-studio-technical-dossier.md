@@ -1,4 +1,4 @@
-# RAAGOS — RAG Orchestration Studio · Technical Dossier
+# RAGOS — RAG Orchestration Studio · Technical Dossier
 
 > **Version:** 2.2 · March 2026  
 > **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
@@ -58,7 +58,7 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 
 | Attribute | Value |
 |---|---|
-| **Project name** | RAAGOS — RAG Orchestration Studio |
+| **Project name** | RAGOS — RAG Orchestration Studio |
 | **One-sentence definition** | A browser-based control plane for designing, configuring, simulating, and governing retrieval-augmented generation workflows across vector, vectorless, graph, temporal, and hybrid paradigms. |
 | **Primary domain** | Applied AI infrastructure / RAG orchestration systems |
 | **Target users** | Enterprise AI architects, MLOps engineers, knowledge engineers, platform teams |

@@ -37,7 +37,7 @@ export function LandingPage() {
   return (
     <div className="landing-root">
       <header className="landing-header">
-        <div className="landing-logo">RAAGOS</div>
+        <div className="landing-logo">RAGOS</div>
         <button className="landing-ghost-button" onClick={handleSignIn} disabled={signingIn}>
           {signingIn ? 'Signing in…' : 'Sign in with Google'}
         </button>

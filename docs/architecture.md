@@ -1,4 +1,4 @@
-# RAAGOS — Architecture & Module Reference
+# RAGOS — Architecture & Module Reference
 
 > **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > **Frontend:** Vercel CDN (`frontend/dist` — `vercel.json` rewrites `/api/*` to Railway, `/(.*) → /index.html`)  
@@ -86,7 +86,7 @@ Admin (Platform Admin only)
 | Research Assistant | `modules/research-assistant/` | `ResearchAssistantPage.tsx` — rule-based chat over stored `WorkflowRun` data |
 | User Guide | `modules/user-guide/` | `UserGuidePage.tsx` (route `/app/guide`), `user-guide.css` |
 | Shared UI | `modules/ui/` | `feedback.tsx` (PageHeader, StatusBadge, EmptyState+action, SimBanner), `ToastContext.tsx`, `Skeleton.tsx` |
-| Auth | `modules/auth/` | `AuthContext.tsx` (`useAuth`, `useHasPermission` hook), `LandingPage.tsx` (RAAGOS branding, `qc.clear()` post-OAuth, signingIn state) |
+| Auth | `modules/auth/` | `AuthContext.tsx` (`useAuth`, `useHasPermission` hook), `LandingPage.tsx` (RAGOS branding, `qc.clear()` post-OAuth, signingIn state) |
 | API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts`, `workflowRuns.ts` |
 
 ### Sign-in & Query Cache Refresh

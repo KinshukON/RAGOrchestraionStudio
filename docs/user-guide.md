@@ -1,4 +1,4 @@
-# RAAGOS — RAG Orchestration Studio · User Guide
+# RAGOS — RAG Orchestration Studio · User Guide
 
 > **Live site**: [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > Sign in with your Google account to access the platform.
@@ -292,7 +292,7 @@ To edit a user: click **Edit** in the Actions column, change Role or Team via dr
 
 ### Roles
 
-RAAGOS uses RBAC. Default seeded roles:
+RAGOS uses RBAC. Default seeded roles:
 
 | Role | Key Permissions |
 |---|---|
@@ -423,4 +423,4 @@ Admin (Platform Admin only)
 
 ---
 
-*RAAGOS v1.2 · For API reference see [architecture.md](./architecture.md) · Deployed on [ragorchestrationstudio.com](https://ragorchestrationstudio.com)*
+*RAGOS v1.2 · For API reference see [architecture.md](./architecture.md) · Deployed on [ragorchestrationstudio.com](https://ragorchestrationstudio.com)*

@@ -152,7 +152,7 @@ export function AppShell() {
   }
 
   const pathSegments = location.pathname.replace('/app', '').split('/').filter(Boolean)
-  const currentLabel = ROUTE_LABELS[pathSegments[pathSegments.length - 1] ?? ''] ?? 'RAAGOS'
+  const currentLabel = ROUTE_LABELS[pathSegments[pathSegments.length - 1] ?? ''] ?? 'RAGOS'
 
   const sidebarClass = `shell-sidebar${collapsed ? ' shell-sidebar--collapsed' : ''}`
   const isAdmin = useHasPermission('administer_platform')
@@ -188,10 +188,10 @@ export function AppShell() {
 
         {/* Logo */}
         <div className="shell-logo">
-          <img src="/raagos-favicon.png" alt="RAAGOS" className="shell-logo-icon" />
+          <img src="/raagos-favicon.png" alt="RAGOS" className="shell-logo-icon" />
           {!collapsed && (
             <div className="shell-logo-text">
-              <span className="shell-logo-mark">RAAGOS</span>
+              <span className="shell-logo-mark">RAGOS</span>
               <span className="shell-logo-sub">RAG Orchestration Studio</span>
             </div>
           )}
@@ -233,7 +233,7 @@ export function AppShell() {
       <div className="shell-main">
         <header className="shell-header">
           <div className="shell-breadcrumb">
-            <span className="shell-breadcrumb-root">RAAGOS</span>
+            <span className="shell-breadcrumb-root">RAGOS</span>
             <span className="shell-breadcrumb-sep">›</span>
             <span className="shell-breadcrumb-current">{currentLabel}</span>
           </div>
