@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import './layout.css'
 import { useAuth } from '../auth/AuthContext'
 
@@ -63,23 +64,42 @@ export function AppShell() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
+  const [isSeedLoading, setIsSeedLoading] = useState(false)
+
+  async function triggerSeed() {
+    setIsSeedLoading(true)
+    try {
+      await fetch('/api/demo/seed', { method: 'POST' })
+      sessionStorage.setItem('rag_studio_demo_seeded', '1')
+      // Invalidate all cached queries so every page re-fetches fresh data
+      queryClient.invalidateQueries()
+    } catch {
+      // Non-fatal
+    } finally {
+      setIsSeedLoading(false)
+    }
+  }
 
   // ── Auto-seed demo data on first session load ──────────────────────────
   useEffect(() => {
     const SEED_KEY = 'rag_studio_demo_seeded'
-    if (sessionStorage.getItem(SEED_KEY)) return
       ; (async () => {
         try {
           const res = await fetch('/api/demo/seed-status')
           const status = await res.json()
           if (!status.seeded) {
+            // Clear stale session flag so we always retry if data is missing
+            sessionStorage.removeItem(SEED_KEY)
             await fetch('/api/demo/seed', { method: 'POST' })
+            queryClient.invalidateQueries()
           }
           sessionStorage.setItem(SEED_KEY, '1')
         } catch {
           // Non-fatal: seeding failure should not break the app
         }
       })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function handleSignOut() {
@@ -124,6 +144,18 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="shell-seed-footer">
+          <button
+            type="button"
+            className="shell-seed-btn"
+            onClick={triggerSeed}
+            disabled={isSeedLoading}
+            title="Reload all demo data (integrations, environments, governance, workflows)"
+          >
+            {isSeedLoading ? '⟳ Loading…' : '⟳ Load demo data'}
+          </button>
+        </div>
       </aside>
 
       <div className="shell-main">
