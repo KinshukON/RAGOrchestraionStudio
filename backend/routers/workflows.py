@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import select
 
 from auth_middleware import TokenPayload, optional_auth, require_auth, require_permission
+from rate_limit import enforce_rate_limit
 
 from db import get_session
 from models_core import WorkflowRun, TaskExecution
@@ -234,6 +235,10 @@ async def publish_workflow(
     """
     from models_governance import GovernancePolicy as _GovPolicy
     from sqlmodel import select as _select
+    from models_admin import AuditLog as _AuditLog
+
+    # Rate-limit: max 10 publish attempts per user per 60 s
+    enforce_rate_limit(current_user.user_id, "publish", limit=10, window_seconds=60)
 
     # 1. Check workflow exists
     wf_dict = _workflow_repo.get(workflow_id)
@@ -301,6 +306,16 @@ async def publish_workflow(
 
     # 5. Publish or reject
     if violations:
+        # Audit: blocked publish attempt
+        with get_session() as _s:
+            _s.add(_AuditLog(
+                action="workflow.publish_blocked",
+                resource_type="workflow",
+                resource_id=workflow_id,
+                event_data={"violations": violations, "policy": active_policy_name},
+                ip=None,
+            ))
+            _s.commit()
         return PublishGateResult(
             workflow_id=workflow_id,
             published=False,
@@ -315,6 +330,16 @@ async def publish_workflow(
     wf_dict["is_active"] = True
     _workflow_repo.update(workflow_id, wf_dict)
 
+    # Audit: successful publish
+    with get_session() as _s:
+        _s.add(_AuditLog(
+            action="workflow.published",
+            resource_type="workflow",
+            resource_id=workflow_id,
+            event_data={"confidence_score": latest_confidence, "run_count": run_count, "policy": active_policy_name},
+            ip=None,
+        ))
+        _s.commit()
     return PublishGateResult(
         workflow_id=workflow_id,
         published=True,

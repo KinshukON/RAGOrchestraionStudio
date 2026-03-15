@@ -219,3 +219,33 @@
 .arch-catalog-status--error {
   color: var(--color-danger);
 }
+/* ── Empty state ─────────────────────────────────────────────────────── */
+.arch-catalog-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 5rem 2rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.arch-catalog-empty-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.arch-catalog-empty h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.arch-catalog-empty p {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  max-width: 380px;
+  margin: 0;
+}

@@ -102,7 +102,24 @@ export function ArchitectureCatalogPage() {
         </div>
       )}
 
-      {!isLoading && !isError && (
+      {!isLoading && !isError && templates.length === 0 && (
+        <div className="arch-catalog-empty">
+          <div className="arch-catalog-empty-icon">🗂️</div>
+          <h2>No architectures in the catalog yet</h2>
+          <p>Load demo data to explore Vector, Graph, Temporal, and Hybrid RAG architectures.</p>
+          <button
+            className="arch-catalog-cta"
+            onClick={async () => {
+              await fetch('/api/demo/seed', { method: 'POST' })
+              catalogQuery.refetch()
+            }}
+          >
+            Load demo architectures
+          </button>
+        </div>
+      )}
+
+      {!isLoading && !isError && templates.length > 0 && (
         <div className="arch-catalog-grid">
           {templates.map(template => (
             <CatalogTile

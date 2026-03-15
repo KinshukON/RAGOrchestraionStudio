@@ -93,6 +93,11 @@ async def promote_environment(
     from models_core import WorkflowRun
     from sqlmodel import select as _select
     from db import get_session
+    from models_admin import AuditLog as _AuditLog
+    from rate_limit import enforce_rate_limit
+
+    # Rate-limit: max 5 promote attempts per user per 60 s
+    enforce_rate_limit(current_user.user_id, "promote", limit=5, window_seconds=60)
 
     env = _env_repo.get_by_external_id(environment_id)
     if not env:
@@ -152,6 +157,18 @@ async def promote_environment(
 
     _env_repo.update_promotion(environment_id, next_status)
     env = _env_repo.get_by_external_id(environment_id)
+
+    # Audit: successful promotion step
+    with get_session() as _s:
+        _s.add(_AuditLog(
+            action="environment.promoted",
+            resource_type="environment",
+            resource_id=environment_id,
+            event_data={"from_status": current, "to_status": next_status},
+            ip=None,
+        ))
+        _s.commit()
+
     return EnvironmentConfig.from_model(env)  # type: ignore[arg-type]
 
 
