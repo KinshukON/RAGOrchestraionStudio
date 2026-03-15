@@ -78,7 +78,7 @@ function initials(name?: string) {
   return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
 }
 
-const SIDEBAR_KEY = 'raagos_sidebar_collapsed'
+const SIDEBAR_KEY = 'ragos_sidebar_collapsed'
 
 export function AppShell() {
   const { user, isAuthenticated, signOut } = useAuth()
@@ -95,7 +95,7 @@ export function AppShell() {
   // ── Welcome toast: fires once per session on first sign-in ─────────────
   useEffect(() => {
     if (!isAuthenticated || welcomeFiredRef.current) return
-    const key = 'raagos_welcomed'
+    const key = 'ragos_welcomed'
     if (sessionStorage.getItem(key)) return
     welcomeFiredRef.current = true
     sessionStorage.setItem(key, '1')
@@ -188,7 +188,7 @@ export function AppShell() {
 
         {/* Logo */}
         <div className="shell-logo">
-          <img src="/raagos-favicon.png" alt="RAGOS" className="shell-logo-icon" />
+          <img src="/ragos-favicon.png" alt="RAGOS" className="shell-logo-icon" />
           {!collapsed && (
             <div className="shell-logo-text">
               <span className="shell-logo-mark">RAGOS</span>
