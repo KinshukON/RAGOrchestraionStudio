@@ -23,6 +23,8 @@ import { UserGuidePage } from './modules/user-guide/UserGuidePage'
 import { EvaluationPage } from './modules/evaluation/EvaluationPage'
 import { ResearchAssistantPage } from './modules/research-assistant/ResearchAssistantPage'
 import { CostRoiPage } from './modules/cost-roi/CostRoiPage'
+import { IndustryPacksPage } from './modules/industry-packs/IndustryPacksPage'
+import { ExecutiveSummaryPage } from './modules/executive-summary/ExecutiveSummaryPage'
 import { ErrorBoundary } from './modules/ui/ErrorBoundary'
 import { ToastProvider } from './modules/ui/ToastContext'
 
@@ -72,6 +74,8 @@ function AppRouter() {
           <Route path="evaluation" element={<Page name="Evaluation Harness"><EvaluationPage /></Page>} />
           <Route path="research-assistant" element={<Page name="Research Assistant"><ResearchAssistantPage /></Page>} />
           <Route path="cost-roi" element={<Page name="Cost &amp; ROI"><CostRoiPage /></Page>} />
+          <Route path="industry-packs" element={<Page name="Industry Packs"><IndustryPacksPage /></Page>} />
+          <Route path="executive-summary" element={<Page name="Executive Summary"><ExecutiveSummaryPage /></Page>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

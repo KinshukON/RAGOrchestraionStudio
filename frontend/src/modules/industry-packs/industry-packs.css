@@ -1,0 +1,297 @@
+/* ── Industry Packs ────────────────────────────────────────────────────── */
+
+.ip-root {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.ip-page-header {
+  margin-bottom: 1.75rem;
+}
+
+.ip-page-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.4rem;
+}
+
+.ip-page-header p {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  max-width: 640px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Card grid ── */
+.ip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.ip-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.ip-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+/* Colour variants */
+.ip-card--blue   { --ip-accent: #3b82f6; }
+.ip-card--green  { --ip-accent: #10b981; }
+.ip-card--purple { --ip-accent: #8b5cf6; }
+.ip-card--orange { --ip-accent: #f59e0b; }
+.ip-card--slate  { --ip-accent: #64748b; }
+.ip-card--teal   { --ip-accent: #14b8a6; }
+
+.ip-card:hover { border-color: var(--ip-accent, var(--color-accent)); }
+
+.ip-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.ip-card-emoji { font-size: 1.8rem; line-height: 1; }
+
+.ip-card-industry {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ip-accent, var(--color-accent));
+}
+
+.ip-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.ip-card-subtitle {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ip-card-footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ip-card-archs { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.ip-card-days {
+  font-size: 0.7rem;
+  color: var(--color-text-faint);
+  font-weight: 600;
+}
+
+/* Tags */
+.ip-tag {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.ip-tag--arch {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+.ip-tag--bench {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.ip-tag--sm { font-size: 0.63rem; padding: 0.15rem 0.45rem; }
+
+/* Maturity badges */
+.ip-maturity {
+  display: inline-flex;
+  padding: 0.15rem 0.55rem;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ip-maturity--ga      { background: rgba(16,185,129,0.15); color: #10b981; }
+.ip-maturity--beta    { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+.ip-maturity--preview { background: rgba(139,92,246,0.15);  color: #8b5cf6; }
+
+/* ── Detail view ── */
+.ip-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.ip-back-btn {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ip-back-btn:hover { text-decoration: underline; }
+
+.ip-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+}
+
+.ip-detail-emoji { font-size: 2.5rem; line-height: 1; }
+
+.ip-detail-industry {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent);
+  margin-bottom: 0.3rem;
+}
+
+.ip-detail-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.3rem;
+}
+
+.ip-detail-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.ip-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.ip-detail-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.1rem;
+}
+
+.ip-detail-card--wide {
+  grid-column: span 2;
+}
+
+.ip-detail-card h3 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+  margin: 0 0 0.6rem;
+}
+
+.ip-big-num {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.ip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ip-list li {
+  font-size: 0.81rem;
+  color: var(--color-text-muted);
+  padding: 0.2rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+}
+
+.ip-list li:last-child { border-bottom: none; }
+.ip-list--policy li   { color: var(--color-text); }
+
+.ip-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+/* Actions */
+.ip-detail-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ip-cta {
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+}
+
+.ip-cta--primary {
+  background: var(--color-accent);
+  color: #0f172a;
+}
+
+.ip-cta--primary:hover {
+  background: color-mix(in srgb, var(--color-accent) 85%, #fff);
+}
+
+.ip-cta--ghost {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+.ip-cta--ghost:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+@media (max-width: 700px) {
+  .ip-detail-card--wide { grid-column: span 1; }
+}

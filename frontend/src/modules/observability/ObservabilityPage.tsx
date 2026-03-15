@@ -1,16 +1,16 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import type { RunSummary, TaskSummary } from '../../api/observability'
+import type { RunSummary } from '../../api/observability'
 import {
   listObservabilityRuns,
-  getObservabilityRun,
-  listObservabilityRunTasks,
 } from '../../api/observability'
 import { listWorkflows } from '../../api/workflows'
 import { listIntegrations } from '../../api/integrations'
+import { aggregatedScores } from '../../api/evaluations'
 import { AdminObservabilityPage } from '../admin-observability/AdminObservabilityPage'
-import { EmptyState, LoadingMessage } from '../ui/feedback'
+import { EmptyState } from '../ui/feedback'
 import { SkeletonTable } from '../ui/Skeleton'
+import { TraceExplorer } from './TraceExplorer'
 import './observability.css'
 
 type Tab = 'overview' | 'quality' | 'governance' | 'cost' | 'runs' | 'audit'
@@ -127,6 +127,16 @@ function OperationsTab({ runs }: { runs: RunSummary[] }) {
 function RetrievalQualityTab({ runs }: { runs: RunSummary[] }) {
   const simRuns = runs.filter(r => r.is_simulated)
   const liveRuns = runs.filter(r => !r.is_simulated)
+  const scoresQ = useQuery({ queryKey: ['aggregated-scores'], queryFn: aggregatedScores, retry: false })
+  const scores = scoresQ.data
+
+  const avgRelevance = scores?.scores_overview?.length
+    ? (scores.scores_overview.reduce((s, r) => s + r.avg_relevance, 0) / scores.scores_overview.length * 100).toFixed(0)
+    : null
+  const avgGroundedness = scores?.scores_overview?.length
+    ? (scores.scores_overview.reduce((s, r) => s + r.avg_groundedness, 0) / scores.scores_overview.length * 100).toFixed(0)
+    : null
+  const topStrategy = scores?.scores_overview?.slice().sort((a, b) => b.avg_relevance - a.avg_relevance)[0]?.strategy ?? null
 
   return (
     <div className="obs-dashboard">
@@ -139,30 +149,36 @@ function RetrievalQualityTab({ runs }: { runs: RunSummary[] }) {
           <div className="obs-kpi-value">{liveRuns.length}</div>
           <div className="obs-kpi-label">Live runs</div>
         </div>
-        <div className="obs-kpi obs-kpi--neutral">
-          <div className="obs-kpi-value">—</div>
-          <div className="obs-kpi-label">Avg relevance score</div>
+        <div className={`obs-kpi ${avgRelevance && +avgRelevance >= 70 ? 'obs-kpi--success' : 'obs-kpi--neutral'}`}>
+          <div className="obs-kpi-value">{avgRelevance ? `${avgRelevance}%` : '—'}</div>
+          <div className="obs-kpi-label">Avg relevance</div>
+        </div>
+        <div className={`obs-kpi ${avgGroundedness && +avgGroundedness >= 70 ? 'obs-kpi--success' : 'obs-kpi--neutral'}`}>
+          <div className="obs-kpi-value">{avgGroundedness ? `${avgGroundedness}%` : '—'}</div>
+          <div className="obs-kpi-label">Avg groundedness</div>
         </div>
         <div className="obs-kpi obs-kpi--neutral">
-          <div className="obs-kpi-value">—</div>
-          <div className="obs-kpi-label">Avg grounding score</div>
+          <div className="obs-kpi-value" style={{ fontSize: '0.9rem' }}>{topStrategy ?? '—'}</div>
+          <div className="obs-kpi-label">Top strategy</div>
+        </div>
+        <div className="obs-kpi obs-kpi--neutral">
+          <div className="obs-kpi-value">{scores?.strategies?.length ?? 0}</div>
+          <div className="obs-kpi-label">Strategies benchmarked</div>
         </div>
       </div>
 
-      <div className="obs-card obs-card--info">
-        <div className="obs-card-icon">🎯</div>
-        <div>
-          <h3 className="obs-card-title">Retrieval quality signals</h3>
-          <p className="obs-card-body">
-            Retrieval relevance, grounding score, citation completeness, and freshness signals will appear here
-            once live RAG execution is enabled. Right now all runs are simulated.
-          </p>
-          <p className="obs-card-body">
-            To unlock quality analytics: connect a vector store integration, configure an environment,
-            and promote a workflow to <strong>live</strong> execution from the Environments page.
-          </p>
+      {!scores && (
+        <div className="obs-card obs-card--info">
+          <div className="obs-card-icon">🎯</div>
+          <div>
+            <h3 className="obs-card-title">Retrieval quality signals</h3>
+            <p className="obs-card-body">
+              Run benchmarks in the <strong>Evaluation Harness</strong> to populate relevance, groundedness,
+              and completeness scores here. Once scored, this tab shows live quality KPIs per strategy.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {runs.length > 0 && (
         <div className="obs-card">
@@ -329,22 +345,10 @@ export function ObservabilityPage() {
         ...(simulatedFilter !== '' ? { is_simulated: simulatedFilter } : {}),
       }),
   })
-  const runDetailQuery = useQuery({
-    queryKey: ['observability-run', selectedRunId],
-    queryFn: () => getObservabilityRun(selectedRunId!),
-    enabled: selectedRunId != null,
-  })
-  const runTasksQuery = useQuery({
-    queryKey: ['observability-run-tasks', selectedRunId],
-    queryFn: () => listObservabilityRunTasks(selectedRunId!),
-    enabled: selectedRunId != null,
-  })
 
   const workflows = workflowsQuery.data ?? []
   const allRuns = useMemo(() => runsQuery.data ?? [], [runsQuery.data])
   const runs = allRuns
-  const runDetail = runDetailQuery.data
-  const tasks = runTasksQuery.data ?? []
 
   return (
     <div className="obs-page-root">
@@ -441,40 +445,8 @@ export function ObservabilityPage() {
           </section>
 
           {selectedRunId != null && (
-            <div className="obs-layout">
-              <div className="obs-detail-panel">
-                <h3>Run detail</h3>
-                {runDetailQuery.isLoading && <LoadingMessage label="Loading…" />}
-                {runDetail && !runDetailQuery.isLoading && (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.9rem' }}>
-                    <li><strong>ID</strong> {runDetail.id}</li>
-                    <li><strong>Workflow</strong> {runDetail.workflow_id}</li>
-                    <li><strong>Status</strong> {runDetail.status}</li>
-                    <li><strong>Created</strong> {new Date(runDetail.created_at).toLocaleString()}</li>
-                    {runDetail.started_at  && <li><strong>Started</strong>  {new Date(runDetail.started_at).toLocaleString()}</li>}
-                    {runDetail.finished_at && <li><strong>Finished</strong> {new Date(runDetail.finished_at).toLocaleString()}</li>}
-                    {runDetail.is_simulated && <li><span className="obs-badge obs-badge--simulated">Simulated</span></li>}
-                    {runDetail.environment_external_id && <li><strong>Environment</strong> {runDetail.environment_external_id}</li>}
-                    {runDetail.strategy_id && <li><strong>Strategy</strong> {runDetail.strategy_id}</li>}
-                  </ul>
-                )}
-              </div>
-              <div className="obs-detail-panel">
-                <h3>Task timeline</h3>
-                {runTasksQuery.isLoading && <LoadingMessage label="Loading tasks…" />}
-                {!runTasksQuery.isLoading && tasks.length === 0 && <p className="obs-empty">No task records for this run.</p>}
-                {!runTasksQuery.isLoading && tasks.length > 0 && (
-                  <ol className="obs-timeline">
-                    {tasks.map((t: TaskSummary) => (
-                      <li key={t.id}>
-                        <span className="obs-task-status"><span className="obs-badge">{t.status}</span></span>
-                        <span><strong>{t.node_id}</strong> ({t.node_type})</span>
-                        {t.error && <span style={{ color: '#f87171' }}>{t.error}</span>}
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
+            <div style={{ marginTop: '1rem' }}>
+              <TraceExplorer runId={selectedRunId} onClose={() => setSelectedRunId(null)} />
             </div>
           )}
         </>
