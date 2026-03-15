@@ -112,6 +112,11 @@ export function EnvironmentsPage() {
             <ul className="env-cards">
               {environments.map((env) => {
                 const step = pipelineIndex(env.promotion_status)
+                const bindings = env.integration_bindings ?? {}
+                const boundCount = Object.values(bindings).filter(Boolean).length
+                const totalInteg = integrations.length
+                const readinessPct = totalInteg === 0 ? 0 : Math.round((boundCount / totalInteg) * 100)
+                const readinessCls = readinessPct === 100 ? 'env-readiness--ok' : readinessPct > 0 ? 'env-readiness--partial' : 'env-readiness--none'
                 return (
                   <li
                     key={env.id}
@@ -125,6 +130,15 @@ export function EnvironmentsPage() {
                       </span>
                     </div>
                     <p className="env-card-id">{env.id}</p>
+                    {/* Readiness score pill */}
+                    <div className={`env-readiness-row ${readinessCls}`}>
+                      <span className="env-readiness-pill">
+                        {readinessPct}% ready — {boundCount}/{totalInteg} connectors bound
+                      </span>
+                      <div className="env-readiness-bar">
+                        <div className="env-readiness-fill" style={{ width: `${readinessPct}%` }} />
+                      </div>
+                    </div>
                     <div className="env-pipeline-bar">
                       {PIPELINE_STEPS.map((s, i) => (
                         <div key={s} className={`env-pipeline-step ${i <= step ? 'env-pipeline-step--done' : ''}`} title={STEP_LABELS[s]}>
