@@ -1,0 +1,345 @@
+/* ── Cost & ROI Calculator ───────────────────────────────────────────── */
+
+.cr-root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 0 3rem;
+}
+
+.cr-header {
+  margin-bottom: 2rem;
+}
+
+.cr-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.4rem;
+}
+
+.cr-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0;
+}
+
+/* ── Two-column layout ── */
+.cr-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── Inputs sidebar ── */
+.cr-inputs {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cr-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-faint);
+  margin: 0.75rem 0 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.cr-section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.cr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cr-field label {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.cr-field select,
+.cr-number-input {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  padding: 0.4rem 0.6rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cr-field select:focus,
+.cr-number-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.cr-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cr-input-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--color-accent);
+}
+
+.cr-input-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  min-width: 42px;
+  text-align: right;
+}
+
+/* ── Results panel ── */
+.cr-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cr-arch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  align-self: flex-start;
+}
+
+.cr-arch-badge[data-arch="vector"]     { background: color-mix(in srgb, var(--arch-vector) 15%, transparent); color: var(--arch-vector); border: 1px solid color-mix(in srgb, var(--arch-vector) 35%, transparent); }
+.cr-arch-badge[data-arch="vectorless"] { background: color-mix(in srgb, var(--arch-vectorless) 15%, transparent); color: var(--arch-vectorless); border: 1px solid color-mix(in srgb, var(--arch-vectorless) 35%, transparent); }
+.cr-arch-badge[data-arch="graph"]      { background: color-mix(in srgb, var(--arch-graph) 15%, transparent); color: var(--arch-graph); border: 1px solid color-mix(in srgb, var(--arch-graph) 35%, transparent); }
+.cr-arch-badge[data-arch="temporal"]   { background: color-mix(in srgb, var(--arch-temporal) 15%, transparent); color: var(--arch-temporal); border: 1px solid color-mix(in srgb, var(--arch-temporal) 35%, transparent); }
+.cr-arch-badge[data-arch="hybrid"]     { background: color-mix(in srgb, var(--arch-hybrid) 15%, transparent); color: var(--arch-hybrid); border: 1px solid color-mix(in srgb, var(--arch-hybrid) 35%, transparent); }
+.cr-arch-badge[data-arch="custom"]     { background: color-mix(in srgb, var(--arch-custom) 15%, transparent); color: var(--arch-custom); border: 1px solid color-mix(in srgb, var(--arch-custom) 35%, transparent); }
+
+/* Metric cards */
+.cr-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.cr-metric {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.1rem;
+}
+
+.cr-metric--positive { border-color: color-mix(in srgb, var(--color-success) 40%, transparent); background: color-mix(in srgb, var(--color-success) 6%, var(--color-surface)); }
+.cr-metric--negative { border-color: color-mix(in srgb, var(--color-danger) 40%, transparent); background: color-mix(in srgb, var(--color-danger) 6%, var(--color-surface)); }
+.cr-metric--warning  { border-color: color-mix(in srgb, var(--color-warning) 40%, transparent); background: color-mix(in srgb, var(--color-warning) 6%, var(--color-surface)); }
+
+.cr-metric-label {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+.cr-metric-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.cr-metric--positive .cr-metric-value { color: var(--color-success); }
+.cr-metric--negative .cr-metric-value { color: var(--color-danger); }
+
+.cr-metric-unit {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* Cost breakdown bar */
+.cr-breakdown {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+}
+
+.cr-breakdown h3 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.75rem;
+}
+
+.cr-breakdown-bar {
+  height: 20px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  background: var(--color-surface-2);
+  margin-bottom: 0.6rem;
+}
+
+.cr-bar-seg {
+  height: 100%;
+  transition: width 0.35s ease;
+}
+
+.cr-bar-seg--embedding  { background: var(--color-accent); }
+.cr-bar-seg--llm-input  { background: var(--color-accent-sky); }
+.cr-bar-seg--llm-output { background: var(--color-warning); }
+
+.cr-breakdown-legend {
+  display: flex;
+  gap: 1.2rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.cr-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+}
+
+.cr-legend-dot--embedding  { background: var(--color-accent); }
+.cr-legend-dot--llm-input  { background: var(--color-accent-sky); }
+.cr-legend-dot--llm-output { background: var(--color-warning); }
+
+/* ROI narrative card */
+.cr-roi-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.cr-roi-card--positive {
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+  background: color-mix(in srgb, var(--color-success) 5%, var(--color-surface));
+}
+
+.cr-roi-card--negative {
+  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 5%, var(--color-surface));
+}
+
+.cr-roi-icon { font-size: 1.6rem; line-height: 1; }
+
+.cr-roi-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.35rem;
+}
+
+.cr-roi-body {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Comparison table */
+.cr-compare {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+}
+
+.cr-compare h3 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.75rem;
+}
+
+.cr-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.cr-compare-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+  font-weight: 600;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cr-compare-table td {
+  padding: 0.45rem 0.5rem;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+}
+
+.cr-compare-table tr:last-child td { border-bottom: none; }
+
+.cr-compare-current td {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+}
+
+.cr-compare-selected {
+  font-size: 0.68rem;
+  color: var(--color-accent);
+  font-weight: 600;
+  margin-left: 0.4rem;
+}
+
+.cr-compare-bar-wrap {
+  height: 6px;
+  background: var(--color-surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+  width: 120px;
+}
+
+.cr-compare-bar {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 900px) {
+  .cr-layout { grid-template-columns: 1fr; }
+  .cr-inputs { position: static; }
+  .cr-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
