@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import './layout.css'
 import { useAuth, useHasPermission } from '../auth/AuthContext'
+import { useToast } from '../ui/ToastContext'
 
 // Minimal inline SVG icon helper
 function Icon({ d, title }: { d: string; title: string }) {
@@ -80,7 +81,9 @@ function initials(name?: string) {
 const SIDEBAR_KEY = 'raagos_sidebar_collapsed'
 
 export function AppShell() {
-  const { user, signOut } = useAuth()
+  const { user, isAuthenticated, signOut } = useAuth()
+  const { success } = useToast()
+  const welcomeFiredRef = useRef(false)
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
@@ -88,6 +91,19 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }
   })
+
+  // ── Welcome toast: fires once per session on first sign-in ─────────────
+  useEffect(() => {
+    if (!isAuthenticated || welcomeFiredRef.current) return
+    const key = 'raagos_welcomed'
+    if (sessionStorage.getItem(key)) return
+    welcomeFiredRef.current = true
+    sessionStorage.setItem(key, '1')
+    const name = user?.name?.split(' ')[0] ?? 'there'
+    const timeout = setTimeout(() => success(`Welcome back, ${name}! 👋`), 350)
+    return () => clearTimeout(timeout)
+  }, [isAuthenticated, user, success])
+
 
   function toggleSidebar() {
     setCollapsed(c => {
