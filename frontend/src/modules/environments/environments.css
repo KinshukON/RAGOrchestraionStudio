@@ -247,3 +247,90 @@
   color: #6b7280;
   font-size: 0.9rem;
 }
+
+/* ── Promote button ─────────────────────────────────────────────────── */
+.env-detail-promote {
+  margin-bottom: 1rem;
+}
+
+/* ── Card top row (name + status badge) ─────────────────────────────── */
+.env-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Pipeline progress bar ─────────────────────────────────────────── */
+.env-pipeline-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 0.5rem;
+}
+
+.env-pipeline-bar--detail {
+  margin-bottom: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #1f2937;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.env-pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  opacity: 0.35;
+}
+
+.env-pipeline-step+.env-pipeline-step::before {
+  content: '';
+  position: absolute;
+  left: -50%;
+  top: 6px;
+  width: 100%;
+  height: 2px;
+  background: #1f2937;
+}
+
+.env-pipeline-step--done+.env-pipeline-step--done::before {
+  background: #38b2ac;
+}
+
+.env-pipeline-step--done {
+  opacity: 1;
+}
+
+.env-pipeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #374151;
+  border: 2px solid #374151;
+  z-index: 1;
+}
+
+.env-pipeline-step--done .env-pipeline-dot {
+  background: #38b2ac;
+  border-color: #38b2ac;
+  box-shadow: 0 0 5px rgba(56, 178, 172, 0.5);
+}
+
+.env-pipeline-step--current .env-pipeline-dot {
+  background: #805ad5;
+  border-color: #805ad5;
+  box-shadow: 0 0 5px rgba(128, 90, 213, 0.5);
+}
+
+.env-pipeline-label {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+}
+
+.env-pipeline-step--done .env-pipeline-label {
+  color: #81e6d9;
+}

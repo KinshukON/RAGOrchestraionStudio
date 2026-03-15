@@ -135,6 +135,19 @@ class EnvironmentRepository:
             session.refresh(env)
             return env
 
+    def update_promotion(self, external_id: str, new_status: str) -> None:
+        """Advance the promotion_status of an environment."""
+        from datetime import datetime as _dt
+        with get_session() as session:
+            statement = select(Environment).where(Environment.external_id == external_id)
+            existing = session.exec(statement).first()
+            if existing:
+                existing.promotion_status = new_status
+                existing.updated_at = _dt.utcnow()
+                session.add(existing)
+                session.commit()
+
+
 
 class WorkflowRepository:
     """Persist and load workflow definitions. Converts to/from the API shape (WorkflowDefinition)."""

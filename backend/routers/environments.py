@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -7,12 +7,22 @@ from models_core import Environment as EnvironmentModel
 from repositories import EnvironmentRepository
 
 
+# Ordered promotion pipeline
+PROMOTION_ORDER = ["draft", "not_promoted", "pending", "promoted"]
+PROMOTION_NEXT: Dict[str, str] = {
+    "draft":        "pending",
+    "not_promoted": "pending",
+    "pending":      "promoted",
+    "promoted":     "promoted",  # already at top
+}
+
+
 class EnvironmentConfig(BaseModel):
     id: str
     name: str
     description: str
     integration_bindings: Dict[str, str]
-    runtime_profile: Dict[str, str] = {}
+    runtime_profile: Dict[str, Any] = {}
     promotion_status: str = "draft"
     approval_state: str | None = None
     health_status: str | None = None
@@ -63,8 +73,24 @@ async def update_environment(environment_id: str, env: EnvironmentConfig) -> Env
     return EnvironmentConfig.from_model(updated)
 
 
+@router.post("/{environment_id}/promote", response_model=EnvironmentConfig)
+async def promote_environment(environment_id: str) -> EnvironmentConfig:
+    """
+    Advance an environment's promotion_status one step along the pipeline:
+    draft / not_promoted → pending → promoted
+    """
+    env = _env_repo.get_by_external_id(environment_id)
+    if not env:
+        raise HTTPException(status_code=404, detail="Environment not found")
+    current = env.promotion_status or "draft"
+    if current == "promoted":
+        raise HTTPException(status_code=400, detail="Environment is already fully promoted")
+    next_status = PROMOTION_NEXT.get(current, "pending")
+    _env_repo.update_promotion(environment_id, next_status)
+    env = _env_repo.get_by_external_id(environment_id)
+    return EnvironmentConfig.from_model(env)  # type: ignore[arg-type]
+
+
 @router.delete("/{environment_id}")
 async def delete_environment(environment_id: str) -> Dict[str, str]:
-    # Soft-delete not yet implemented; for now, simply indicate unsupported.
     raise HTTPException(status_code=501, detail="Environment deletion not yet supported with persistent storage")
-

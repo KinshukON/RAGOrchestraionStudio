@@ -5,7 +5,7 @@ export type EnvironmentConfig = {
   name: string
   description: string
   integration_bindings: Record<string, string>
-  runtime_profile?: Record<string, string>
+  runtime_profile?: Record<string, unknown>
   promotion_status?: string
   approval_state?: string | null
   health_status?: string | null
@@ -31,7 +31,11 @@ export async function updateEnvironment(id: string, config: EnvironmentConfig) {
   return res.data
 }
 
+export async function promoteEnvironment(id: string) {
+  const res = await apiClient.post<EnvironmentConfig>(`/api/environments/${id}/promote`)
+  return res.data
+}
+
 export async function deleteEnvironment(id: string) {
   await apiClient.delete(`/api/environments/${id}`)
 }
-
