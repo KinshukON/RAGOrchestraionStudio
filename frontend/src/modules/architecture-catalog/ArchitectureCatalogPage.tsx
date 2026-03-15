@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import './architecture-catalog.css'
@@ -5,6 +6,7 @@ import { createDesignSession, listArchitectureCatalog, type ArchitectureTemplate
 import { PageHeader } from '../ui/feedback'
 import { PageSkeleton } from '../ui/Skeleton'
 import { useToast } from '../ui/ToastContext'
+import { ArchitectAdvisor } from './ArchitectAdvisor'
 
 type CatalogTileProps = {
   template: ArchitectureTemplate
@@ -67,6 +69,11 @@ function CatalogTile({ template, onDesign, isDesigning }: CatalogTileProps) {
 export function ArchitectureCatalogPage() {
   const navigate = useNavigate()
   const { error } = useToast()
+  const catalogRef = useRef<HTMLDivElement>(null)
+
+  function scrollToCatalog() {
+    catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const catalogQuery = useQuery({
     queryKey: ['architecture-catalog'],
@@ -94,6 +101,12 @@ export function ArchitectureCatalogPage() {
         description="Choose a RAG architecture to design. Each template encodes when to use it, core strengths and tradeoffs, and typical backend components."
         simulated
       />
+
+      {/* ── Architect Advisor two-path entry ── */}
+      <ArchitectAdvisor onBrowse={scrollToCatalog} />
+
+      {/* ── Catalog anchor ── */}
+      <div ref={catalogRef} />
 
       {isLoading && <div className="arch-catalog-status">Loading architecture templates…</div>}
       {isError && (
