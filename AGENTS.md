@@ -69,3 +69,18 @@ When working in this repo, optimize for **modularity, explainability, and govern
   - Preserve audit logging hooks (or add them) on sensitive actions: role changes, integration reconfiguration, observability rule edits.
   - Make RAG workflows and admin actions explainable where possible (e.g., traces in Query Studio, admin activity logs).
 
+## Deployment
+
+| Layer    | Platform  | Notes |
+|----------|-----------|-------|
+| Frontend | [Vercel](https://vercel.com) | React/Vite SPA. Auto-deploys on push to `main`. |
+| Backend  | [Railway](https://railway.app) | FastAPI + SQLModel. Auto-deploys on push to `main`. |
+| Database | Railway PostgreSQL | Production DB. Local dev uses SQLite. |
+
+- **Production URL**: https://ragorchestrationstudio.com/
+- **Google OAuth callback**: https://ragorchestrationstudio.com/auth/callback
+- When making changes that affect prod, push to `main` and verify on the live URL after both Vercel and Railway builds complete.
+
+## Key contacts
+
+- **Platform Admin**: Kinshuk Dutta — holds the `Platform Admin` role with full permissions.

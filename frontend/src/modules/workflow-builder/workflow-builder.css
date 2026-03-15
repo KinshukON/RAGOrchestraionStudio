@@ -190,3 +190,83 @@
   margin-bottom: 0.5rem;
 }
 
+/* ── Deep config panel additions ─────────────────────────────── */
+
+.wf-config-panel {
+  overflow-y: auto;
+  max-height: calc(100vh - 160px);
+}
+
+.wf-config-field select {
+  border-radius: 0.4rem;
+  border: 1px solid #374151;
+  padding: 0.35rem 0.5rem;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.wf-config-textarea {
+  border-radius: 0.4rem;
+  border: 1px solid #374151;
+  padding: 0.35rem 0.5rem;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  width: 100%;
+  resize: vertical;
+}
+
+.wf-config-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wf-config-slider-row input[type='range'] {
+  flex: 1;
+  accent-color: #67e8f9;
+}
+
+.wf-config-num-input {
+  width: 64px !important;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.wf-config-section-header {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #4b5563;
+  border-bottom: 1px solid #1f2937;
+  padding-bottom: 0.2rem;
+  margin: 0.4rem 0 0.1rem;
+}
+
+.wf-config-field-label {
+  color: #9ca3af;
+  font-size: 0.82rem;
+}
+
+.wf-config-field-hint {
+  color: #4b5563;
+  cursor: help;
+  font-size: 0.75rem;
+  margin-left: 0.15rem;
+}
+
+.wf-config-field--toggle {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wf-config-field--toggle input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #67e8f9;
+  flex-shrink: 0;
+}

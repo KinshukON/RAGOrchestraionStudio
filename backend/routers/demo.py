@@ -82,6 +82,14 @@ def _seed(session) -> Dict[str, int]:
         users[email] = u
     counts["users"] = len(user_defs)
 
+    # ── Promote Kinshuk Dutta (Google-auth) to Platform Admin if present ──
+    kinshuk = session.exec(select(User).where(User.email.ilike("%kinshuk%"))).first()
+    if kinshuk:
+        kinshuk.role_id = roles["Platform Admin"].id
+        kinshuk.team_id = teams["Platform Engineering"].id
+        session.add(kinshuk)
+    counts["admin_promoted"] = 1 if kinshuk else 0
+
     # ── Views ──────────────────────────────────────────────────────────────
     view_defs = [
         ("architecture-catalog", "Architecture Catalog", "Home – RAG architecture selection"),
