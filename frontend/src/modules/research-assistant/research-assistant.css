@@ -1,0 +1,310 @@
+/* ── Research Assistant Page ──────────────────────────────────────────────── */
+
+.ra-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 0;
+    gap: 0;
+    font-family: var(--font-sans, Inter, system-ui, sans-serif);
+}
+
+.ra-header {
+    flex-shrink: 0;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 1rem;
+}
+
+.ra-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+    color: var(--color-text);
+}
+
+.ra-subtitle {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── Chat area ── */
+.ra-chat-area {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-bottom: 0.5rem;
+}
+
+/* ── Bubbles ── */
+.ra-bubble {
+    max-width: 90%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-lg, 12px);
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.ra-bubble--user {
+    align-self: flex-end;
+    background: var(--color-accent);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.ra-bubble--assistant {
+    align-self: flex-start;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-bottom-left-radius: 4px;
+    color: var(--color-text);
+    max-width: 100%;
+}
+
+.ra-bubble-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+}
+
+.ra-bubble-role {
+    font-weight: 600;
+    font-size: 0.72rem;
+}
+
+.ra-bubble-time {
+    font-size: 0.68rem;
+    color: var(--color-text-muted);
+}
+
+.ra-bubble--user .ra-bubble-role,
+.ra-bubble--user .ra-bubble-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.ra-bubble-text {
+    white-space: pre-wrap;
+}
+
+/* ── Tables inside bubbles ── */
+.ra-table-wrap {
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+}
+
+.ra-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.77rem;
+}
+
+.ra-table th {
+    background: var(--color-surface-2);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.ra-table td {
+    padding: 0.4rem 0.6rem;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.ra-table tr:hover td {
+    background: var(--color-surface-2);
+}
+
+/* ── Lists inside bubbles ── */
+.ra-answer-list {
+    margin: 0.65rem 0 0;
+    padding-left: 1.25rem;
+    font-size: 0.82rem;
+    color: var(--color-text);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+/* ── Callouts ── */
+.ra-callout {
+    margin-top: 0.65rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    border-left: 3px solid;
+}
+
+.ra-callout--info {
+    background: #818cf826;
+    border-color: #818cf8;
+    color: #c7d2fe;
+}
+
+.ra-callout--warn {
+    background: #fb923c1a;
+    border-color: #fb923c;
+    color: #fdba74;
+}
+
+.ra-callout--success {
+    background: #4ade8019;
+    border-color: #4ade80;
+    color: #86efac;
+}
+
+/* ── Code blocks ── */
+.ra-code-block {
+    position: relative;
+    margin-top: 0.65rem;
+    background: var(--color-surface-2);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.9rem;
+}
+
+.ra-code-block pre {
+    margin: 0;
+    font-size: 0.78rem;
+    overflow-x: auto;
+}
+
+.ra-copy-btn {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+/* ── Typing indicator ── */
+.ra-typing {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.65rem 1rem !important;
+    width: fit-content;
+}
+
+.ra-typing span {
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+    animation: ra-bounce 1.2s ease-in-out infinite;
+}
+
+.ra-typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.ra-typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes ra-bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: translateY(-6px);
+        opacity: 1;
+    }
+}
+
+/* ── Suggestions ── */
+.ra-suggestions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 0;
+    flex-shrink: 0;
+}
+
+.ra-suggestion-pill {
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ra-suggestion-pill:hover:not(:disabled) {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: transparent;
+}
+
+.ra-suggestion-pill:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ── Input row ── */
+.ra-input-row {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 0 1.25rem;
+    flex-shrink: 0;
+}
+
+.ra-input {
+    flex: 1;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    font-family: inherit;
+}
+
+.ra-input:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.ra-send-btn {
+    padding: 0.55rem 1.25rem;
+    border-radius: var(--radius);
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.ra-send-btn:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+.ra-send-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

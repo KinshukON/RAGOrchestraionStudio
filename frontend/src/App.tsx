@@ -20,6 +20,8 @@ import { AdminViewsPage } from './modules/admin-views/AdminViewsPage'
 import { AdminPreferencesPage } from './modules/admin-preferences/AdminPreferencesPage'
 import { AdminObservabilityPage } from './modules/admin-observability/AdminObservabilityPage'
 import { UserGuidePage } from './modules/user-guide/UserGuidePage'
+import { EvaluationPage } from './modules/evaluation/EvaluationPage'
+import { ResearchAssistantPage } from './modules/research-assistant/ResearchAssistantPage'
 import { ErrorBoundary } from './modules/ui/ErrorBoundary'
 import { ToastProvider } from './modules/ui/ToastContext'
 
@@ -66,6 +68,8 @@ function AppRouter() {
           <Route path="admin/preferences" element={<Page name="Admin › Preferences"><AdminPreferencesPage /></Page>} />
           <Route path="admin/observability" element={<Page name="Admin › Observability"><AdminObservabilityPage /></Page>} />
           <Route path="guide" element={<Page name="User Guide"><UserGuidePage /></Page>} />
+          <Route path="evaluation" element={<Page name="Evaluation Harness"><EvaluationPage /></Page>} />
+          <Route path="research-assistant" element={<Page name="Research Assistant"><ResearchAssistantPage /></Page>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -82,6 +82,10 @@ class WorkflowRunSummary(BaseModel):
     status: str
     created_at: str
     finished_at: str | None = None
+    experiment_id: str | None = None
+    query: str | None = None
+    architecture_type: str | None = None
+    strategies_run: List[str] | None = None
 
 
 @router.get("", response_model=List[WorkflowDefinition])
@@ -110,11 +114,20 @@ async def list_workflows_by_architecture(architecture_type: str) -> List[Workflo
 @router.get("/runs", response_model=List[WorkflowRunSummary])
 async def list_workflow_runs() -> List[WorkflowRunSummary]:
     import traceback as _tb
+    import json as _json
     try:
         with get_session() as session:
             runs = list(session.exec(select(WorkflowRun)))
         summaries: List[WorkflowRunSummary] = []
         for run in runs:
+            inp = run.input_payload or {}
+            strategies_raw = inp.get("strategies_run")
+            strats = None
+            if strategies_raw:
+                try:
+                    strats = _json.loads(strategies_raw) if isinstance(strategies_raw, str) else strategies_raw
+                except Exception:
+                    strats = None
             summaries.append(
                 WorkflowRunSummary(
                     id=run.id or 0,
@@ -122,6 +135,10 @@ async def list_workflow_runs() -> List[WorkflowRunSummary]:
                     status=run.status,
                     created_at=run.created_at.isoformat(),
                     finished_at=run.finished_at.isoformat() if run.finished_at else None,
+                    experiment_id=inp.get("experiment_id"),
+                    query=inp.get("query"),
+                    architecture_type=inp.get("architecture_type"),
+                    strategies_run=strats,
                 )
             )
         summaries.sort(key=lambda r: r.created_at, reverse=True)
@@ -258,13 +275,19 @@ class WorkflowRunResponse(BaseModel):
     input_tokens: int
     output_tokens: int
     spans: List[Dict[str, Any]]
+    # Extended evidence fields (always present in IEEE mode)
+    experiment_id: str = ""
+    chunks_retrieved: int = 0
+    rerank_latency_ms: int = 0
+    llm_latency_ms: int = 0
+    filters_applied: List[str] = Field(default_factory=list)
 
 
 class MultiRunRequest(BaseModel):
     query: str
     project_id: str = ""
     environment_id: str = ""
-    strategies: List[str] = Field(default_factory=lambda: ["vector", "hybrid", "graph"])
+    strategies: List[str] = Field(default_factory=lambda: ["vector", "vectorless", "graph", "temporal", "hybrid"])
     parameters: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -274,6 +297,7 @@ class StrategyRunResult(BaseModel):
 
 
 class MultiRunResponse(BaseModel):
+    experiment_id: str = ""
     results: List[StrategyRunResult]
 
 
@@ -364,59 +388,97 @@ async def run_workflow_multi(
 ) -> MultiRunResponse:
     """
     Run the same query through multiple architecture strategies for side-by-side comparison.
-    Falls back gracefully to simulated data for strategies without configured connectors.
+    Uses the rich simulation engine; returns structured chunks, per-stage spans, token counts,
+    retrieval paths, and a citable experiment_id for every run.
     """
-    import asyncio
+    import json as _json
+    from datetime import datetime as _dt
+    from simulation import simulate_multi
 
-    async def run_one(strategy: str) -> StrategyRunResult:
-        req = WorkflowRunRequest(
-            query=payload.query,
-            project_id=payload.project_id,
-            environment_id=payload.environment_id,
-            architecture_type=strategy,
-            parameters=payload.parameters,
-        )
-        trace = await run_workflow(workflow_id, req)
-        return StrategyRunResult(strategy_id=strategy, trace=trace)
+    strategies = payload.strategies or ["vector", "vectorless", "graph", "temporal", "hybrid"]
+    top_k = int((payload.parameters or {}).get("top_k", 5))
 
-    # Run all strategies concurrently
-    tasks = [run_one(s) for s in payload.strategies]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    experiment_id, sim_results = simulate_multi(payload.query, strategies, top_k)
 
     strategy_results: List[StrategyRunResult] = []
-    for i, res in enumerate(results):
-        if isinstance(res, Exception):
-            # Create a minimal error result for failed strategies
-            strategy_results.append(
-                StrategyRunResult(
-                    strategy_id=payload.strategies[i],
-                    trace=WorkflowRunResponse(
-                        run_id=0,
-                        retrieved_sources=[],
-                        retrieval_path=[],
-                        vector_hits=[],
-                        metadata_matches=[],
-                        graph_traversal=[],
-                        temporal_filters=[],
-                        reranking_decisions=[],
-                        final_prompt_context="",
-                        model_answer=f"[Error: {res}]",
-                        grounded_citations=[],
-                        latency_ms=0,
-                        confidence_score=0,
-                        hallucination_risk="unknown",
-                        is_simulated=True,
-                        model_used="error",
-                        input_tokens=0,
-                        output_tokens=0,
-                        spans=[],
-                    ),
-                )
+    for sim in sim_results:
+        strategy_results.append(
+            StrategyRunResult(
+                strategy_id=sim["strategy_id"],
+                trace=WorkflowRunResponse(
+                    run_id=0,  # will be filled after DB write
+                    retrieved_sources=sim["retrieved_sources"],
+                    retrieval_path=sim["retrieval_path"],
+                    vector_hits=sim["vector_hits"],
+                    metadata_matches=sim["metadata_matches"],
+                    graph_traversal=sim["graph_traversal"],
+                    temporal_filters=sim["temporal_filters"],
+                    reranking_decisions=sim["reranking_decisions"],
+                    final_prompt_context=sim["final_prompt_context"],
+                    model_answer=sim["model_answer"],
+                    grounded_citations=sim["grounded_citations"],
+                    latency_ms=sim["latency_ms"],
+                    confidence_score=sim["confidence_score"],
+                    hallucination_risk=sim["hallucination_risk"],
+                    is_simulated=sim["is_simulated"],
+                    model_used=sim["model_used"],
+                    input_tokens=sim["input_tokens"],
+                    output_tokens=sim["output_tokens"],
+                    spans=sim["spans"],
+                    experiment_id=experiment_id,
+                    chunks_retrieved=sim["chunks_retrieved"],
+                    rerank_latency_ms=sim["rerank_latency_ms"],
+                    llm_latency_ms=sim["llm_latency_ms"],
+                    filters_applied=sim["filters_applied"],
+                ),
             )
-        else:
-            strategy_results.append(res)
+        )
 
-    return MultiRunResponse(results=strategy_results)
+    # Persist a single WorkflowRun record covering all strategies
+    try:
+        with get_session() as session:
+            run = WorkflowRun(
+                workflow_id=workflow_id,
+                status="succeeded",
+                input_payload={
+                    "query": payload.query,
+                    "strategies_run": strategies,
+                    "experiment_id": experiment_id,
+                    "environment_id": payload.environment_id,
+                    "top_k": top_k,
+                    "architecture_type": ",".join(strategies),
+                },
+                output_payload={
+                    "experiment_id": experiment_id,
+                    "strategies": [
+                        {
+                            "strategy_id": r.strategy_id,
+                            "latency_ms": r.trace.latency_ms,
+                            "confidence_score": r.trace.confidence_score,
+                            "hallucination_risk": r.trace.hallucination_risk,
+                            "input_tokens": r.trace.input_tokens,
+                            "output_tokens": r.trace.output_tokens,
+                            "chunks_retrieved": r.trace.chunks_retrieved,
+                        }
+                        for r in strategy_results
+                    ],
+                },
+                started_at=_dt.utcnow(),
+                finished_at=_dt.utcnow(),
+            )
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+            run_id = run.id or 0
+
+        # Backfill run_id into traces
+        for sr in strategy_results:
+            sr.trace.run_id = run_id
+
+    except Exception:
+        pass  # Non-fatal: run history is best-effort
+
+    return MultiRunResponse(experiment_id=experiment_id, results=strategy_results)
 
 
 # ── Backwards-compatible simulate aliases ─────────────────────────────────────

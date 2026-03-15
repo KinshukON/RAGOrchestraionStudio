@@ -6,6 +6,10 @@ export type WorkflowRunSummary = {
   status: string
   created_at: string
   finished_at?: string | null
+  experiment_id?: string | null
+  query?: string | null
+  architecture_type?: string | null
+  strategies_run?: string[] | null
 }
 
 export async function listWorkflowRuns() {

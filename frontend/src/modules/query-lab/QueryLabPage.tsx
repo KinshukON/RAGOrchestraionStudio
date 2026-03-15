@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import type { RAGRunResponse } from '../../api/workflows'
-import { listWorkflows, listWorkflowRuns, runWorkflowMulti } from '../../api/workflows'
+import { listWorkflows, runWorkflowMulti } from '../../api/workflows'
 import { listEnvironments } from '../../api/environments'
 import { saveTestCase } from '../../api/evaluations'
 import { QueryInputPanel } from './QueryInputPanel'
@@ -12,7 +12,7 @@ import { EmptyState, LoadingMessage } from '../ui/feedback'
 import { useToast } from '../ui/ToastContext'
 import './query-lab.css'
 
-const DEFAULT_STRATEGIES = ['vector', 'vectorless', 'hybrid']
+const DEFAULT_STRATEGIES = ['vector', 'vectorless', 'graph', 'temporal', 'hybrid']
 
 export function QueryLabPage() {
   const navigate = useNavigate()
@@ -21,16 +21,13 @@ export function QueryLabPage() {
   const [workflowId, setWorkflowId] = useState('')
   const [environmentId, setEnvironmentId] = useState('dev')
   const [strategies, setStrategies] = useState<string[]>(DEFAULT_STRATEGIES)
-  const [topK, setTopK] = useState(10)
-  const [workflowFilter, setWorkflowFilter] = useState('')
+  const [topK, setTopK] = useState(5)
 
   const workflowsQuery = useQuery({ queryKey: ['workflows'], queryFn: listWorkflows })
   const environmentsQuery = useQuery({ queryKey: ['environments'], queryFn: listEnvironments })
-  const runsQuery = useQuery({ queryKey: ['workflow-runs'], queryFn: listWorkflowRuns, refetchInterval: 5000 })
 
   const workflows = workflowsQuery.data ?? []
   const environments = environmentsQuery.data ?? []
-  const runs = runsQuery.data ?? []
 
   // Auto-select first available workflow when list loads
   useEffect(() => {
@@ -38,8 +35,6 @@ export function QueryLabPage() {
       setWorkflowId(workflows[0].id)
     }
   }, [workflows])
-
-  const workflowIds = Array.from(new Set(runs.map((r) => r.workflow_id))).sort()
 
   const simulation = useMutation({
     mutationFn: () =>
@@ -49,16 +44,10 @@ export function QueryLabPage() {
         strategies: strategies.length > 0 ? strategies : DEFAULT_STRATEGIES,
         parameters: { top_k: topK },
       }),
-    onSuccess: () => {
-      runsQuery.refetch()
-    },
   })
 
   const saveTestCaseMutation = useMutation({
-    mutationFn: (payload: {
-      strategy_id: string
-      expected_answer: string
-    }) =>
+    mutationFn: (payload: { strategy_id: string; expected_answer: string }) =>
       saveTestCase({
         workflow_id: workflowId,
         environment_id: environmentId,
@@ -73,7 +62,7 @@ export function QueryLabPage() {
     saveTestCaseMutation.mutate(
       { strategy_id: strategyId, expected_answer: trace.model_answer },
       {
-        onSuccess: () => success('Test case saved — use it later in evaluation runs'),
+        onSuccess: () => success('Test case saved — open Evaluation Harness to run benchmarks'),
         onError: () => error('Failed to save test case — please try again'),
       },
     )
@@ -81,13 +70,14 @@ export function QueryLabPage() {
 
   const selectedWorkflow = workflows.find(w => w.id === workflowId)
   const noWorkflows = !workflowsQuery.isLoading && workflows.length === 0
+  const simData = simulation.data as typeof simulation.data & { experiment_id?: string } | undefined
 
   return (
     <div className="ql-root">
       <header className="ql-header">
         <h1>Query Lab</h1>
         <p>
-          Run test queries against workflows, compare strategies side-by-side, and inspect retrieval traces. Uses real LLM connectors when API keys are configured.
+          Run queries against all 5 architecture strategies simultaneously, compare side-by-side retrieval traces, export citable experiment artefacts.
         </p>
         {selectedWorkflow && (
           <p className="ql-arch-summary">
@@ -123,13 +113,13 @@ export function QueryLabPage() {
             environmentsLoading={environmentsQuery.isLoading}
           />
 
-          {simulation.isPending && !simulation.data && <LoadingMessage label="Running RAG pipeline…" />}
+          {simulation.isPending && <LoadingMessage label="Running all 5 RAG strategies…" />}
 
           {!simulation.isPending && !simulation.data && (
             <section className="ql-panel">
               <EmptyState
                 title="No results yet"
-                description="Select a workflow and click Run to execute a real RAG pipeline. API keys configured in .env enable live LLM + vector retrieval."
+                description="Select a workflow and click Run to execute all 5 RAG strategies in parallel."
               />
             </section>
           )}
@@ -137,20 +127,14 @@ export function QueryLabPage() {
           {simulation.data && simulation.data.results.length > 0 && (
             <ResultComparisonGrid
               results={simulation.data.results}
+              experimentId={simData?.experiment_id}
               onSaveAsTestCase={handleSaveAsTestCase}
             />
           )}
 
-          <RunHistoryPanel
-            runs={runs}
-            isLoading={runsQuery.isLoading}
-            workflowFilter={workflowFilter}
-            setWorkflowFilter={setWorkflowFilter}
-            workflowIds={workflowIds}
-          />
+          <RunHistoryPanel />
         </>
       )}
     </div>
   )
 }
-

@@ -30,6 +30,11 @@ const ADMIN_NAV_ITEMS = [
   { to: '/app/admin/teams', label: 'Teams', d: 'M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-1a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v1h-3zM4.75 14.094A5.973 5.973 0 004 17v1H1v-1a3 3 0 013.75-2.906z' },
 ]
 
+const EVIDENCE_NAV_ITEMS = [
+  { to: '/app/evaluation', end: false, label: 'Evaluation Harness', d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+  { to: '/app/research-assistant', end: false, label: 'Research Assistant', d: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
+]
+
 const ROUTE_LABELS: Record<string, string> = {
   '': 'Architecture Catalog',
   'designer': 'Guided Designer',
@@ -39,6 +44,8 @@ const ROUTE_LABELS: Record<string, string> = {
   'environments': 'Environments',
   'governance': 'Governance',
   'observability': 'Observability',
+  'evaluation': 'Evaluation Harness',
+  'research-assistant': 'Research Assistant',
   'users': 'Users',
   'roles': 'Roles',
   'teams': 'Teams',
@@ -95,6 +102,14 @@ export function AppShell() {
         <nav className="shell-nav">
           <span className="shell-nav-section">Architecture</span>
           {NAV_ITEMS.map(item => (
+            <NavLink key={item.to} to={item.to} end={item.end} className="shell-nav-item">
+              <Icon d={item.d} title={item.label} />
+              {item.label}
+            </NavLink>
+          ))}
+
+          <span className="shell-nav-section">Evidence</span>
+          {EVIDENCE_NAV_ITEMS.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end} className="shell-nav-item">
               <Icon d={item.d} title={item.label} />
               {item.label}
