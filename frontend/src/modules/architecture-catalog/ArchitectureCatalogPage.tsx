@@ -7,6 +7,7 @@ import { PageHeader } from '../ui/feedback'
 import { PageSkeleton } from '../ui/Skeleton'
 import { useToast } from '../ui/ToastContext'
 import { ArchitectAdvisor } from './ArchitectAdvisor'
+import { RequiredIntegrationsPanel } from './RequiredIntegrationsPanel'
 
 type CatalogTileProps = {
   template: ArchitectureTemplate
@@ -56,6 +57,8 @@ function CatalogTile({ template, onDesign, isDesigning }: CatalogTileProps) {
             ))}
           </div>
         </section>
+      {/* Required integrations + ops complexity panel */}
+      <RequiredIntegrationsPanel archType={template.type} variant="card" />
       </div>
       <footer className="arch-catalog-card-footer">
         <button className="arch-catalog-cta" type="button" onClick={onDesign} disabled={isDesigning}>

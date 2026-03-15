@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { createDesignSession, type ArchitectureType } from '../../api/architectures'
+import { RequiredIntegrationsPanel } from './RequiredIntegrationsPanel'
 import './architect-advisor.css'
 
 // ── Question definitions ────────────────────────────────────────────────
@@ -293,6 +294,10 @@ export function ArchitectAdvisor({ onBrowse }: Props) {
                 <div className="arch-advisor-result-subtitle">{result.subtitle}</div>
                 <h3 className="arch-advisor-result-title">{result.title}</h3>
                 <p className="arch-advisor-result-explanation">{result.explanation}</p>
+                {/* ── Integration readiness + ops profile ── */}
+                {result.archType && (
+                  <RequiredIntegrationsPanel archType={result.archType} variant="result" />
+                )}
               </div>
               <div className="arch-advisor-result-actions">
                 {result.archType ? (
