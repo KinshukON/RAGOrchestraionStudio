@@ -1,6 +1,6 @@
-# RAG Studio — Technical Dossier
+# RAAGOS — RAG Orchestration Studio · Technical Dossier
 
-> **Version:** 2.1 · March 2026  
+> **Version:** 2.2 · March 2026  
 > **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > **Repository:** [github.com/KinshukON/RAGOrchestraionStudio](https://github.com/KinshukON/RAGOrchestraionStudio)
 
@@ -27,23 +27,30 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 **Real vs aspirational.**
 
 - **Real / Implemented:**
-  - Google OAuth → JWT sign-in on both frontend and backend.
-  - Architecture Catalog (6 RAG types) with DB-backed `ArchitectureTemplate` records and demo auto-seeding.
-  - Guided Designer with 6 architecture-specific step configurations, design-session persistence, and workflow generation.
-  - Visual Workflow Builder (ReactFlow canvas) with node palette, configuration side panel, and publish flow.
-  - Query Lab with workflow selection, environment binding, multi-strategy simulation, run history (auto-polling), and test-case saving.
-  - Integrations Studio with connector CRUD and environment binding UI.
-  - Dedicated Environments, Governance, and Observability pages.
-  - Enterprise admin console (Users, Roles, Teams, Views, Preferences, Observability).
-  - Enterprise-grade UI system: `ErrorBoundary`, `ToastContext`, `Skeleton` loaders, `PageHeader`, `EmptyState`, `LoadingMessage`.
-  - In-app User Guide with sticky TOC, flow banner, screenshots, and a downloadable PDF (`/user-guide.pdf`).
+  - Google OAuth → JWT sign-in; `qc.clear()` post-OAuth fixes catalog auto-refresh; welcome toast on first sign-in.
+  - Architecture Catalog (6 RAG types), DB-backed templates, demo auto-seeding, empty-state CTA.
+  - Guided Designer: 6 architecture-specific step configurations, design-session persistence, workflow generation.
+  - Visual Workflow Builder: ReactFlow canvas, deep per-node config, governance-gated + RBAC-gated + rate-limited Publish.
+  - Query Lab: multi-strategy simulation, evidence cards, run history, citeable experiment IDs.
+  - Integrations Studio: CRUD + live health dots from real test-connection endpoint.
+  - Environments: 3-step promotion pipeline, governance-gated + RBAC-gated + rate-limited Promote.
+  - Governance: policy definitions enforced at publish and promote time (not just advisory).
+  - Observability: run history, trace analytics, global audit log.
+  - **Full RBAC enforcement**: `require_permission()` on publish/promote endpoints; `useHasPermission()` gates Admin nav and Publish button.
+  - **Session management admin**: per-user Sessions tab (Revoke / Revoke All) and Audit Log tab in Admin → Users.
+  - **Rate limiting**: in-process sliding-window (10/min publish, 5/min promote), HTTP 429 + Retry-After.
+  - **Audit write hooks**: `AuditLog` rows written on every publish (success + blocked) and every promote step.
+  - **Collapsible sidebar**: hamburger toggle, 220px ↔ 56px, persisted to localStorage.
+  - Enterprise admin console: Users (split-panel), Roles, Teams, Views, Preferences, Observability.
+  - Enterprise UI system: ErrorBoundary, ToastContext, Skeleton loaders, EmptyState, SimBanner.
+  - In-app User Guide + downloadable PDF.
   - Vercel + Railway deployment with API proxying.
 
 - **Aspirational / Planned:**
   - Real RAG retrieval against vector/graph/temporal backends and live LLM orchestration.
-  - Full RBAC enforcement on routers and frontend.
-  - Production governance (approval workflows, lineage, evaluation pipelines, monitoring dashboards).
+  - Production approval workflows with multi-role human sign-off.
   - Multi-tenancy and organization-level scoping.
+  - Automated CI/CD test suite.
 
 ---
 
@@ -51,14 +58,14 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 
 | Attribute | Value |
 |---|---|
-| **Project name** | RAG Studio — Enterprise RAG Orchestration Platform |
+| **Project name** | RAAGOS — RAG Orchestration Studio |
 | **One-sentence definition** | A browser-based control plane for designing, configuring, simulating, and governing retrieval-augmented generation workflows across vector, vectorless, graph, temporal, and hybrid paradigms. |
 | **Primary domain** | Applied AI infrastructure / RAG orchestration systems |
 | **Target users** | Enterprise AI architects, MLOps engineers, knowledge engineers, platform teams |
 | **Frontend deployment** | Vercel CDN (SPA, `frontend/dist`) |
 | **Backend deployment** | Railway (`ragorchestraionstudio-production.up.railway.app`) |
 | **Database** | PostgreSQL via Supabase (SQLModel / SQLAlchemy) |
-| **Maturity classification** | **Functional early-stage product** — full end-to-end flows deployed; RAG execution and RBAC enforcement remain stubbed |
+| **Maturity classification** | **Functional product** — full end-to-end flows deployed with RBAC enforcement, governance gates, rate limiting, session management, and audit trail; RAG execution remains simulated pending real API key wiring |
 
 ---
 
@@ -88,8 +95,15 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 | **In-App User Guide** | Implemented | `UserGuidePage.tsx`, `user-guide.css` | `/app/guide` route; two-column layout with sticky TOC, flow banner, screenshots from `/guide-images/`, step badges, callout boxes; accessible via header help button |
 | **PDF User Guide** | Implemented | `frontend/public/user-guide.pdf`, `scripts/generate-user-guide-pdf.js` | Pre-generated PDF with cover page, TOC, all 11 sections, 14 screenshots, page numbers; served from Vercel CDN; "Download PDF" button in guide header |
 | Help icon in app header | Implemented | `AppShell.tsx`, `layout.css` | Question-mark button links to `/app/guide`; active state when on guide page; breadcrumb shows "User Guide" |
-| RBAC permission model (backend) | Partial | `backend/models_admin.py` | `Role.permissions` JSON field and `RolePermission` table defined; not enforced on any endpoint |
-| RBAC helpers (frontend) | Partial | `auth/permissions.ts` | `useHasPermission` and `Can` available; not yet applied to page rendering |
+| RBAC permission model (backend) | **Implemented** | `backend/auth_middleware.py`, `backend/routers/workflows.py`, `backend/routers/environments.py` | `require_permission(key)` FastAPI dependency factory; enforced on `POST /workflows/{id}/publish` (`publish_workflows`) and `POST /environments/{id}/promote` (`approve_promotions`); 403 on failure |
+| RBAC helpers (frontend) | **Implemented** | `AuthContext.tsx` | `useHasPermission(key)` hook; gates Admin nav section (`administer_platform`), Publish button disabled state (`publish_workflows`) |
+| **Rate limiting** | **Implemented** | `backend/rate_limit.py` | In-process sliding-window per `(user_id, endpoint)`; 10/min on publish, 5/min on promote; HTTP 429 + `Retry-After` header; thread-safe, no external deps |
+| **Audit write hooks** | **Implemented** | `backend/routers/workflows.py`, `backend/routers/environments.py` | `AuditLog` row written on every publish (action: `workflow.published` or `workflow.publish_blocked`) and every promote step (`environment.promoted`, includes `from_status` + `to_status`) |
+| **Session management admin UI** | **Implemented** | `AdminUsersPage.tsx`, `admin.css` | Two-panel split layout: user list on left, detail panel on right with Sessions tab (active/revoked, Revoke / Revoke All buttons) and Audit Log tab (50 most recent events, expandable JSON details) |
+| **Collapsible sidebar** | **Implemented** | `AppShell.tsx`, `layout.css` | Hamburger toggle; 220px expanded ↔ 56px icon-only collapsed; state persisted to `localStorage` |
+| **Integrations live health** | **Implemented** | `IntegrationsStudioPage.tsx`, `backend/routers/integrations.py` | `POST /{id}/test-connection` returns real health status; health dots (🟢/🔴/⚪) update in UI |
+| **Environments promotion pipeline** | **Implemented** | `EnvironmentsPage.tsx`, `backend/routers/environments.py` | 3-step pipeline (`draft → pending → promoted`); final step governance-gated + RBAC-gated + rate-limited; AuditLog on success |
+| **Sign-in auto-refresh + welcome** | **Implemented** | `LandingPage.tsx`, `AppShell.tsx` | `qc.clear()` after OAuth resolves (fixes stale catalog); welcome toast fires once per sessionStorage session after sign-in |
 | PostgreSQL persistence | Implemented | `backend/db.py` | Supabase Postgres via SQLModel; `create_all` at startup; `?supa=` pool parameter stripped for psycopg2 compatibility |
 | Evaluation pipelines | Partial | `backend/routers/evaluations.py`, `api/evaluations.ts` | Test-case saving wired; no metrics computation, A/B test UI, or evaluation dashboard |
 | Monitoring dashboards | Planned | `README.md` | No frontend module or fully implemented backend routes |
@@ -142,21 +156,21 @@ Browser (Vercel CDN)
 |---|---|---|---|
 | `auth` | `/api/auth` | — | Google ID token → JWT; backend JWT now consumed |
 | `architectures` | `/api/architectures` | DB (Postgres) | `ArchitectureTemplate`, `DesignSession`; demo auto-seeded |
-| `workflows` | `/api/workflows` | DB (Postgres) | `WorkflowDefinitionRecord`, `WorkflowRun`, `TaskExecution` |
+| `workflows` | `/api/workflows` | DB (Postgres) | `WorkflowDefinitionRecord`, `WorkflowRun`, `TaskExecution`; `POST /{id}/publish` RBAC + governance gate + rate limit |
 | `projects` | `/api/projects` | DB (Postgres) | Project metadata |
-| `integrations` | `/api/integrations` | DB (Postgres) | Connector configs; DELETE returns 501 |
-| `environments` | `/api/environments` | DB (Postgres) | Environment configs; DELETE returns 501 |
+| `integrations` | `/api/integrations` | DB (Postgres) | Connector configs + `POST /{id}/test-connection` |
+| `environments` | `/api/environments` | DB (Postgres) | Environment configs; `POST /{id}/promote` RBAC + governance gate + rate limit + AuditLog |
 | `evaluations` | `/api/evaluations` | DB (Postgres) | Test-case persistence |
-| `governance` | `/api/governance` | — | Approval & audit-log placeholders (empty lists) |
-| `observability` | `/api/observability` | In-memory | Dedicated observability metrics and run traces |
-| `admin_users` | `/api/admin/users` | In-memory | |
-| `admin_roles` | `/api/admin/roles` | In-memory | |
-| `admin_teams` | `/api/admin/teams` | In-memory | |
-| `admin_sessions` | `/api/admin/sessions` | In-memory | |
-| `admin_views` | `/api/admin/views` | In-memory | |
-| `admin_preferences` | `/api/admin/preferences` | In-memory | |
-| `admin_observability` | `/api/admin/observability` | In-memory | |
-| `demo` | `/api/demo` | DB writes | Catalog seed on cold start |
+| `governance` | `/api/governance` | DB (Postgres) | `GovernancePolicy`, `ApprovalRule`, `GovernanceBinding` |
+| `observability` | `/api/observability` | DB (Postgres) | Run traces and metrics |
+| `admin_users` | `/api/admin/users` | DB (Postgres) | CRUD + `POST /bootstrap` |
+| `admin_roles` | `/api/admin/roles` | DB (Postgres) | Role + permissions JSON |
+| `admin_teams` | `/api/admin/teams` | DB (Postgres) | Team management |
+| `admin_sessions` | `/api/admin/sessions` | DB (Postgres) | Session CRUD; `PATCH /{id}/revoke`; `DELETE /by-user/{uid}` |
+| `admin_views` | `/api/admin/views` | DB (Postgres) | View upsert-by-key |
+| `admin_preferences` | `/api/admin/preferences` | DB (Postgres) | Per-user preferences |
+| `admin_observability` | `/api/admin/observability` | DB (Postgres) | `GET /audit-logs` (filterable); `POST /audit-logs`; `GET/POST /events` |
+| `demo` | `/api/demo` | DB writes | Full idempotent seed including AuditLog + ObservabilityEvent samples |
 
 - **Persistence:** SQLModel `create_all` at startup. Supabase connection strings with `?supa=` parameter stripped for psycopg2 compatibility. Schema migrations applied via one-off `ALTER TABLE` scripts.
 - **No background workers, queues, or event streaming** in the current implementation.

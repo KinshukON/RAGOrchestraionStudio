@@ -1,4 +1,4 @@
-# RAG Orchestration Studio — User Guide
+# RAAGOS — RAG Orchestration Studio · User Guide
 
 > **Live site**: [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > Sign in with your Google account to access the platform.
@@ -8,160 +8,172 @@
 ## Table of Contents
 
 1. [Signing In](#1-signing-in)
-2. [Architecture Catalog](#2-architecture-catalog)
-3. [Guided Designer — Configure your pipeline](#3-guided-designer--configure-your-pipeline)
-4. [Guided Designer — Generate Workflow](#4-guided-designer--generate-workflow)
-5. [Workflow Builder — Node Configuration](#5-workflow-builder--node-configuration)
-6. [Query Lab](#6-query-lab)
-7. [Integrations](#7-integrations)
-8. [Environments](#8-environments)
-9. [Governance & Guardrails](#9-governance--guardrails)
-10. [Observability & Traces](#10-observability--traces)
-11. [Admin — Users, Roles & Teams](#11-admin--users-roles--teams)
-12. [Evidence — Evaluation Harness](#12-evidence--evaluation-harness)
-13. [Evidence — Research Assistant](#13-evidence--research-assistant)
+2. [Shell — Sidebar & Navigation](#2-shell--sidebar--navigation)
+3. [Architecture Catalog](#3-architecture-catalog)
+4. [Guided Designer — Configure your pipeline](#4-guided-designer--configure-your-pipeline)
+5. [Guided Designer — Generate Workflow](#5-guided-designer--generate-workflow)
+6. [Workflow Builder — Node Configuration](#6-workflow-builder--node-configuration)
+7. [Query Lab](#7-query-lab)
+8. [Integrations](#8-integrations)
+9. [Environments & Promotion Pipeline](#9-environments--promotion-pipeline)
+10. [Governance & Guardrails](#10-governance--guardrails)
+11. [Observability & Traces](#11-observability--traces)
+12. [Admin — Users, Roles & Teams](#12-admin--users-roles--teams)
+13. [Admin — Session Management & Audit Trail](#13-admin--session-management--audit-trail)
+14. [Evidence — Evaluation Harness](#14-evidence--evaluation-harness)
+15. [Evidence — Research Assistant](#15-evidence--research-assistant)
 
 ---
 
 ## 1. Signing In
 
-Navigate to [ragorchestrationstudio.com](https://ragorchestrationstudio.com) and click **Continue with Google**. The platform uses Google OAuth — you'll be redirected back immediately after authentication.
+Navigate to [ragorchestrationstudio.com](https://ragorchestrationstudio.com) and click **Continue with Google**. The platform uses Google OAuth 2.0 — you are redirected back immediately after authentication.
 
-![Landing page](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/00_landing_1773472409626.png)
+- The application **automatically loads demo data** on first sign-in (no manual step required).
+- A **"Welcome back, [Name]! 👋"** toast appears the first time you sign in each browser session.
+- All queries refresh automatically after sign-in; no manual page reload needed.
 
 ---
 
-## 2. Architecture Catalog
+## 2. Shell — Sidebar & Navigation
+
+The **AppShell** provides the persistent chrome across all pages.
+
+### Collapsible Sidebar
+
+| State | Width | Behaviour |
+|---|---|---|
+| **Expanded** (default) | 220 px | Full labels + icons visible |
+| **Collapsed** | 56 px | Icons only; hover title tooltip shown |
+
+Click the **hamburger icon (☰)** at the top of the sidebar to toggle. Preference is persisted to `localStorage`.
+
+### Navigation sections
+
+| Section | Items |
+|---|---|
+| **Architecture** | Catalog, Guided Designer, Workflow Builder |
+| **Evidence** | Query Lab, Evaluation Harness, Research Assistant |
+| **Integrations, Environments, Governance, Observability** | Top-level items |
+| **Admin** | Users, Roles, Teams, Sessions, Preferences, Views — **visible only to users with the `administer_platform` permission** |
+
+> Users without `administer_platform` see a locked "Admin (restricted)" item instead of the admin links.
+
+### Seed Data Button
+
+The sidebar footer shows a **⟳ Load demo data** button. Click it at any time to re-seed the full demo dataset (architectures, workflows, integrations, environments, governance policies, users, audit logs).
+
+---
+
+## 3. Architecture Catalog
 
 **Sidebar: Architecture → Catalog**
 
 The catalog is your starting point. It presents **6 RAG architecture patterns**, each with a description, when-to-use guidance, strengths & tradeoffs, and typical backend components.
-
-### Row 1 — Core architectures
-
-![Architecture Catalog — Vector, Vectorless, Graph](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/catalog_full_view_1773472557006.png)
 
 | Architecture | Best For |
 |---|---|
 | **Vector RAG** | Semantic similarity over embedded text corpora |
 | **Vectorless RAG** | Structured data, strict precision, no embedding overhead |
 | **Graph RAG** | Entity-rich data requiring multi-hop reasoning |
-
-### Row 2 — Advanced architectures
-
-![Architecture Catalog — Temporal, Hybrid, Custom](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/catalog_scrolled_1773472558678.png)
-
-| Architecture | Best For |
-|---|---|
 | **Temporal RAG** | Time-aware retrieval over event sequences |
 | **Hybrid RAG** | Combining vector, lexical, and graph strategies |
 | **Custom RAG** | Bespoke pipelines beyond standard patterns |
+
+**Empty state**: If the catalog loads with no data (e.g., first visit with a clean database), a **"Load demo architectures"** button seeds the catalog directly without navigating away.
 
 ➡️ Click **"Design this architecture"** on any card to open the Guided Designer pre-configured for that type.
 
 ---
 
-## 3. Guided Designer — Configure your pipeline
+## 4. Guided Designer — Configure your pipeline
 
 **Sidebar: Architecture → Guided Designer**
 
-After clicking "Design this architecture", the Guided Designer opens. The left panel shows a **3-step navigation**: Architecture profile → Retrieval & routing → Answering & governance. The right panel shows all configuration fields **simultaneously** across three columns.
+After clicking "Design this architecture", the Guided Designer opens. The left panel shows a **3-step navigation**; the right panel shows configuration fields simultaneously across three columns.
 
 ### Step 1 — Architecture profile
 
-![Guided Designer — Step 1: Architecture profile selected](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/designer_step1_1773472577684.png)
-
 Configure the core data & indexing layer:
 
-- **Data source type** — where your documents come from (file store, SQL, data warehouse…)
-- **Chunking strategy** — how documents are split (e.g. `semantic`, `fixed-size`)
-- **Embedding model** — model used to generate vectors (e.g. `text-embedding-3-large`)
-- **Vector database** — the store for embeddings (pgvector, Pinecone, Weaviate, Qdrant)
+- **Data source type** — file store, SQL, data warehouse, etc.
+- **Chunking strategy** — `semantic`, `fixed-size`, `recursive`, `sliding-window`
+- **Embedding model** — e.g. `text-embedding-3-large`, BGE, E5
+- **Vector database** — pgvector, Pinecone, Weaviate, Qdrant
 
 ### Step 2 — Retrieval & routing
 
-![Guided Designer — Step 2: Retrieval & routing selected](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/designer_step2_1773472584015.png)
-
-Define how queries are matched to content:
-
-- **Similarity metric** — `cosine`, dot product, L2
+- **Similarity metric** — cosine, dot product, L2
 - **Top K** — number of chunks to retrieve (default 8)
 - **Metadata filters** — DSL expressions to narrow results
-- **Reranker** — optional cross-encoder or SaaS reranker to re-score retrieved chunks
+- **Reranker** — optional cross-encoder or SaaS reranker
 
-### Step 3 — Answering & governance (preview)
+### Step 3 — Answering & governance
 
-![Guided Designer — Step 3: Answering & governance selected, Generate workflow button visible](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/designer_step3_1773472590110.png)
-
-Set the answer generation layer:
-
-- **Answer generation model** — the LLM for final answer synthesis
-- **Fallback strategy** — what to do when retrieval returns nothing (`llm_fallback`, `no_answer`…)
+- **Answer generation model** — LLM for final synthesis
+- **Fallback strategy** — `llm_fallback`, `no_answer`, etc.
 
 ---
 
-## 4. Guided Designer — Generate Workflow
+## 5. Guided Designer — Generate Workflow
 
-Once all configuration sections are reviewed, click the **"Generate workflow →"** button at the bottom-right of the designer.
+Once all sections are reviewed, click **"Generate workflow →"**.
 
-![Generate workflow — processing state (button shows "Generating workflow…")](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/designer_generate_workflow_1773472604859.png)
+The button transitions to **"Generating workflow…"** while the backend compiles the pipeline. You are then automatically redirected to the **Workflow Builder** with the generated graph.
 
-The button transitions to **"Generating workflow…"** while the backend builds the pipeline. After a moment, you are automatically redirected to the **Workflow Builder** with the generated graph ready to inspect.
-
-> You can also click **"Save draft"** at any time to persist the designer session without generating a workflow yet.
+> Click **"Save draft"** at any time to persist the session without generating a workflow yet.
 
 ---
 
-## 5. Workflow Builder — Node Configuration
+## 6. Workflow Builder — Node Configuration
 
 **Sidebar: Architecture → Workflow Builder**
 
-The Workflow Builder visualises your RAG pipeline as a **node-based directed graph**. Each node is a processing step; edges represent data flow between steps.
-
-![Workflow Builder — generated Vector RAG pipeline with node palette and canvas](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/workflow_builder_detail_1773472613905.png)
+Visualises your RAG pipeline as a **node-based directed graph**. Edges represent data flow.
 
 ### Layout
 
 | Panel | Purpose |
 |---|---|
-| **Left — Nodes palette** | All available node types grouped by category: Input & Routing, Retrieval, Processing, Generation |
-| **Centre — Canvas** | The live pipeline graph. Zoom with `+`/`−`, fit-to-window with the fullscreen icon |
-| **Right — Configuration** | Click any node to expose its full deep-config panel |
+| **Left — Nodes palette** | Node types grouped by category: Input & Routing, Retrieval, Processing, Generation |
+| **Centre — Canvas** | Live pipeline graph. Zoom with `+`/`−`, fit-to-window with the fullscreen icon |
+| **Right — Configuration** | Click any node to open its deep-config panel |
 
 ### Deep Node Configuration
 
-Clicking any canvas node opens a **deep configuration panel** with parameter groups specific to that node type. Every configurable dimension has a slider, dropdown, or textarea.
-
 | Node type | Key parameters |
 |---|---|
-| **Embedding generator** | Chunking strategy (recursive / sentence / semantic / sliding window), chunk size (64–4096 tokens), chunk overlap, embedding model (OpenAI / Cohere / BGE / E5 / custom), batch size, vector store (pgvector / Pinecone / Weaviate / Qdrant / Milvus / Chroma / OpenSearch) |
-| **Vector retriever** | Top-K (slider), similarity metric (cosine / dot / L2), ANN algorithm (HNSW / IVFFlat / Exact), metadata pre-filter DSL, MMR diversity lambda |
-| **Lexical retriever** | Algorithm (BM25 / TF-IDF / BM25+ / SPL), BM25 k1 + b sliders, index backend (Elasticsearch / Typesense / Meilisearch / Tantivy) |
-| **Graph retriever** | Traversal algorithm (BFS / DFS / PPR / Beam), max hop depth, max node cap, edge-type allowlist / blocklist, graph DB (Neo4j / Neptune / TigerGraph / NebulaGraph) |
-| **Temporal filter** | As-of date source (request date / extracted / fixed / session param), effective-from/to field names, lookback window, strict point-in-time toggle |
-| **Reranker** | Model (Cohere / Cross-encoder / BGE / custom), top-K after rerank, cross-encoder mode, score passthrough |
-| **LLM answer generator** | Model (GPT-4o / Claude / Gemini / Llama / Mistral / custom), max tokens, temperature slider, top-P, system prompt textarea, streaming toggle |
-| **Query classifier** | Classifier type (LLM / zero-shot / fine-tuned / rule), intent label list, confidence threshold |
-| **Metadata filter** | Filter DSL expression (multi-line with AND/OR/NOT), pass-through on empty toggle |
-| **Guardrail** | PII / toxicity / injection / hallucination checks independently, violation action (block / redact / warn / fallback) |
-| **Context assembler** | Merge strategy (RRF / weighted / deduplicate / concat), max context token cap |
+| **Embedding generator** | Chunking strategy, chunk size (64–4096 tokens), overlap, embedding model, batch size, vector store |
+| **Vector retriever** | Top-K, similarity metric, ANN algorithm (HNSW/IVFFlat/Exact), metadata pre-filter DSL, MMR lambda |
+| **Lexical retriever** | Algorithm (BM25/TF-IDF/BM25+/SPL), k1 + b sliders, index backend |
+| **Graph retriever** | Traversal (BFS/DFS/PPR/Beam), max hop depth, edge-type allowlist, graph DB |
+| **Temporal filter** | As-of date source, effective-from/to field names, lookback window |
+| **Reranker** | Model, top-K after rerank, cross-encoder mode |
+| **LLM answer generator** | Model, max tokens, temperature, top-P, system prompt, streaming |
+| **Query classifier** | Classifier type, intent labels, confidence threshold |
+| **Guardrail** | PII / toxicity / injection / hallucination checks, violation action |
+| **Context assembler** | Merge strategy (RRF/weighted/deduplicate/concat), max context tokens |
 
-### Actions
+### Governance-Gated Publishing
 
-| Button | Effect |
-|---|---|
-| **Save Draft** | Persist the current state without publishing |
-| **Publish** | Mark the workflow as active and available in Query Lab |
+The **Publish** button is **only enabled** for users with the `publish_workflows` permission (AI Architect or Platform Admin). For other roles it appears disabled with a tooltip.
+
+Clicking Publish runs the **governance gate**:
+1. Checks all active `workflow`-scoped `GovernancePolicy` rules from the database.
+2. Compares the most recent `WorkflowRun` confidence score against `min_confidence_score`.
+3. Checks `min_runs` threshold.
+4. If blocked: returns a **violation list** explaining what must improve before publishing.
+5. If passed: sets `is_active = true` and writes an `AuditLog` entry (`workflow.published`).
+
+Rate limit: **10 publish attempts per user per 60 seconds** (HTTP 429 with `Retry-After` header if exceeded).
 
 ---
 
-## 6. Query Lab
+## 7. Query Lab
 
 **Sidebar: Query Lab**
 
-Test your workflows interactively and compare retrieval strategies side-by-side.
-
-![Query Lab — Vector RAG workflow loaded and ready to run](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/querylab_with_workflow_1773472627110.png)
+Test workflows interactively and compare retrieval strategies side-by-side.
 
 ### Controls
 
@@ -170,53 +182,50 @@ Test your workflows interactively and compare retrieval strategies side-by-side.
 | **Workflow** | Select from all draft/published workflows |
 | **Environment** | Target environment: dev, staging, prod |
 | **Query text** | Your test question or instruction |
-| **Strategies to compare** | Tick any combination: Vector, Vectorless, Graph, Temporal, Hybrid |
+| **Strategies to compare** | Vector, Vectorless, Graph, Temporal, Hybrid |
 | **Top-k** | Retrieval hint — number of chunks returned |
 
 Click **"Run simulation"** to execute.
 
-### Results Cards (IEEE Evidence Layer)
+### Results Cards
 
-Each strategy returns a **comparison card** showing:
+Each strategy returns a comparison card showing:
 
-- **Experiment ID** — a citeable `exp-XXXXXX` identifier for this exact run, useful for IEEE evidence logging
-- **Latency bar** — visual relative benchmark across strategies
-- **Retrieved chunks** — the top-scored chunks with source attribution and relevance scores
-- **Retrieval path** — the sequence of pipeline nodes traversed
-- **Answer** — the generated response
-- **Export** — download the run as JSON for offline analysis
+- **Experiment ID** — citeable `exp-XXXXXX` identifier
+- **Latency bar** — visual benchmark across strategies
+- **Retrieved chunks** — top-scored chunks with source attribution
+- **Retrieval path** — pipeline nodes traversed
+- **Answer** — generated response
+- **Export** — download run as JSON
 
 ### Run History
 
-Every simulation is logged in the **Run History** panel below the results. You can:
+Every simulation is logged in the **Run History** panel:
 
-- **Search** runs by query text, strategy, or experiment ID
+- **Search** by query text, strategy, or experiment ID
 - **Expand** any row to see full result detail
-- **Export** selected runs as CSV for reporting
-
-> _"Backend returns simulated traces"_ appears when no real API keys are configured. Connect an LLM provider in **Integrations** to enable live execution.
+- **Export** selected runs as CSV
 
 ---
 
-## 7. Integrations
+## 8. Integrations
 
 **Sidebar: Integrations**
 
-![Integrations page](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/06_integrations_1773472354401.png)
+Manage connectors to LLM providers, vector stores, and document sources.
 
-Manage connectors to LLM providers, vector stores, and document sources. Once an integration is configured with API keys, Query Lab automatically switches from simulated to live execution.
+- Each integration has a **live health indicator** (🟢 healthy / 🔴 error / ⚪ unknown) updated by `POST /api/integrations/{id}/test-connection`.
+- Once real API keys are configured, Query Lab automatically switches from simulated to live execution.
 
 **Supported connector categories**: LLM providers (OpenAI, Anthropic, Cohere), vector stores (pgvector, Pinecone, Weaviate, Qdrant), document sources (S3, GCS, SharePoint, SQL), graph databases (Neo4j, Amazon Neptune, ArangoDB).
 
 ---
 
-## 8. Environments
+## 9. Environments & Promotion Pipeline
 
 **Sidebar: Environments**
 
-![Environments page](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/07_environments_1773472359642.png)
-
-Environments are deployment targets for your workflows. Each has its own integration bindings and configuration overrides.
+Environments are deployment targets. Each has its own integration bindings and configuration overrides.
 
 | Environment | Typical Use |
 |---|---|
@@ -224,97 +233,144 @@ Environments are deployment targets for your workflows. Each has its own integra
 | **staging** | Pre-production validation with real LLMs |
 | **prod** | Live deployment serving end-user queries |
 
-Promote workflows from `dev → staging → prod`. Promotion triggers any approval gates defined in Governance.
+### Promotion Pipeline
+
+Environments advance through a **3-step pipeline**: `draft → pending → promoted`.
+
+Click **Promote →** in the environment detail panel. The final step (`pending → promoted`) is **governance-gated**:
+
+1. Loads all `environment`-scoped `GovernancePolicy` rules.
+2. Checks the latest `WorkflowRun` bound to this environment against `min_confidence_score`.
+3. Returns 422 with `violations[]` if the threshold is not met.
+4. On success, writes an `AuditLog` entry (`environment.promoted`, including `from_status` and `to_status`).
+
+> The **Promote** button requires the `approve_promotions` permission (Platform Admin only).  
+> Rate limit: **5 promote attempts per user per 60 seconds**.
 
 ---
 
-## 9. Governance & Guardrails
+## 10. Governance & Guardrails
 
 **Sidebar: Governance**
 
-![Governance & Guardrails](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/governance_detail_1773472634400.png)
-
 Define and enforce policies across the platform lifecycle.
 
-| Policy Scope | Example |
+| Policy Scope | Example Rule |
 |---|---|
-| `workflow` | Require 2 approvals before publishing |
+| `workflow` | `min_confidence_score: 0.75`, `min_runs: 2` |
 | `environment` | Block promotion if evaluation score < threshold |
 | `architecture` | Whitelist permitted architecture types |
 
-Approval gates can be attached to any lifecycle action (publish, promote) and specify required roles and escalation paths.
+Policies are checked automatically at publish and promote time — no manual approval step needed for policy-based gates. Approval rules define role-based human approval routing for additional oversight.
 
 ---
 
-## 10. Observability & Traces
+## 11. Observability & Traces
 
 **Sidebar: Observability**
 
-![Observability & Trace Analytics](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/observability_detail_1773472637955.png)
-
-Monitor every workflow run. The module captures:
+Monitor every workflow run:
 
 - **Run history** — timestamped log of every execution with status (success / failure / timeout)
 - **Trace analytics** — per-node latency breakdown for a selected run
-- **Audit trail** — who published, promoted, or modified which workflow
+- **Audit trail** — global audit log of governance events (who published, promoted, or was blocked)
 
 Use date, environment, and status filters to drill into specific runs.
 
 ---
 
-## 11. Admin — Users, Roles & Teams
+## 12. Admin — Users, Roles & Teams
 
-**Sidebar: Admin**
-
-![Admin Users page](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/10_admin_users_screenshot_1773472381716.png)
+**Sidebar: Admin → Users / Roles / Teams**  
+*Requires `administer_platform` permission.*
 
 ### Users
 
-View all platform users, their assigned roles, and last login. Invite new users by email — they sign in via Google OAuth.
+View all platform users, their assigned roles, team, and account status. Click any row to open the detail panel (see §13).
+
+To edit a user: click **Edit** in the Actions column, change Role or Team via dropdowns, click **Save**. To deactivate a user (removes access): click **Deactivate** (not available for your own account).
 
 ### Roles
 
-RAG Studio uses RBAC. Default roles:
+RAAGOS uses RBAC. Default seeded roles:
 
-| Role | Access |
+| Role | Key Permissions |
 |---|---|
-| **Platform Admin** | Full access including admin pages and governance |
-| **AI Architect** | Create/edit workflows, publish, manage integrations |
-| **ML Engineer** | Edit workflows and run Query Lab |
-| **Viewer** | Read-only across all modules |
+| **Platform Admin** | All permissions including `administer_platform`, `approve_promotions` |
+| **AI Architect** | `design_architecture`, `publish_workflows`, `manage_integrations`, `manage_environments` |
+| **Knowledge Engineer** | `design_architecture`, `run_evaluations` |
+| **Auditor** | `view_observability` (read-only) |
+| **Viewer** | `view_observability` (read-only) |
 
 ### Teams
 
-Group users into teams to scope workflow ownership and governance approval routing.
+Group users into teams to scope workflow ownership and governance approval routing. Default teams: Platform Engineering, AI/ML, Data Engineering, Compliance & Audit.
 
 ---
 
-## 12. Evidence — Evaluation Harness
+## 13. Admin — Session Management & Audit Trail
+
+**Sidebar: Admin → Users** → click any user row  
+*Requires `administer_platform` permission.*
+
+Clicking a user row opens a **detail panel** on the right side of the Users page with two tabs:
+
+### 🔑 Sessions Tab
+
+Shows all active and revoked sessions for the selected user:
+
+| Column | Description |
+|---|---|
+| Status indicator | 🟢 Active (glowing dot) or ⛔ Revoked |
+| Started | Time since session was created |
+| Last seen | Time since last activity |
+| IP address | Source IP of the session |
+| User agent | Browser / client string (truncated) |
+
+**Actions:**
+- **Revoke** button on each active session — immediately invalidates that session
+- **⛔ Revoke all sessions** button (shown when user has more than one active session) — invalidates all at once, forcing a re-login
+
+### 📋 Audit Log Tab
+
+Shows the 50 most recent audit events for the selected user, filtered from the global audit log:
+
+| Field | Description |
+|---|---|
+| Timestamp | Date and time of the event |
+| Action | e.g. `workflow.published`, `workflow.publish_blocked`, `environment.promoted` |
+| Resource type + ID | What was acted upon |
+| IP | Source IP if available |
+| Details (expandable) | Full `event_data` JSON blob |
+
+> Audit events are written automatically by the system on every governance-sensitive action (publish, promote, blocked attempts). They cannot be edited or deleted.
+
+---
+
+## 14. Evidence — Evaluation Harness
 
 **Sidebar: Evidence → Evaluation Harness**
 
-The Evaluation Harness provides a structured **benchmark test suite** for measuring and comparing RAG strategy quality across standardised enterprise queries.
+Structured benchmark test suite for measuring and comparing RAG strategy quality.
 
 ### Left panel — Benchmark queries
 
-Six canonical enterprise RAG queries are pre-seeded (covering multi-hop reasoning, temporal compliance, entity disambiguation, cross-document synthesis, and more). You can also:
+Six canonical enterprise RAG queries are pre-seeded (covering multi-hop reasoning, temporal compliance, entity disambiguation, cross-document synthesis, etc.). You can also:
 
-- **Add custom queries** via the "+ Add query" button
-- **Run all benchmarks** with a single click — each query executes across all active strategies
+- **Add custom queries** via "**+ Add query**"
+- **Run all benchmarks** with a single click
 - **Delete** custom queries you no longer need
 
 ### Right panel — Scoring detail
 
-Clicking a query row opens the scoring breakdown:
-
 | Score dimension | What it measures |
 |---|---|
-| **Relevance** | How closely retrieved chunks match the query intent |
-| **Groundedness** | Whether the generated answer is supported by retrieved context |
+| **Relevance** | How closely retrieved chunks match query intent |
+| **Groundedness** | Whether the answer is supported by retrieved context |
 | **Completeness** | Whether all facets of the question are addressed |
 | **Human rating** | 1–5 star override from a human reviewer |
 
-Scores are computed heuristically (no external LLM call needed) and are stored persistently.
+Scores are computed heuristically (no external LLM call needed) and stored persistently.
 
 ### Export
 
@@ -322,22 +378,18 @@ Click **"Export results"** to download a full benchmark report as JSON — suita
 
 ---
 
-## 13. Evidence — Research Assistant
+## 15. Evidence — Research Assistant
 
 **Sidebar: Evidence → Research Assistant**
 
-The Research Assistant is a **conversational interface** that answers questions about your RAG experiments, methodology, and results — completely rule-based, no external LLM calls required.
+Conversational interface that answers questions about your RAG experiments — rule-based, no external LLM calls required.
 
 ### Quick-start suggestions
 
-On first load, suggestion pills offer common prompts:
-
-- _"What was tested?"_ — summarises the strategies and queries run
-- _"Compare latency across strategies"_ — returns a table of latency medians per strategy
-- _"What is the methodology?"_ — explains the simulation and scoring approach
-- _"Generate deep-dive report"_ — produces a structured Markdown summary of all experiment runs
-
-### Ad-hoc questions
+- *"What was tested?"* — summarises strategies and queries run
+- *"Compare latency across strategies"* — returns a table of latency medians
+- *"What is the methodology?"* — explains the simulation and scoring approach
+- *"Generate deep-dive report"* — produces a structured Markdown summary of all experiment runs
 
 Type any free-form question in the chat input. The assistant queries stored `WorkflowRun` data and returns structured answers with tables, metrics, and experiment IDs.
 
@@ -346,16 +398,29 @@ Type any free-form question in the chat input. The assistant queries stored `Wor
 ## End-to-End Flow Summary
 
 ```
-Architecture Catalog  (pick a pattern)
+Sign in (Google OAuth)
+  └─ Welcome toast + demo data auto-loaded
+       │
+       ▼
+Architecture Catalog  (pick a pattern → or use empty-state CTA to load demo data)
   └─ Guided Designer  (step 1: profile → step 2: retrieval → step 3: governance)
-       └─ Workflow Builder  (deep-configure each node → Publish)
-            └─ Query Lab  (run multi-strategy simulation → inspect evidence cards)
-                 ├─ Observability  (monitor runs + audit trail)
-                 └─ Evidence
-                      ├─ Evaluation Harness  (benchmark scoring, export)
-                      └─ Research Assistant  (conversational experiment Q&A)
+       └─ Workflow Builder  (deep-configure each node)
+            │  [Publish — governance-gated, RBAC-gated, rate-limited]
+            ▼
+       Query Lab  (run multi-strategy simulation → inspect evidence cards)
+            ├─ Environments  (promote pipeline: draft → pending → promoted, governance-gated)
+            ├─ Governance    (define policies that gate publish + promote)
+            ├─ Integrations  (live health dots, test-connection)
+            ├─ Observability (run traces + global audit log)
+            └─ Evidence
+                 ├─ Evaluation Harness  (benchmark scoring, export)
+                 └─ Research Assistant  (conversational experiment Q&A)
+
+Admin (Platform Admin only)
+  └─ Users → click row → Sessions tab (Revoke / Revoke All)
+                       → Audit Log tab (per-user event history)
 ```
 
 ---
 
-*RAG Studio v1.1 · For API reference see [architecture.md](./architecture.md) · Deployed on [ragorchestrationstudio.com](https://ragorchestrationstudio.com)*
+*RAAGOS v1.2 · For API reference see [architecture.md](./architecture.md) · Deployed on [ragorchestrationstudio.com](https://ragorchestrationstudio.com)*
