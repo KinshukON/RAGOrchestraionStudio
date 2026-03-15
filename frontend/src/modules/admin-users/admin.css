@@ -361,3 +361,315 @@
     font-size: 0.82rem;
     color: var(--color-text-muted);
 }
+
+/* ── Split layout (Users page) ──────────────────────── */
+.adm-page--split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    max-width: unset;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.adm-list-col {
+    padding: 2rem 2.5rem;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border);
+    min-width: 0;
+}
+
+.adm-page--split:has(.adm-detail-panel) {
+    grid-template-columns: 1fr 380px;
+}
+
+.adm-row--selected td {
+    background: color-mix(in srgb, var(--color-accent) 6%, transparent) !important;
+}
+
+.adm-row:hover td {
+    background: var(--color-surface-2);
+}
+
+/* ── Detail panel ───────────────────────────────────── */
+.adm-detail-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+}
+
+.adm-detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.25rem 1.25rem 0;
+    position: relative;
+}
+
+.adm-detail-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-sky));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.adm-detail-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-text);
+}
+
+.adm-detail-email {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    margin: 0.1rem 0 0.4rem;
+}
+
+.adm-detail-meta {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.adm-panel-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--radius);
+    transition: background 0.15s, color 0.15s;
+}
+
+.adm-panel-close:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
+
+/* ── Detail tabs ─────────────────────────────────────── */
+.adm-detail-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0.85rem 1.25rem 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-top: 0.75rem;
+}
+
+.adm-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.adm-tab--active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+}
+
+.adm-tab:hover:not(.adm-tab--active) {
+    color: var(--color-text);
+}
+
+.adm-detail-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+}
+
+.adm-panel-actions {
+    margin-bottom: 0.85rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.adm-btn--sm {
+    padding: 0.28rem 0.65rem;
+    font-size: 0.73rem;
+}
+
+.adm-empty-hint {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+/* ── Session cards ──────────────────────────────────── */
+.adm-session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.adm-session-card {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.75rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    position: relative;
+}
+
+.adm-session-card--revoked {
+    opacity: 0.6;
+}
+
+.adm-session-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+}
+
+.adm-session-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.adm-session-status-dot--active  { background: #4ade80; box-shadow: 0 0 6px #4ade8088; }
+.adm-session-status-dot--revoked { background: #f87171; }
+
+.adm-session-label {
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
+.adm-session-time {
+    font-size: 0.73rem;
+    color: var(--color-text-muted);
+}
+
+.adm-session-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.adm-session-pill {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.18rem 0.5rem;
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.adm-session-revoke {
+    align-self: flex-end;
+}
+
+/* ── Audit log ──────────────────────────────────────── */
+.adm-audit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.adm-audit-entry {
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.adm-audit-entry:last-child { border-bottom: none; }
+
+.adm-audit-time {
+    font-size: 0.7rem;
+    color: var(--color-text-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.adm-audit-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.adm-audit-action {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.adm-audit-resource {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+}
+
+.adm-audit-resource code {
+    font-size: 0.72rem;
+    background: var(--color-surface-2);
+    padding: 0.1rem 0.3rem;
+    border-radius: var(--radius-sm, 3px);
+    color: var(--color-accent-sky);
+}
+
+.adm-audit-ip {
+    font-size: 0.7rem;
+    color: var(--color-text-faint);
+}
+
+.adm-audit-data {
+    font-size: 0.73rem;
+    color: var(--color-text-muted);
+    margin-top: 0.1rem;
+}
+
+.adm-audit-data summary {
+    cursor: pointer;
+    color: var(--color-text-muted);
+    user-select: none;
+}
+
+.adm-audit-data pre {
+    margin: 0.35rem 0 0;
+    padding: 0.5rem;
+    background: var(--color-surface-2);
+    border-radius: var(--radius);
+    font-size: 0.7rem;
+    overflow-x: auto;
+    color: var(--color-text);
+    white-space: pre-wrap;
+}
+
+/* ── Role badge variants for seeded roles ─────────────── */
+.adm-role--platform-admin { background: #7c3aed18; color: #a78bfa; border: 1px solid #7c3aed30; }
+.adm-role--ai-architect   { background: #0369a118; color: #38bdf8; border: 1px solid #0369a130; }
+.adm-role--knowledge-engineer { background: #16a34a18; color: #4ade80; border: 1px solid #16a34a30; }
+.adm-role--auditor        { background: #ca8a0418; color: #fbbf24; border: 1px solid #ca8a0430; }
+.adm-role--viewer         { background: #64748b18; color: #94a3b8; border: 1px solid #64748b30; }
+.adm-role--admin          { background: #7c3aed18; color: #a78bfa; border: 1px solid #7c3aed30; }

@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useHasPermission } from '../auth/AuthContext'
 import type { Edge, Node } from 'reactflow'
 import { NodePalette } from './NodePalette'
 import { WorkflowCanvas } from './WorkflowCanvas'
@@ -188,6 +189,7 @@ export function WorkflowBuilderPage() {
 
   const hasRetrieval = graphNodes.some(n => RETRIEVAL_NODE_TYPES.has((n.data?.type as string) ?? ''))
   const hasAnswer = graphNodes.some(n => ANSWER_NODE_TYPES.has((n.data?.type as string) ?? ''))
+  const canPublish = useHasPermission('publish_workflows')
   const validationWarnings: string[] = []
   if (!hasRetrieval) validationWarnings.push('Add at least one retrieval node (e.g. vector, lexical, or graph retriever).')
   if (!hasAnswer) validationWarnings.push('Add an answer generation node to produce the final response.')
@@ -222,7 +224,8 @@ export function WorkflowBuilderPage() {
             type="button"
             className="wf-publish-btn"
             onClick={() => handleSave(true)}
-            disabled={saveWorkflow.isPending || publishMutation.isPending || isLoading}
+            disabled={saveWorkflow.isPending || publishMutation.isPending || isLoading || !canPublish}
+            title={!canPublish ? 'Requires publish_workflows permission (AI Architect or Platform Admin role)' : undefined}
           >
             {publishMutation.isPending ? 'Checking governance…' : 'Publish'}
           </button>

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import select
 
-from auth_middleware import TokenPayload, optional_auth, require_auth
+from auth_middleware import TokenPayload, optional_auth, require_auth, require_permission
 
 from db import get_session
 from models_core import WorkflowRun, TaskExecution
@@ -218,7 +218,11 @@ class PublishGateResult(BaseModel):
 
 
 @router.post("/{workflow_id}/publish", response_model=PublishGateResult)
-async def publish_workflow(workflow_id: str) -> PublishGateResult:
+async def publish_workflow(
+    workflow_id: str,
+    current_user: TokenPayload = Depends(require_permission("publish_workflows")),
+) -> PublishGateResult:
+
     """
     Governance-gated workflow publish.
 

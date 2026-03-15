@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import './layout.css'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth, useHasPermission } from '../auth/AuthContext'
 
 // Minimal inline SVG icon helper
 function Icon({ d, title }: { d: string; title: string }) {
@@ -139,6 +139,7 @@ export function AppShell() {
   const currentLabel = ROUTE_LABELS[pathSegments[pathSegments.length - 1] ?? ''] ?? 'RAAGOS'
 
   const sidebarClass = `shell-sidebar${collapsed ? ' shell-sidebar--collapsed' : ''}`
+  const isAdmin = useHasPermission('administer_platform')
 
   function NavItem({ item, end }: { item: { to: string; label: string; d: string; end?: boolean }; end?: boolean }) {
     return (
@@ -188,7 +189,13 @@ export function AppShell() {
           {EVIDENCE_NAV_ITEMS.map(item => <NavItem key={item.to} item={item} />)}
 
           {!collapsed && <span className="shell-nav-section">Admin</span>}
-          {ADMIN_NAV_ITEMS.map(item => <NavItem key={item.to} item={item} />)}
+          {isAdmin && ADMIN_NAV_ITEMS.map(item => <NavItem key={item.to} item={item} />)}
+          {!isAdmin && !collapsed && (
+            <span className="shell-nav-item shell-nav-item--locked" title="Requires Platform Admin role">
+              <svg className="shell-nav-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" clipRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" /></svg>
+              <span className="shell-nav-label">Admin (restricted)</span>
+            </span>
+          )}
         </nav>
 
         <div className="shell-seed-footer">

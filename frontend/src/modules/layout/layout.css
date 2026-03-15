@@ -185,6 +185,15 @@
   opacity: 1;
 }
 
+.shell-nav-item--locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  font-style: italic;
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+
+
 /* ── Main content area ───────────────────────────────────────────── */
 .shell-main {
   display: flex;
