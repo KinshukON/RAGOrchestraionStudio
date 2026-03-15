@@ -1,0 +1,363 @@
+/* ── Shared Admin Pages Stylesheet ─────────────────────────────────────────── */
+
+.adm-page {
+    padding: 2rem 2.5rem;
+    max-width: 1100px;
+    font-family: var(--font-sans, Inter, system-ui, sans-serif);
+}
+
+.adm-page-header {
+    margin-bottom: 1.75rem;
+}
+
+.adm-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 0.25rem;
+}
+
+.adm-page-sub {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    margin: 0 0 1rem;
+}
+
+/* ── Buttons ── */
+.adm-btn {
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.adm-btn--primary {
+    background: var(--color-accent);
+    color: #fff;
+}
+
+.adm-btn--primary:hover {
+    opacity: 0.88;
+}
+
+.adm-btn--secondary {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.adm-btn--secondary:hover {
+    background: var(--color-surface-3);
+}
+
+.adm-btn--ghost {
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+
+.adm-btn--ghost:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
+
+.adm-btn--danger {
+    background: #dc262615;
+    color: #f87171;
+    border: 1px solid #dc262630;
+}
+
+.adm-btn--danger:hover {
+    background: #dc262625;
+}
+
+/* ── Form controls ── */
+.adm-create-form {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    align-items: center;
+}
+
+.adm-input {
+    padding: 0.42rem 0.75rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: 0.82rem;
+    font-family: inherit;
+    min-width: 180px;
+}
+
+.adm-input--wide {
+    flex: 1;
+    min-width: 260px;
+}
+
+.adm-input:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.adm-select {
+    padding: 0.42rem 0.75rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* ── Table ── */
+.adm-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.adm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+}
+
+.adm-table th {
+    text-align: left;
+    padding: 0.65rem 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.adm-row td {
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+
+.adm-row:last-child td {
+    border-bottom: none;
+}
+
+.adm-row--inactive td {
+    opacity: 0.55;
+}
+
+.adm-row--me td {
+    background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+}
+
+/* ── User cell ── */
+.adm-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.adm-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.adm-you-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.adm-email {
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+}
+
+.adm-unset {
+    color: var(--color-text-muted);
+}
+
+/* ── Role badges ── */
+.adm-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius);
+    font-size: 0.73rem;
+    font-weight: 600;
+}
+
+.adm-role--admin {
+    background: #7c3aed18;
+    color: #a78bfa;
+    border: 1px solid #7c3aed30;
+}
+
+.adm-role--editor {
+    background: #0369a118;
+    color: #38bdf8;
+    border: 1px solid #0369a130;
+}
+
+.adm-role--viewer {
+    background: #64748b18;
+    color: #94a3b8;
+    border: 1px solid #64748b30;
+}
+
+/* ── Status ── */
+.adm-status {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.adm-status--active {
+    background: #16a34a18;
+    color: #4ade80;
+}
+
+.adm-status--inactive {
+    background: #64748b18;
+    color: #94a3b8;
+}
+
+/* ── Loading / empty ── */
+.adm-loading {
+    color: var(--color-text-muted);
+    padding: 2rem 0;
+}
+
+.adm-empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--color-text-muted);
+}
+
+.adm-empty-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+/* ── Cards (roles / teams) ── */
+.adm-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.adm-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+}
+
+.adm-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.adm-card-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+/* ── Permissions grid ── */
+.adm-perms {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.35rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.adm-perm-item {
+    font-size: 0.77rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.adm-perm-check {
+    font-size: 0.8rem;
+    width: 16px;
+    text-align: center;
+}
+
+.adm-perm--on {
+    color: var(--color-text);
+}
+
+.adm-perm--on .adm-perm-check {
+    color: #4ade80;
+}
+
+.adm-perm--off {
+    color: var(--color-text-muted);
+}
+
+.adm-perm--off .adm-perm-check {
+    color: #f87171;
+}
+
+/* ── Teams meta ── */
+.adm-team-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-text);
+}
+
+.adm-team-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.adm-meta-pill {
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
+.adm-team-label {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+}

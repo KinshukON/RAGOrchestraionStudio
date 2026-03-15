@@ -524,3 +524,88 @@
     border-top: 1px solid var(--color-border);
     padding-top: 1rem;
 }
+
+/* ── Panel mode tab switcher ── */
+.ev-panel-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.5rem;
+}
+
+.ev-panel-tab {
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-text-muted);
+    transition: all 0.15s;
+}
+
+.ev-panel-tab:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
+
+.ev-panel-tab--active {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+/* ── Charts panel ── */
+.ev-charts-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.ev-chart-wrap {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1rem 1rem;
+}
+
+.ev-chart-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 0.2rem;
+}
+
+.ev-chart-note {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 0 0 1rem;
+}
+
+.ev-chart-empty {
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    padding: 1.5rem 0;
+}
+
+/* ── SVG chart responsive ── */
+.ev-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    font-family: var(--font-sans, Inter, system-ui, sans-serif);
+}
+
+.ev-svg--heatmap {
+    overflow-x: auto;
+}
+
+.ev-chart-label {
+    font-size: 9px;
+}

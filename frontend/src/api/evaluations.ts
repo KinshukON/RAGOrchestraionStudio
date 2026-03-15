@@ -83,3 +83,21 @@ export async function exportEvaluations(): Promise<unknown> {
   const res = await apiClient.get('/api/evaluations/export')
   return res.data
 }
+
+// ─── Aggregated chart data ─────────────────────────────────────────────────
+export type LatencyRow = { query_id: string; label: string; strategy: string; latency_ms: number }
+export type ScoreOverviewRow = { strategy: string; avg_relevance: number; avg_groundedness: number; avg_completeness: number }
+export type HeatmapRow = { query_id: string; label: string; tag: string;[strategy: string]: string | number | null }
+
+export type AggregatedScores = {
+  generated_at: string
+  strategies: string[]
+  latency: LatencyRow[]
+  scores_overview: ScoreOverviewRow[]
+  per_query_heatmap: HeatmapRow[]
+}
+
+export async function aggregatedScores(): Promise<AggregatedScores> {
+  const res = await apiClient.get<AggregatedScores>('/api/evaluations/aggregated-scores')
+  return res.data
+}

@@ -43,9 +43,17 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "scenario_tag": "semantic",
         "difficulty": "medium",
         "created_at": "2025-01-01T00:00:00Z",
-        "scores": {},
-        "human_rating": None,
-        "status": "pending",
+        "scores": {
+            "per_strategy": {
+                "vector":     {"strategy_id": "vector",     "latency_ms": 512,  "confidence_score": 0.82, "heuristic": {"relevance": 0.74, "groundedness": 0.67, "completeness": 0.88, "composite": 0.76}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
+                "vectorless": {"strategy_id": "vectorless", "latency_ms": 368,  "confidence_score": 0.71, "heuristic": {"relevance": 0.61, "groundedness": 0.55, "completeness": 0.73, "composite": 0.63}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "graph":      {"strategy_id": "graph",      "latency_ms": 734,  "confidence_score": 0.88, "heuristic": {"relevance": 0.83, "groundedness": 0.79, "completeness": 0.91, "composite": 0.84}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+                "temporal":   {"strategy_id": "temporal",   "latency_ms": 445,  "confidence_score": 0.76, "heuristic": {"relevance": 0.65, "groundedness": 0.60, "completeness": 0.78, "composite": 0.68}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "hybrid":     {"strategy_id": "hybrid",     "latency_ms": 891,  "confidence_score": 0.92, "heuristic": {"relevance": 0.88, "groundedness": 0.84, "completeness": 0.95, "composite": 0.89}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+            }
+        },
+        "human_rating": 5,
+        "status": "scored",
     },
     {
         "id": "bq-seed-002",
@@ -67,9 +75,17 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "scenario_tag": "temporal",
         "difficulty": "medium",
         "created_at": "2025-01-01T00:00:00Z",
-        "scores": {},
-        "human_rating": None,
-        "status": "pending",
+        "scores": {
+            "per_strategy": {
+                "vector":     {"strategy_id": "vector",     "latency_ms": 488,  "confidence_score": 0.79, "heuristic": {"relevance": 0.70, "groundedness": 0.62, "completeness": 0.84, "composite": 0.72}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "vectorless": {"strategy_id": "vectorless", "latency_ms": 342,  "confidence_score": 0.67, "heuristic": {"relevance": 0.55, "groundedness": 0.48, "completeness": 0.69, "composite": 0.57}, "human_rating": 2, "scored_at": "2025-01-01T00:00:00Z"},
+                "graph":      {"strategy_id": "graph",      "latency_ms": 698,  "confidence_score": 0.81, "heuristic": {"relevance": 0.72, "groundedness": 0.68, "completeness": 0.80, "composite": 0.73}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
+                "temporal":   {"strategy_id": "temporal",   "latency_ms": 421,  "confidence_score": 0.91, "heuristic": {"relevance": 0.88, "groundedness": 0.85, "completeness": 0.93, "composite": 0.89}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+                "hybrid":     {"strategy_id": "hybrid",     "latency_ms": 856,  "confidence_score": 0.89, "heuristic": {"relevance": 0.85, "groundedness": 0.81, "completeness": 0.90, "composite": 0.85}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+            }
+        },
+        "human_rating": 5,
+        "status": "scored",
     },
     {
         "id": "bq-seed-003",
@@ -90,9 +106,17 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "scenario_tag": "semantic",
         "difficulty": "hard",
         "created_at": "2025-01-01T00:00:00Z",
-        "scores": {},
-        "human_rating": None,
-        "status": "pending",
+        "scores": {
+            "per_strategy": {
+                "vector":     {"strategy_id": "vector",     "latency_ms": 534,  "confidence_score": 0.78, "heuristic": {"relevance": 0.71, "groundedness": 0.58, "completeness": 0.79, "composite": 0.69}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "vectorless": {"strategy_id": "vectorless", "latency_ms": 381,  "confidence_score": 0.64, "heuristic": {"relevance": 0.52, "groundedness": 0.43, "completeness": 0.65, "composite": 0.53}, "human_rating": 2, "scored_at": "2025-01-01T00:00:00Z"},
+                "graph":      {"strategy_id": "graph",      "latency_ms": 759,  "confidence_score": 0.83, "heuristic": {"relevance": 0.75, "groundedness": 0.71, "completeness": 0.83, "composite": 0.76}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
+                "temporal":   {"strategy_id": "temporal",   "latency_ms": 462,  "confidence_score": 0.72, "heuristic": {"relevance": 0.60, "groundedness": 0.54, "completeness": 0.70, "composite": 0.61}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "hybrid":     {"strategy_id": "hybrid",     "latency_ms": 912,  "confidence_score": 0.94, "heuristic": {"relevance": 0.91, "groundedness": 0.87, "completeness": 0.96, "composite": 0.91}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+            }
+        },
+        "human_rating": 5,
+        "status": "scored",
     },
     {
         "id": "bq-seed-004",
@@ -112,9 +136,17 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "scenario_tag": "structured",
         "difficulty": "hard",
         "created_at": "2025-01-01T00:00:00Z",
-        "scores": {},
-        "human_rating": None,
-        "status": "pending",
+        "scores": {
+            "per_strategy": {
+                "vector":     {"strategy_id": "vector",     "latency_ms": 501,  "confidence_score": 0.73, "heuristic": {"relevance": 0.62, "groundedness": 0.55, "completeness": 0.74, "composite": 0.64}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "vectorless": {"strategy_id": "vectorless", "latency_ms": 355,  "confidence_score": 0.84, "heuristic": {"relevance": 0.82, "groundedness": 0.78, "completeness": 0.89, "composite": 0.83}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+                "graph":      {"strategy_id": "graph",      "latency_ms": 718,  "confidence_score": 0.77, "heuristic": {"relevance": 0.68, "groundedness": 0.63, "completeness": 0.76, "composite": 0.69}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "temporal":   {"strategy_id": "temporal",   "latency_ms": 433,  "confidence_score": 0.69, "heuristic": {"relevance": 0.57, "groundedness": 0.50, "completeness": 0.67, "composite": 0.58}, "human_rating": 2, "scored_at": "2025-01-01T00:00:00Z"},
+                "hybrid":     {"strategy_id": "hybrid",     "latency_ms": 878,  "confidence_score": 0.88, "heuristic": {"relevance": 0.85, "groundedness": 0.80, "completeness": 0.91, "composite": 0.85}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
+            }
+        },
+        "human_rating": 5,
+        "status": "scored",
     },
     {
         "id": "bq-seed-005",
@@ -133,9 +165,17 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "scenario_tag": "policy",
         "difficulty": "easy",
         "created_at": "2025-01-01T00:00:00Z",
-        "scores": {},
-        "human_rating": None,
-        "status": "pending",
+        "scores": {
+            "per_strategy": {
+                "vector":     {"strategy_id": "vector",     "latency_ms": 467,  "confidence_score": 0.84, "heuristic": {"relevance": 0.79, "groundedness": 0.73, "completeness": 0.87, "composite": 0.80}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
+                "vectorless": {"strategy_id": "vectorless", "latency_ms": 321,  "confidence_score": 0.74, "heuristic": {"relevance": 0.66, "groundedness": 0.60, "completeness": 0.77, "composite": 0.68}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "graph":      {"strategy_id": "graph",      "latency_ms": 685,  "confidence_score": 0.86, "heuristic": {"relevance": 0.79, "groundedness": 0.76, "completeness": 0.84, "composite": 0.80}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
+                "temporal":   {"strategy_id": "temporal",   "latency_ms": 415,  "confidence_score": 0.80, "heuristic": {"relevance": 0.73, "groundedness": 0.68, "completeness": 0.81, "composite": 0.74}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
+                "hybrid":     {"strategy_id": "hybrid",     "latency_ms": 864,  "confidence_score": 0.93, "heuristic": {"relevance": 0.90, "groundedness": 0.87, "completeness": 0.94, "composite": 0.90}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+            }
+        },
+        "human_rating": 5,
+        "status": "scored",
     },
     {
         "id": "bq-seed-006",
@@ -156,9 +196,17 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "scenario_tag": "graph",
         "difficulty": "medium",
         "created_at": "2025-01-01T00:00:00Z",
-        "scores": {},
-        "human_rating": None,
-        "status": "pending",
+        "scores": {
+            "per_strategy": {
+                "vector":     {"strategy_id": "vector",     "latency_ms": 523,  "confidence_score": 0.76, "heuristic": {"relevance": 0.68, "groundedness": 0.63, "completeness": 0.80, "composite": 0.70}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "vectorless": {"strategy_id": "vectorless", "latency_ms": 347,  "confidence_score": 0.65, "heuristic": {"relevance": 0.53, "groundedness": 0.47, "completeness": 0.63, "composite": 0.54}, "human_rating": 2, "scored_at": "2025-01-01T00:00:00Z"},
+                "graph":      {"strategy_id": "graph",      "latency_ms": 819,  "confidence_score": 0.92, "heuristic": {"relevance": 0.89, "groundedness": 0.86, "completeness": 0.94, "composite": 0.90}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+                "temporal":   {"strategy_id": "temporal",   "latency_ms": 451,  "confidence_score": 0.71, "heuristic": {"relevance": 0.61, "groundedness": 0.55, "completeness": 0.72, "composite": 0.63}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
+                "hybrid":     {"strategy_id": "hybrid",     "latency_ms": 923,  "confidence_score": 0.90, "heuristic": {"relevance": 0.87, "groundedness": 0.83, "completeness": 0.92, "composite": 0.87}, "human_rating": 5, "scored_at": "2025-01-01T00:00:00Z"},
+            }
+        },
+        "human_rating": 5,
+        "status": "scored",
     },
 ]
 
@@ -377,3 +425,76 @@ def export_all() -> JSONResponse:
             "test_cases": _test_cases,
         }
     )
+
+
+@router.get("/aggregated-scores")
+def aggregated_scores() -> JSONResponse:
+    """
+    Return benchmark data shaped for the three frontend SVG charts:
+      1. latency       – per-strategy latency for every scored query
+      2. scores_overview – average relevance/groundedness/completeness per strategy
+      3. per_query_heatmap – composite score matrix (queries × strategies)
+    """
+    STRATEGIES = ["vector", "vectorless", "graph", "temporal", "hybrid"]
+
+    latency_rows: List[Dict[str, Any]] = []
+    score_accum: Dict[str, Dict[str, List[float]]] = {
+        s: {"relevance": [], "groundedness": [], "completeness": []} for s in STRATEGIES
+    }
+    heatmap_rows: List[Dict[str, Any]] = []
+
+    for q in _benchmark_queries:
+        per_strat = q.get("scores", {}).get("per_strategy", {})
+        if not per_strat:
+            continue
+
+        short_label = q["query"][:42] + "…"
+        heatmap_row: Dict[str, Any] = {
+            "query_id": q["id"],
+            "label": short_label,
+            "tag": q.get("scenario_tag", ""),
+        }
+
+        for sid in STRATEGIES:
+            s = per_strat.get(sid, {})
+            h = s.get("heuristic", {})
+            lat = s.get("latency_ms")
+            if lat is not None:
+                latency_rows.append({
+                    "query_id": q["id"],
+                    "label": short_label,
+                    "strategy": sid,
+                    "latency_ms": lat,
+                })
+            rel = h.get("relevance")
+            gnd = h.get("groundedness")
+            cmp = h.get("completeness")
+            cmp2 = h.get("composite")
+            if rel is not None:
+                score_accum[sid]["relevance"].append(rel)
+            if gnd is not None:
+                score_accum[sid]["groundedness"].append(gnd)
+            if cmp is not None:
+                score_accum[sid]["completeness"].append(cmp)
+
+            heatmap_row[sid] = round(cmp2, 3) if cmp2 is not None else None
+
+        heatmap_rows.append(heatmap_row)
+
+    scores_overview = []
+    for sid in STRATEGIES:
+        acc = score_accum[sid]
+        scores_overview.append({
+            "strategy": sid,
+            "avg_relevance":    round(sum(acc["relevance"])    / max(len(acc["relevance"]), 1), 3),
+            "avg_groundedness": round(sum(acc["groundedness"]) / max(len(acc["groundedness"]), 1), 3),
+            "avg_completeness": round(sum(acc["completeness"]) / max(len(acc["completeness"]), 1), 3),
+        })
+
+    return JSONResponse(content={
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "strategies": STRATEGIES,
+        "latency": latency_rows,
+        "scores_overview": scores_overview,
+        "per_query_heatmap": heatmap_rows,
+    })

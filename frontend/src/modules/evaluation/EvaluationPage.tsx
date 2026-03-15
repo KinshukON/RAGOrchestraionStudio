@@ -5,8 +5,10 @@ import {
     createBenchmarkQuery,
     scoreBenchmarkQuery,
     exportEvaluations,
+    aggregatedScores,
     type BenchmarkQuery,
     type BenchmarkScoreInput,
+    type AggregatedScores,
 } from '../../api/evaluations'
 import { runWorkflowMulti, listWorkflows } from '../../api/workflows'
 import { useToast } from '../ui/ToastContext'
@@ -67,6 +69,15 @@ function downloadCsv(queries: BenchmarkQuery[]) {
 
 const TAGS = ['semantic', 'structured', 'graph', 'temporal', 'policy'] as const
 
+// ── Strategy colour map ───────────────────────────────────────────────────────
+const STRATEGY_COLORS: Record<string, string> = {
+    vector: '#818cf8',
+    vectorless: '#38bdf8',
+    graph: '#34d399',
+    temporal: '#fb923c',
+    hybrid: '#a78bfa',
+}
+
 // ── Score display helpers ────────────────────────────────────────────────────
 function ScoreBar({ value }: { value: number }) {
     const pct = Math.round(value * 100)
@@ -91,6 +102,296 @@ function StarRating({ value, onChange }: { value: number | null; onChange?: (v: 
                     aria-label={`Rate ${n} star${n > 1 ? 's' : ''}`}
                 >★</button>
             ))}
+        </div>
+    )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// SVG CHARTS (zero external dependencies)
+// ────────────────────────────────────────────────────────────────────────────
+
+const STRATEGIES = ['vector', 'vectorless', 'graph', 'temporal', 'hybrid']
+
+// Chart 1 — Latency grouped horizontal bar chart
+function LatencyChart({ data }: { data: AggregatedScores['latency'] }) {
+    if (!data || data.length === 0) return <p className="ev-chart-empty">No latency data yet.</p>
+
+    // Group rows by query label
+    const queryLabels = [...new Set(data.map(r => r.label))]
+    const maxLatency = Math.max(...data.map(r => r.latency_ms), 1)
+
+    const rowH = 28
+    const stratH = rowH * STRATEGIES.length
+    const groupGap = 14
+    const leftPad = 220
+    const rightPad = 80
+    const topPad = 40
+    const barAreaW = 480
+    const svgW = leftPad + barAreaW + rightPad
+    const svgH = topPad + queryLabels.length * (stratH + groupGap) + 50
+
+    return (
+        <div className="ev-chart-wrap">
+            <h3 className="ev-chart-title">Latency by Strategy (ms)</h3>
+            <p className="ev-chart-note">Per benchmark query. Lower is faster.</p>
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} className="ev-svg">
+                {/* X-axis ticks */}
+                {[0, 0.25, 0.5, 0.75, 1].map(f => {
+                    const x = leftPad + f * barAreaW
+                    return (
+                        <g key={f}>
+                            <line x1={x} y1={topPad - 8} x2={x} y2={svgH - 30} stroke="#334155" strokeWidth="0.5" strokeDasharray="3,3" />
+                            <text x={x} y={svgH - 14} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                                {Math.round(f * maxLatency)}
+                            </text>
+                        </g>
+                    )
+                })}
+                <text x={leftPad + barAreaW / 2} y={svgH - 2} textAnchor="middle" fontSize="10" fill="#64748b">Latency (ms)</text>
+
+                {queryLabels.map((label, qi) => {
+                    const groupY = topPad + qi * (stratH + groupGap)
+                    const rowData = STRATEGIES.map(s => data.find(r => r.label === label && r.strategy === s))
+                    return (
+                        <g key={label}>
+                            {/* Query label */}
+                            <text x={leftPad - 8} y={groupY + stratH / 2 + 4} textAnchor="end" fontSize="10" fill="#cbd5e1" className="ev-chart-label">
+                                {label.length > 32 ? label.slice(0, 32) + '…' : label}
+                            </text>
+                            {/* Bars */}
+                            {rowData.map((row, si) => {
+                                const barW = row ? (row.latency_ms / maxLatency) * barAreaW : 0
+                                const color = STRATEGY_COLORS[STRATEGIES[si]] ?? '#818cf8'
+                                return (
+                                    <g key={si}>
+                                        <rect
+                                            x={leftPad}
+                                            y={groupY + si * rowH + 4}
+                                            width={barW}
+                                            height={rowH - 8}
+                                            rx={3}
+                                            fill={color}
+                                            opacity={0.82}
+                                        />
+                                        {row && (
+                                            <text
+                                                x={leftPad + barW + 4}
+                                                y={groupY + si * rowH + rowH - 10}
+                                                fontSize="9"
+                                                fill={color}
+                                            >
+                                                {row.latency_ms} ms
+                                            </text>
+                                        )}
+                                    </g>
+                                )
+                            })}
+                            {/* Divider */}
+                            {qi < queryLabels.length - 1 && (
+                                <line
+                                    x1={leftPad - 8} y1={groupY + stratH + groupGap / 2}
+                                    x2={svgW - 20} y2={groupY + stratH + groupGap / 2}
+                                    stroke="#1e293b" strokeWidth="1"
+                                />
+                            )}
+                        </g>
+                    )
+                })}
+
+                {/* Legend */}
+                {STRATEGIES.map((s, i) => (
+                    <g key={s} transform={`translate(${leftPad + i * 88}, ${topPad - 22})`}>
+                        <rect x={0} y={0} width={10} height={10} rx={2} fill={STRATEGY_COLORS[s]} />
+                        <text x={13} y={9} fontSize="10" fill="#94a3b8">{s}</text>
+                    </g>
+                ))}
+            </svg>
+        </div>
+    )
+}
+
+// Chart 2 — Score overview grouped vertical bar chart
+function ScoreOverviewChart({ data }: { data: AggregatedScores['scores_overview'] }) {
+    if (!data || data.length === 0) return <p className="ev-chart-empty">No score data yet.</p>
+
+    const svgW = 620
+    const svgH = 320
+    const leftPad = 40
+    const rightPad = 20
+    const topPad = 50
+    const botPad = 60
+    const barAreaW = svgW - leftPad - rightPad
+    const barAreaH = svgH - topPad - botPad
+    const groupW = barAreaW / data.length
+    const barW = groupW / 4
+    const SCORE_LABELS = ['avg_relevance', 'avg_groundedness', 'avg_completeness'] as const
+    const SCORE_COLORS = { avg_relevance: '#38bdf8', avg_groundedness: '#818cf8', avg_completeness: '#fb923c' }
+    const SCORE_NAMES = { avg_relevance: 'Relevance', avg_groundedness: 'Groundedness', avg_completeness: 'Completeness' }
+
+    return (
+        <div className="ev-chart-wrap">
+            <h3 className="ev-chart-title">Average Scores by Strategy</h3>
+            <p className="ev-chart-note">Averaged across all 6 benchmark queries. Threshold line at 0.70.</p>
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} className="ev-svg">
+                {/* Y-axis gridlines + labels */}
+                {[0, 0.2, 0.4, 0.6, 0.7, 0.8, 1.0].map(v => {
+                    const y = topPad + barAreaH - v * barAreaH
+                    return (
+                        <g key={v}>
+                            <line
+                                x1={leftPad} y1={y} x2={svgW - rightPad} y2={y}
+                                stroke={v === 0.7 ? '#f59e0b' : '#1e293b'}
+                                strokeWidth={v === 0.7 ? 1.2 : 0.5}
+                                strokeDasharray={v === 0.7 ? '5,3' : '2,4'}
+                            />
+                            <text x={leftPad - 4} y={y + 4} textAnchor="end" fontSize="9" fill={v === 0.7 ? '#f59e0b' : '#64748b'}>
+                                {v.toFixed(1)}
+                            </text>
+                            {v === 0.7 && (
+                                <text x={svgW - rightPad + 2} y={y + 4} fontSize="9" fill="#f59e0b">threshold</text>
+                            )}
+                        </g>
+                    )
+                })}
+
+                {/* Grouped bars per strategy */}
+                {data.map((row, gi) => {
+                    const gx = leftPad + gi * groupW + barW / 2
+                    return (
+                        <g key={row.strategy}>
+                            {SCORE_LABELS.map((key, bi) => {
+                                const val = row[key] as number
+                                const bH = val * barAreaH
+                                const bx = gx + bi * barW
+                                const by = topPad + barAreaH - bH
+                                const color = SCORE_COLORS[key]
+                                return (
+                                    <g key={key}>
+                                        <rect x={bx} y={by} width={barW - 2} height={bH} rx={2} fill={color} opacity={0.85} />
+                                        <text x={bx + (barW - 2) / 2} y={by - 4} textAnchor="middle" fontSize="8" fill={color}>
+                                            {Math.round(val * 100)}
+                                        </text>
+                                    </g>
+                                )
+                            })}
+                            {/* Strategy label */}
+                            <text
+                                x={gx + barW}
+                                y={topPad + barAreaH + 16}
+                                textAnchor="middle"
+                                fontSize="10"
+                                fill={STRATEGY_COLORS[row.strategy] ?? '#94a3b8'}
+                                fontWeight="600"
+                            >
+                                {row.strategy}
+                            </text>
+                        </g>
+                    )
+                })}
+
+                {/* Legend */}
+                {SCORE_LABELS.map((k, i) => (
+                    <g key={k} transform={`translate(${leftPad + i * 130}, ${topPad - 28})`}>
+                        <rect x={0} y={0} width={10} height={10} rx={2} fill={SCORE_COLORS[k]} />
+                        <text x={13} y={9} fontSize="10" fill="#94a3b8">{SCORE_NAMES[k]}</text>
+                    </g>
+                ))}
+            </svg>
+        </div>
+    )
+}
+
+// Chart 3 — Per-query composite heatmap
+function CompositeHeatmap({ data, strategies }: { data: AggregatedScores['per_query_heatmap']; strategies: string[] }) {
+    if (!data || data.length === 0) return <p className="ev-chart-empty">No heatmap data yet.</p>
+
+    const cellW = 90
+    const cellH = 44
+    const labelW = 220
+    const headerH = 40
+    const svgW = labelW + strategies.length * cellW + 20
+    const svgH = headerH + data.length * cellH + 20
+
+    function heatColor(v: number | null): string {
+        if (v === null || v === undefined) return '#1e293b'
+        // 0→red, 0.5→amber, 1→green using interpolation
+        if (v < 0.5) {
+            const t = v / 0.5
+            const r = Math.round(220 - t * 60)
+            const g = Math.round(38 + t * 120)
+            return `rgb(${r},${g},58)`
+        } else {
+            const t = (v - 0.5) / 0.5
+            const r = Math.round(160 - t * 110)
+            const g = Math.round(158 + t * 52)
+            return `rgb(${r},${g},58)`
+        }
+    }
+
+    return (
+        <div className="ev-chart-wrap">
+            <h3 className="ev-chart-title">Composite Score Heatmap</h3>
+            <p className="ev-chart-note">Queries × strategies. Green = high composite, Red = low.</p>
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} className="ev-svg ev-svg--heatmap">
+                {/* Column headers */}
+                {strategies.map((s, si) => (
+                    <text
+                        key={s}
+                        x={labelW + si * cellW + cellW / 2}
+                        y={headerH - 10}
+                        textAnchor="middle"
+                        fontSize="11"
+                        fill={STRATEGY_COLORS[s] ?? '#94a3b8'}
+                        fontWeight="600"
+                    >
+                        {s}
+                    </text>
+                ))}
+
+                {/* Rows */}
+                {data.map((row, ri) => (
+                    <g key={row.query_id}>
+                        {/* Row label */}
+                        <text
+                            x={labelW - 8}
+                            y={headerH + ri * cellH + cellH / 2 + 4}
+                            textAnchor="end"
+                            fontSize="9"
+                            fill="#cbd5e1"
+                        >
+                            {String(row.label).slice(0, 36)}{String(row.label).length > 36 ? '…' : ''}
+                        </text>
+                        {/* Cells */}
+                        {strategies.map((s, si) => {
+                            const val = row[s] as number | null
+                            const displayVal = val !== null && val !== undefined ? Math.round(val * 100) : '—'
+                            const textColor = val !== null && val > 0.55 ? '#fff' : '#e2e8f0'
+                            return (
+                                <g key={s}>
+                                    <rect
+                                        x={labelW + si * cellW + 1}
+                                        y={headerH + ri * cellH + 2}
+                                        width={cellW - 2}
+                                        height={cellH - 4}
+                                        rx={4}
+                                        fill={heatColor(val)}
+                                    />
+                                    <text
+                                        x={labelW + si * cellW + cellW / 2}
+                                        y={headerH + ri * cellH + cellH / 2 + 5}
+                                        textAnchor="middle"
+                                        fontSize="12"
+                                        fontWeight="700"
+                                        fill={textColor}
+                                    >
+                                        {displayVal}
+                                    </text>
+                                </g>
+                            )
+                        })}
+                    </g>
+                ))}
+            </svg>
         </div>
     )
 }
@@ -133,6 +434,8 @@ function BenchmarkRow({
 }
 
 // ── Main page ────────────────────────────────────────────────────────────────
+type PanelTab = 'list' | 'charts'
+
 export function EvaluationPage() {
     const { success, error } = useToast()
     const qc = useQueryClient()
@@ -141,6 +444,7 @@ export function EvaluationPage() {
     const [showAdd, setShowAdd] = useState(false)
     const [runningId, setRunningId] = useState<string | null>(null)
     const [pendingRatings, setPendingRatings] = useState<Record<string, Record<string, number>>>({})
+    const [panelTab, setPanelTab] = useState<PanelTab>('list')
     const [newQ, setNewQ] = useState({
         query: '',
         expected_answer: '',
@@ -155,10 +459,15 @@ export function EvaluationPage() {
         queryFn: () => listBenchmarkQueries(tagFilter || undefined),
     })
     const workflowsQuery = useQuery({ queryKey: ['workflows'], queryFn: listWorkflows })
+    const aggQuery = useQuery({
+        queryKey: ['aggregated-scores'],
+        queryFn: aggregatedScores,
+    })
 
     const queries = bqQuery.data ?? []
     const workflows = workflowsQuery.data ?? []
     const selectedBq = queries.find(q => q.id === selectedId) ?? null
+    const agg = aggQuery.data
 
     const createMutation = useMutation({
         mutationFn: createBenchmarkQuery,
@@ -176,6 +485,7 @@ export function EvaluationPage() {
             scoreBenchmarkQuery(id, payload),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['benchmark-queries'] })
+            qc.invalidateQueries({ queryKey: ['aggregated-scores'] })
             success('Scores saved')
         },
     })
@@ -206,8 +516,9 @@ export function EvaluationPage() {
                 })
             }
             qc.invalidateQueries({ queryKey: ['benchmark-queries'] })
+            qc.invalidateQueries({ queryKey: ['aggregated-scores'] })
             success(`Ran & scored ${resp.results.length} strategies`)
-        } catch (e) {
+        } catch {
             error('Run failed')
         } finally {
             setRunningId(null)
@@ -239,20 +550,37 @@ export function EvaluationPage() {
                             ↓ Export CSV
                         </button>
                     </div>
-                    {/* Tag filter */}
-                    <div className="ev-tag-filter">
+                    {/* Tab switcher */}
+                    <div className="ev-panel-tabs">
                         <button
-                            className={`ev-tag-pill ${!tagFilter ? 'ev-tag-pill--active' : ''}`}
-                            onClick={() => setTagFilter('')}
-                        >All</button>
-                        {TAGS.map(t => (
-                            <button
-                                key={t}
-                                className={`ev-tag-pill ev-tag-pill--${t} ${tagFilter === t ? 'ev-tag-pill--active' : ''}`}
-                                onClick={() => setTagFilter(t)}
-                            >{t}</button>
-                        ))}
+                            className={`ev-panel-tab ${panelTab === 'list' ? 'ev-panel-tab--active' : ''}`}
+                            onClick={() => { setPanelTab('list'); setSelectedId(null) }}
+                        >
+                            📋 Query List
+                        </button>
+                        <button
+                            className={`ev-panel-tab ${panelTab === 'charts' ? 'ev-panel-tab--active' : ''}`}
+                            onClick={() => setPanelTab('charts')}
+                        >
+                            📊 Charts
+                        </button>
                     </div>
+                    {/* Tag filter (only in list mode) */}
+                    {panelTab === 'list' && (
+                        <div className="ev-tag-filter">
+                            <button
+                                className={`ev-tag-pill ${!tagFilter ? 'ev-tag-pill--active' : ''}`}
+                                onClick={() => setTagFilter('')}
+                            >All</button>
+                            {TAGS.map(t => (
+                                <button
+                                    key={t}
+                                    className={`ev-tag-pill ev-tag-pill--${t} ${tagFilter === t ? 'ev-tag-pill--active' : ''}`}
+                                    onClick={() => setTagFilter(t)}
+                                >{t}</button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Add form */}
@@ -339,163 +667,184 @@ export function EvaluationPage() {
                     </form>
                 )}
 
-                {/* Table */}
-                <div className="ev-table-wrap">
-                    <table className="ev-bq-table">
-                        <thead>
-                            <tr>
-                                <th>Tag</th>
-                                <th>Query</th>
-                                <th>Difficulty</th>
-                                <th>Runs</th>
-                                <th>Avg score</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {bqQuery.isLoading ? (
-                                <tr><td colSpan={6} className="ev-loading">Loading…</td></tr>
-                            ) : queries.length === 0 ? (
-                                <tr><td colSpan={6} className="ev-empty">No queries yet</td></tr>
-                            ) : (
-                                queries.map(q => (
-                                    <BenchmarkRow
-                                        key={q.id}
-                                        bq={q}
-                                        selected={q.id === selectedId}
-                                        onSelect={() => setSelectedId(v => v === q.id ? null : q.id)}
-                                    />
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* ── Right panel ── */}
-            <div className={`ev-right ${!selectedBq ? 'ev-right--empty' : ''}`}>
-                {!selectedBq ? (
-                    <div className="ev-right-placeholder">
-                        <span className="ev-placeholder-icon">📊</span>
-                        <p>Select a benchmark query to view scoring details</p>
+                {/* List view */}
+                {panelTab === 'list' && (
+                    <div className="ev-table-wrap">
+                        <table className="ev-bq-table">
+                            <thead>
+                                <tr>
+                                    <th>Tag</th>
+                                    <th>Query</th>
+                                    <th>Difficulty</th>
+                                    <th>Runs</th>
+                                    <th>Avg score</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {bqQuery.isLoading ? (
+                                    <tr><td colSpan={6} className="ev-loading">Loading…</td></tr>
+                                ) : queries.length === 0 ? (
+                                    <tr><td colSpan={6} className="ev-empty">No queries yet</td></tr>
+                                ) : (
+                                    queries.map(q => (
+                                        <BenchmarkRow
+                                            key={q.id}
+                                            bq={q}
+                                            selected={q.id === selectedId}
+                                            onSelect={() => setSelectedId(v => v === q.id ? null : q.id)}
+                                        />
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                ) : (
-                    <div className="ev-scoring-panel">
-                        <div className="ev-scoring-header">
-                            <div>
-                                <span className={`ev-tag ev-tag--${selectedBq.scenario_tag}`}>{selectedBq.scenario_tag}</span>
-                                <span className={`ev-difficulty ev-difficulty--${selectedBq.difficulty}`}>{selectedBq.difficulty}</span>
-                            </div>
-                            <button
-                                className="ev-btn ev-btn--primary"
-                                disabled={runningId === selectedBq.id}
-                                onClick={() => runBenchmark(selectedBq)}
-                            >
-                                {runningId === selectedBq.id ? '⟳ Running…' : '▶ Run benchmark'}
-                            </button>
-                        </div>
+                )}
 
-                        <div className="ev-query-block">
-                            <span className="ev-field-label">Query</span>
-                            <p className="ev-query-text">{selectedBq.query}</p>
-                        </div>
-
-                        {selectedBq.expected_answer && (
-                            <div className="ev-query-block">
-                                <span className="ev-field-label">Expected answer</span>
-                                <p className="ev-query-text ev-query-text--muted">{selectedBq.expected_answer}</p>
-                            </div>
+                {/* Charts view */}
+                {panelTab === 'charts' && (
+                    <div className="ev-charts-panel">
+                        {aggQuery.isLoading ? (
+                            <p className="ev-loading">Loading chart data…</p>
+                        ) : !agg ? (
+                            <p className="ev-empty">No chart data available.</p>
+                        ) : (
+                            <>
+                                <LatencyChart data={agg.latency} />
+                                <ScoreOverviewChart data={agg.scores_overview} />
+                                <CompositeHeatmap data={agg.per_query_heatmap} strategies={agg.strategies} />
+                            </>
                         )}
-
-                        {selectedBq.expected_evidence?.length > 0 && (
-                            <div className="ev-query-block">
-                                <span className="ev-field-label">Expected evidence</span>
-                                <ul className="ev-evidence-list">
-                                    {selectedBq.expected_evidence.map((e, i) => <li key={i}>{e}</li>)}
-                                </ul>
-                            </div>
-                        )}
-
-                        {selectedBq.rubric && (
-                            <div className="ev-query-block ev-callout">
-                                <span className="ev-field-label">Rubric</span>
-                                <p className="ev-query-text ev-query-text--muted">{selectedBq.rubric}</p>
-                            </div>
-                        )}
-
-                        {/* Per-strategy scores */}
-                        <div className="ev-scores-section">
-                            <h3>Per-strategy scores</h3>
-                            {Object.keys(selectedBq.scores?.per_strategy ?? {}).length === 0 ? (
-                                <p className="ev-no-scores">No scores yet — click "Run benchmark" to evaluate</p>
-                            ) : (
-                                <table className="ev-scores-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Strategy</th>
-                                            <th>Relevance</th>
-                                            <th>Groundedness</th>
-                                            <th>Completeness</th>
-                                            <th>Composite</th>
-                                            <th>Latency</th>
-                                            <th>Confidence</th>
-                                            <th>Human ★</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Object.entries(selectedBq.scores?.per_strategy ?? {}).map(([sid, s]) => (
-                                            <tr key={sid} className="ev-score-row">
-                                                <td><span className="ev-strategy-badge">{sid}</span></td>
-                                                <td><ScoreBar value={s.heuristic?.relevance ?? 0} /></td>
-                                                <td><ScoreBar value={s.heuristic?.groundedness ?? 0} /></td>
-                                                <td><ScoreBar value={s.heuristic?.completeness ?? 0} /></td>
-                                                <td><ScoreBar value={s.heuristic?.composite ?? 0} /></td>
-                                                <td>{s.latency_ms} ms</td>
-                                                <td>{Math.round((s.confidence_score ?? 0) * 100)}%</td>
-                                                <td>
-                                                    <StarRating
-                                                        value={s.human_rating ?? (pendingRatings[selectedBq.id]?.[sid] ?? null)}
-                                                        onChange={v => {
-                                                            setPendingRatings(pr => ({
-                                                                ...pr,
-                                                                [selectedBq.id]: { ...(pr[selectedBq.id] ?? {}), [sid]: v },
-                                                            }))
-                                                            scoreMutation.mutate({
-                                                                id: selectedBq.id,
-                                                                payload: {
-                                                                    strategy_id: sid,
-                                                                    model_answer: '',
-                                                                    human_rating: v,
-                                                                },
-                                                            })
-                                                        }}
-                                                    />
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-
-                        {/* Export this benchmark */}
-                        <div className="ev-score-export">
-                            <button
-                                className="ev-btn ev-btn--ghost"
-                                onClick={() => downloadJson(selectedBq, `${selectedBq.id}-scores.json`)}
-                            >
-                                ↓ Export this query (JSON)
-                            </button>
-                            <button
-                                className="ev-btn ev-btn--ghost"
-                                onClick={() => downloadCsv([selectedBq])}
-                            >
-                                ↓ Export scores (CSV)
-                            </button>
-                        </div>
                     </div>
                 )}
             </div>
+
+            {/* ── Right panel (detail, list mode only) ── */}
+            {panelTab === 'list' && (
+                <div className={`ev-right ${!selectedBq ? 'ev-right--empty' : ''}`}>
+                    {!selectedBq ? (
+                        <div className="ev-right-placeholder">
+                            <span className="ev-placeholder-icon">📊</span>
+                            <p>Select a benchmark query to view scoring details</p>
+                        </div>
+                    ) : (
+                        <div className="ev-scoring-panel">
+                            <div className="ev-scoring-header">
+                                <div>
+                                    <span className={`ev-tag ev-tag--${selectedBq.scenario_tag}`}>{selectedBq.scenario_tag}</span>
+                                    <span className={`ev-difficulty ev-difficulty--${selectedBq.difficulty}`}>{selectedBq.difficulty}</span>
+                                </div>
+                                <button
+                                    className="ev-btn ev-btn--primary"
+                                    disabled={runningId === selectedBq.id}
+                                    onClick={() => runBenchmark(selectedBq)}
+                                >
+                                    {runningId === selectedBq.id ? '⟳ Running…' : '▶ Run benchmark'}
+                                </button>
+                            </div>
+
+                            <div className="ev-query-block">
+                                <span className="ev-field-label">Query</span>
+                                <p className="ev-query-text">{selectedBq.query}</p>
+                            </div>
+
+                            {selectedBq.expected_answer && (
+                                <div className="ev-query-block">
+                                    <span className="ev-field-label">Expected answer</span>
+                                    <p className="ev-query-text ev-query-text--muted">{selectedBq.expected_answer}</p>
+                                </div>
+                            )}
+
+                            {selectedBq.expected_evidence?.length > 0 && (
+                                <div className="ev-query-block">
+                                    <span className="ev-field-label">Expected evidence</span>
+                                    <ul className="ev-evidence-list">
+                                        {selectedBq.expected_evidence.map((e, i) => <li key={i}>{e}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {selectedBq.rubric && (
+                                <div className="ev-query-block ev-callout">
+                                    <span className="ev-field-label">Rubric</span>
+                                    <p className="ev-query-text ev-query-text--muted">{selectedBq.rubric}</p>
+                                </div>
+                            )}
+
+                            {/* Per-strategy scores */}
+                            <div className="ev-scores-section">
+                                <h3>Per-strategy scores</h3>
+                                {Object.keys(selectedBq.scores?.per_strategy ?? {}).length === 0 ? (
+                                    <p className="ev-no-scores">No scores yet — click "Run benchmark" to evaluate</p>
+                                ) : (
+                                    <table className="ev-scores-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Strategy</th>
+                                                <th>Relevance</th>
+                                                <th>Groundedness</th>
+                                                <th>Completeness</th>
+                                                <th>Composite</th>
+                                                <th>Latency</th>
+                                                <th>Confidence</th>
+                                                <th>Human ★</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {Object.entries(selectedBq.scores?.per_strategy ?? {}).map(([sid, s]) => (
+                                                <tr key={sid} className="ev-score-row">
+                                                    <td><span className="ev-strategy-badge" style={{ color: STRATEGY_COLORS[sid] ?? '#818cf8' }}>{sid}</span></td>
+                                                    <td><ScoreBar value={s.heuristic?.relevance ?? 0} /></td>
+                                                    <td><ScoreBar value={s.heuristic?.groundedness ?? 0} /></td>
+                                                    <td><ScoreBar value={s.heuristic?.completeness ?? 0} /></td>
+                                                    <td><ScoreBar value={s.heuristic?.composite ?? 0} /></td>
+                                                    <td>{s.latency_ms} ms</td>
+                                                    <td>{Math.round((s.confidence_score ?? 0) * 100)}%</td>
+                                                    <td>
+                                                        <StarRating
+                                                            value={s.human_rating ?? (pendingRatings[selectedBq.id]?.[sid] ?? null)}
+                                                            onChange={v => {
+                                                                setPendingRatings(pr => ({
+                                                                    ...pr,
+                                                                    [selectedBq.id]: { ...(pr[selectedBq.id] ?? {}), [sid]: v },
+                                                                }))
+                                                                scoreMutation.mutate({
+                                                                    id: selectedBq.id,
+                                                                    payload: {
+                                                                        strategy_id: sid,
+                                                                        model_answer: '',
+                                                                        human_rating: v,
+                                                                    },
+                                                                })
+                                                            }}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+
+                            {/* Export this benchmark */}
+                            <div className="ev-score-export">
+                                <button
+                                    className="ev-btn ev-btn--ghost"
+                                    onClick={() => downloadJson(selectedBq, `${selectedBq.id}-scores.json`)}
+                                >
+                                    ↓ Export this query (JSON)
+                                </button>
+                                <button
+                                    className="ev-btn ev-btn--ghost"
+                                    onClick={() => downloadCsv([selectedBq])}
+                                >
+                                    ↓ Export scores (CSV)
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
