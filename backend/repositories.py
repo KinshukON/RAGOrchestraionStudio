@@ -70,6 +70,20 @@ class IntegrationRepository:
             session.refresh(integration)
             return integration
 
+    def update_health(self, external_id: str, health_status: str, last_tested_at) -> None:
+        """Persist test-connection result without touching other fields."""
+        from datetime import datetime as _dt
+        with get_session() as session:
+            statement = select(Integration).where(Integration.external_id == external_id)
+            existing = session.exec(statement).first()
+            if existing:
+                existing.health_status = health_status
+                existing.last_tested_at = last_tested_at
+                existing.updated_at = _dt.utcnow()
+                session.add(existing)
+                session.commit()
+
+
 
 class EnvironmentRepository:
     def list_environments(self) -> List[Environment]:

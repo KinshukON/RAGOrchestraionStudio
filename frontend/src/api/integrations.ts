@@ -1,29 +1,23 @@
 import { apiClient } from './client'
 
-export type IntegrationCategory =
-  | 'llm_provider'
-  | 'embedding_provider'
-  | 'reranker'
-  | 'vector_db'
-  | 'graph_db'
-  | 'sql_db'
-  | 'file_storage'
-  | 'document_repository'
-  | 'enterprise_app'
-  | 'api'
-  | 'identity_provider'
-  | 'logging_monitoring'
-  | 'email'
-
 export type IntegrationConfig = {
   id: string
   name: string
-  provider_type: IntegrationCategory
+  provider_type: string
   credentials_reference: string
   environment_mapping: Record<string, string>
   default_usage_policies: Record<string, unknown>
   reusable: boolean
   health_status?: string | null
+  last_tested_at?: string | null
+}
+
+export type TestConnectionResult = {
+  integration_id: string
+  status: 'healthy' | 'degraded' | 'error'
+  latency_ms: number
+  message: string
+  tested_at: string
 }
 
 export async function listIntegrations() {
@@ -46,7 +40,11 @@ export async function updateIntegration(id: string, config: IntegrationConfig) {
   return res.data
 }
 
+export async function testConnection(id: string) {
+  const res = await apiClient.post<TestConnectionResult>(`/api/integrations/${id}/test`)
+  return res.data
+}
+
 export async function deleteIntegration(id: string) {
   await apiClient.delete(`/api/integrations/${id}`)
 }
-

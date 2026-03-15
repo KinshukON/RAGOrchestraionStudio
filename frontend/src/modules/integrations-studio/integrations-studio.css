@@ -276,3 +276,68 @@
   color: #6b7280;
   font-weight: normal;
 }
+
+/* ── Health dot ─────────────────────────────────────────────────────── */
+.int-studio-health-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.int-studio-health-dot--healthy {
+  background: #34d399;
+  box-shadow: 0 0 4px rgba(52, 211, 153, 0.6);
+}
+
+.int-studio-health-dot--degraded {
+  background: #fb923c;
+  box-shadow: 0 0 4px rgba(251, 146, 60, 0.6);
+}
+
+.int-studio-health-dot--unknown,
+.int-studio-health-dot--error {
+  background: #64748b;
+}
+
+/* ── Card header row (badge + dot) ─────────────────────────────────── */
+.int-studio-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+/* ── Test result inline banner ──────────────────────────────────────── */
+.int-studio-test-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+  border: 1px solid transparent;
+}
+
+.int-studio-test-result--healthy {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.3);
+  color: #6ee7b7;
+}
+
+.int-studio-test-result--degraded {
+  background: rgba(251, 146, 60, 0.1);
+  border-color: rgba(251, 146, 60, 0.3);
+  color: #fdba74;
+}
+
+.int-studio-test-latency {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

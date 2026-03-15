@@ -30,8 +30,10 @@ class Integration(SQLModel, table=True):
     default_usage_policies: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
     reusable: bool = True
     health_status: str | None = None
+    last_tested_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 
 
 class Environment(SQLModel, table=True):

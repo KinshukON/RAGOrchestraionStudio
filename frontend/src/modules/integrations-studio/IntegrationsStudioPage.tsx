@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
-import type { IntegrationConfig } from '../../api/integrations'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { IntegrationConfig, TestConnectionResult } from '../../api/integrations'
+import { testConnection } from '../../api/integrations'
 import { useEnvironments, useIntegrations, useSaveEnvironment } from '../admin-integrations/useIntegrationsEnvApi'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
 import { IntegrationWizard } from '../admin-integrations/IntegrationWizard'
@@ -25,6 +27,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export function IntegrationsStudioPage() {
   const { success, error } = useToast()
+  const queryClient = useQueryClient()
   const integrationsQuery = useIntegrations()
   const environmentsQuery = useEnvironments()
   const integrations = integrationsQuery.data ?? []
@@ -35,7 +38,18 @@ export function IntegrationsStudioPage() {
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [editing, setEditing] = useState<IntegrationConfig | null>(null)
-  const [testConnectionPending, setTestConnectionPending] = useState(false)
+  const [testResult, setTestResult] = useState<TestConnectionResult | null>(null)
+
+  const testMutation = useMutation({
+    mutationFn: (id: string) => testConnection(id),
+    onSuccess: (result) => {
+      setTestResult(result)
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      if (result.status === 'healthy') success(`Connected — ${result.latency_ms} ms`)
+      else error(`Degraded — ${result.message}`)
+    },
+    onError: () => error('Test connection failed'),
+  })
 
   const filteredIntegrations = useMemo(() => {
     if (!categoryFilter) return integrations
@@ -47,10 +61,6 @@ export function IntegrationsStudioPage() {
     return Array.from(set).sort()
   }, [integrations])
 
-  function handleTestConnection() {
-    setTestConnectionPending(true)
-    setTimeout(() => setTestConnectionPending(false), 1200)
-  }
 
   return (
     <div className="int-studio-root">
@@ -116,14 +126,14 @@ export function IntegrationsStudioPage() {
                   <li
                     key={integration.id}
                     className={`int-studio-card ${selectedIntegration?.id === integration.id ? 'int-studio-card--selected' : ''}`}
-                    onClick={() => setSelectedIntegration(integration)}
+                    onClick={() => { setSelectedIntegration(integration); setTestResult(null) }}
                   >
-                    <div className="int-studio-card-badge">{CATEGORY_LABELS[integration.provider_type] ?? integration.provider_type}</div>
+                    <div className="int-studio-card-header">
+                      <div className="int-studio-card-badge">{CATEGORY_LABELS[integration.provider_type] ?? integration.provider_type}</div>
+                      <span className={`int-studio-health-dot int-studio-health-dot--${integration.health_status ?? 'unknown'}`} title={integration.health_status ?? 'Unknown'} />
+                    </div>
                     <h3 className="int-studio-card-title">{integration.name}</h3>
                     <p className="int-studio-card-id">{integration.id}</p>
-                    <span className={`int-studio-card-health ${integration.health_status === 'healthy' ? 'int-studio-card-health--ok' : ''}`}>
-                      {integration.health_status ?? 'Unknown'}
-                    </span>
                   </li>
                 ))}
               </ul>
@@ -135,12 +145,27 @@ export function IntegrationsStudioPage() {
                 <h2>{selectedIntegration.name}</h2>
                 <div className="int-studio-detail-meta">
                   <span className="int-studio-detail-badge">{CATEGORY_LABELS[selectedIntegration.provider_type] ?? selectedIntegration.provider_type}</span>
-                  <span>ID: {selectedIntegration.id}</span>
-                  {selectedIntegration.reusable && <span>Reusable</span>}
+                  <span className={`int-studio-health-dot int-studio-health-dot--${selectedIntegration.health_status ?? 'unknown'}`} />
+                  <span style={{ fontSize: '0.82rem', color: selectedIntegration.health_status === 'healthy' ? '#34d399' : selectedIntegration.health_status === 'degraded' ? '#fb923c' : '#64748b' }}>
+                    {selectedIntegration.health_status ?? 'Unknown'}
+                  </span>
+                  {selectedIntegration.reusable && <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Reusable</span>}
                 </div>
+                {testResult && testResult.integration_id === selectedIntegration.id && (
+                  <div className={`int-studio-test-result int-studio-test-result--${testResult.status}`}>
+                    <strong>{testResult.status === 'healthy' ? '✓ Healthy' : '⚠ Degraded'}</strong>
+                    <span>{testResult.message}</span>
+                    <span className="int-studio-test-latency">{testResult.latency_ms} ms</span>
+                  </div>
+                )}
                 <section>
                   <h3>Credentials</h3>
                   <p className="int-studio-detail-ref">Reference: {selectedIntegration.credentials_reference || '—'}</p>
+                  {selectedIntegration.last_tested_at && (
+                    <p className="int-studio-detail-ref" style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                      Last tested: {new Date(selectedIntegration.last_tested_at).toLocaleString()}
+                    </p>
+                  )}
                 </section>
                 <section>
                   <h3>Environment mapping</h3>
@@ -168,12 +193,11 @@ export function IntegrationsStudioPage() {
                   <button
                     type="button"
                     className="int-studio-btn int-studio-btn--secondary"
-                    onClick={handleTestConnection}
-                    disabled={testConnectionPending}
+                    onClick={() => testMutation.mutate(selectedIntegration.id)}
+                    disabled={testMutation.isPending}
                   >
-                    {testConnectionPending ? 'Testing…' : 'Test connection'}
+                    {testMutation.isPending ? 'Testing…' : 'Test connection'}
                   </button>
-                  <span className="int-studio-simulated">(Simulated — no real connection)</span>
                 </div>
               </>
             ) : (
