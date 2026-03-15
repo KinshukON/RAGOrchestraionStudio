@@ -153,3 +153,21 @@ export async function getRunTasks(workflowId: string, runId: number) {
   const res = await apiClient.get(`/api/workflows/${workflowId}/runs/${runId}/tasks`)
   return res.data
 }
+
+// ── Governance-gated publish ──────────────────────────────────────────────────
+
+export type PublishGateResult = {
+  workflow_id: string
+  published: boolean
+  violations: string[]
+  warnings: string[]
+  confidence_score: number | null
+  run_count: number
+  policy_name: string | null
+}
+
+export async function publishWorkflow(workflowId: string): Promise<PublishGateResult> {
+  const res = await apiClient.post<PublishGateResult>(`/api/workflows/${workflowId}/publish`)
+  return res.data
+}
+

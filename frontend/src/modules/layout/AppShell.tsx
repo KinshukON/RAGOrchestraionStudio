@@ -14,6 +14,23 @@ function Icon({ d, title }: { d: string; title: string }) {
   )
 }
 
+// Hamburger / close toggle icon
+function HamburgerIcon({ open }: { open: boolean }) {
+  return (
+    <svg className="shell-hamburger-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      {open ? (
+        // X / close
+        <path fillRule="evenodd" clipRule="evenodd"
+          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
+      ) : (
+        // Hamburger
+        <path fillRule="evenodd" clipRule="evenodd"
+          d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
+      )}
+    </svg>
+  )
+}
+
 const NAV_ITEMS = [
   { to: '/app', end: true, label: 'Catalog', d: 'M2 4a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm0 6a2 2 0 012-2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6zm11 0a2 2 0 012-2h1a2 2 0 012 2v6a2 2 0 01-2 2h-1a2 2 0 01-2-2v-6z' },
   { to: '/app/designer', end: false, label: 'Guided Designer', d: 'M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-2.207 2.207L3 13.172V16h2.828l8.38-8.379-2.83-2.828z' },
@@ -60,19 +77,31 @@ function initials(name?: string) {
   return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
 }
 
+const SIDEBAR_KEY = 'raagos_sidebar_collapsed'
+
 export function AppShell() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
   const [isSeedLoading, setIsSeedLoading] = useState(false)
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(SIDEBAR_KEY) === '1' } catch { return false }
+  })
+
+  function toggleSidebar() {
+    setCollapsed(c => {
+      const next = !c
+      try { localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0') } catch { /* */ }
+      return next
+    })
+  }
 
   async function triggerSeed() {
     setIsSeedLoading(true)
     try {
       await fetch('/api/demo/seed', { method: 'POST' })
       sessionStorage.setItem('rag_studio_demo_seeded', '1')
-      // Invalidate all cached queries so every page re-fetches fresh data
       queryClient.invalidateQueries()
     } catch {
       // Non-fatal
@@ -89,14 +118,13 @@ export function AppShell() {
           const res = await fetch('/api/demo/seed-status')
           const status = await res.json()
           if (!status.seeded) {
-            // Clear stale session flag so we always retry if data is missing
             sessionStorage.removeItem(SEED_KEY)
             await fetch('/api/demo/seed', { method: 'POST' })
             queryClient.invalidateQueries()
           }
           sessionStorage.setItem(SEED_KEY, '1')
         } catch {
-          // Non-fatal: seeding failure should not break the app
+          // Non-fatal
         }
       })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,42 +135,60 @@ export function AppShell() {
     navigate('/')
   }
 
-  // Derive breadcrumb from current path segment
   const pathSegments = location.pathname.replace('/app', '').split('/').filter(Boolean)
-  const currentLabel = ROUTE_LABELS[pathSegments[pathSegments.length - 1] ?? ''] ?? 'RAG Studio'
+  const currentLabel = ROUTE_LABELS[pathSegments[pathSegments.length - 1] ?? ''] ?? 'RAAGOS'
+
+  const sidebarClass = `shell-sidebar${collapsed ? ' shell-sidebar--collapsed' : ''}`
+
+  function NavItem({ item, end }: { item: { to: string; label: string; d: string; end?: boolean }; end?: boolean }) {
+    return (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={item.end ?? end}
+        className="shell-nav-item"
+        title={collapsed ? item.label : undefined}
+      >
+        <Icon d={item.d} title={item.label} />
+        {!collapsed && <span className="shell-nav-label">{item.label}</span>}
+      </NavLink>
+    )
+  }
 
   return (
-    <div className="shell-root">
-      <aside className="shell-sidebar">
+    <div className="shell-root" data-sidebar-collapsed={collapsed ? 'true' : 'false'}>
+      <aside className={sidebarClass}>
+        {/* Hamburger toggle */}
+        <button
+          type="button"
+          className="shell-hamburger"
+          onClick={toggleSidebar}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <HamburgerIcon open={!collapsed} />
+        </button>
+
+        {/* Logo */}
         <div className="shell-logo">
-          <span className="shell-logo-mark">RAG Studio</span>
-          <span className="shell-logo-sub">Control Plane</span>
+          <img src="/raagos-favicon.png" alt="RAAGOS" className="shell-logo-icon" />
+          {!collapsed && (
+            <div className="shell-logo-text">
+              <span className="shell-logo-mark">RAAGOS</span>
+              <span className="shell-logo-sub">RAG Orchestration Studio</span>
+            </div>
+          )}
         </div>
 
         <nav className="shell-nav">
-          <span className="shell-nav-section">Architecture</span>
-          {NAV_ITEMS.map(item => (
-            <NavLink key={item.to} to={item.to} end={item.end} className="shell-nav-item">
-              <Icon d={item.d} title={item.label} />
-              {item.label}
-            </NavLink>
-          ))}
+          {!collapsed && <span className="shell-nav-section">Architecture</span>}
+          {NAV_ITEMS.map(item => <NavItem key={item.to} item={item} />)}
 
-          <span className="shell-nav-section">Evidence</span>
-          {EVIDENCE_NAV_ITEMS.map(item => (
-            <NavLink key={item.to} to={item.to} end={item.end} className="shell-nav-item">
-              <Icon d={item.d} title={item.label} />
-              {item.label}
-            </NavLink>
-          ))}
+          {!collapsed && <span className="shell-nav-section">Evidence</span>}
+          {EVIDENCE_NAV_ITEMS.map(item => <NavItem key={item.to} item={item} />)}
 
-          <span className="shell-nav-section">Admin</span>
-          {ADMIN_NAV_ITEMS.map(item => (
-            <NavLink key={item.to} to={item.to} className="shell-nav-item">
-              <Icon d={item.d} title={item.label} />
-              {item.label}
-            </NavLink>
-          ))}
+          {!collapsed && <span className="shell-nav-section">Admin</span>}
+          {ADMIN_NAV_ITEMS.map(item => <NavItem key={item.to} item={item} />)}
         </nav>
 
         <div className="shell-seed-footer">
@@ -151,9 +197,12 @@ export function AppShell() {
             className="shell-seed-btn"
             onClick={triggerSeed}
             disabled={isSeedLoading}
-            title="Reload all demo data (integrations, environments, governance, workflows)"
+            title={collapsed ? 'Reload demo data' : 'Reload all demo data (integrations, environments, governance, workflows)'}
           >
-            {isSeedLoading ? '⟳ Loading…' : '⟳ Load demo data'}
+            <svg viewBox="0 0 20 20" fill="currentColor" className="shell-seed-icon" aria-hidden="true">
+              <path fillRule="evenodd" clipRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" />
+            </svg>
+            {!collapsed && <span>{isSeedLoading ? 'Loading…' : 'Load demo data'}</span>}
           </button>
         </div>
       </aside>
@@ -161,7 +210,7 @@ export function AppShell() {
       <div className="shell-main">
         <header className="shell-header">
           <div className="shell-breadcrumb">
-            <span className="shell-breadcrumb-root">RAG Studio</span>
+            <span className="shell-breadcrumb-root">RAAGOS</span>
             <span className="shell-breadcrumb-sep">›</span>
             <span className="shell-breadcrumb-current">{currentLabel}</span>
           </div>
@@ -192,4 +241,3 @@ export function AppShell() {
     </div>
   )
 }
-

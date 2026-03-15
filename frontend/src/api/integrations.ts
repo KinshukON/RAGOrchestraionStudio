@@ -1,5 +1,19 @@
 import { apiClient } from './client'
 
+export type IntegrationCategory =
+  | 'llm_provider'
+  | 'embedding_provider'
+  | 'reranker'
+  | 'vector_db'
+  | 'graph_db'
+  | 'sql_db'
+  | 'file_storage'
+  | 'document_repository'
+  | 'enterprise_app'
+  | 'api'
+  | 'identity_provider'
+  | 'logging_monitoring'
+
 export type IntegrationConfig = {
   id: string
   name: string
@@ -11,6 +25,7 @@ export type IntegrationConfig = {
   health_status?: string | null
   last_tested_at?: string | null
 }
+
 
 export type TestConnectionResult = {
   integration_id: string

@@ -286,8 +286,18 @@ def _seed(session) -> Dict[str, int]:
 
     # ── Governance ─────────────────────────────────────────────────────────
     gov_policy_defs = [
-        ("Workflow Publish Policy",    "workflow",     {"require_approval": True, "min_approvers": 2}),
-        ("Env Promotion Policy",       "environment",  {"require_approval": True, "min_approvers": 1, "block_on_failed_eval": True}),
+        ("Workflow Publish Policy",    "workflow",     {
+            "require_approval": True,
+            "min_approvers": 2,
+            "min_confidence_score": 0.70,
+            "min_runs": 1,
+        }),
+        ("Env Promotion Policy",       "environment",  {
+            "require_approval": True,
+            "min_approvers": 1,
+            "block_on_failed_eval": True,
+            "min_confidence_score": 0.65,
+        }),
         ("Architecture Guardrails",    "architecture", {"allowed_types": ["vector","vectorless","graph","temporal","hybrid","custom"]}),
     ]
     gov_policies = {}

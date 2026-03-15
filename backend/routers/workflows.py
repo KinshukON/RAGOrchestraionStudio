@@ -206,6 +206,124 @@ async def delete_workflow(workflow_id: str) -> Dict[str, str]:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+class PublishGateResult(BaseModel):
+    """Response from POST /workflows/{id}/publish"""
+    workflow_id: str
+    published: bool
+    violations: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    confidence_score: Optional[float] = None
+    run_count: int = 0
+    policy_name: Optional[str] = None
+
+
+@router.post("/{workflow_id}/publish", response_model=PublishGateResult)
+async def publish_workflow(workflow_id: str) -> PublishGateResult:
+    """
+    Governance-gated workflow publish.
+
+    1. Loads all active GovernancePolicies with scope='workflow' from the DB.
+    2. Reads the most recent WorkflowRun for this workflow to extract confidence_score.
+    3. Checks rules: min_confidence_score, min_runs.
+    4. If all checks pass: sets is_active=True and returns published=True.
+    5. If any check fails: returns 422 with violations[] — workflow stays as draft.
+    """
+    from models_governance import GovernancePolicy as _GovPolicy
+    from sqlmodel import select as _select
+
+    # 1. Check workflow exists
+    wf_dict = _workflow_repo.get(workflow_id)
+    if not wf_dict:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # 2. Load governance policies from DB
+    with get_session() as session:
+        all_policies = list(session.exec(_select(_GovPolicy)).all())
+    workflow_policies = [p for p in all_policies if p.scope == "workflow"]
+
+    # 3. Get recent run data
+    with get_session() as session:
+        runs = list(session.exec(
+            select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)
+        ).all())
+
+    run_count = len(runs)
+    latest_confidence: Optional[float] = None
+    if runs:
+        runs.sort(key=lambda r: r.created_at, reverse=True)
+        latest_run = runs[0]
+        out = latest_run.output_payload or {}
+        # confidence_score may be nested in strategies array (multi-run) or top-level (single run)
+        if "confidence_score" in out:
+            latest_confidence = float(out["confidence_score"])
+        elif "strategies" in out and isinstance(out["strategies"], list) and out["strategies"]:
+            scores = [s.get("confidence_score", 0) for s in out["strategies"]]
+            latest_confidence = sum(scores) / len(scores)
+
+    # 4. Apply policy rules
+    violations: List[str] = []
+    warnings: List[str] = []
+    active_policy_name: Optional[str] = None
+
+    for policy in workflow_policies:
+        rules = policy.rules or {}
+        active_policy_name = policy.name
+
+        min_runs = rules.get("min_runs", 0)
+        if isinstance(min_runs, (int, float)) and run_count < int(min_runs):
+            violations.append(
+                f'Policy "{policy.name}" requires at least {int(min_runs)} evaluation run(s); '
+                f'found {run_count}. Run the workflow from the Evaluation Harness first.'
+            )
+
+        min_score = rules.get("min_confidence_score")
+        if min_score is not None:
+            threshold = float(min_score)
+            if latest_confidence is None:
+                violations.append(
+                    f'Policy "{policy.name}" requires confidence ≥ {threshold:.0%} '
+                    f'but no runs exist for this workflow.'
+                )
+            elif latest_confidence < threshold:
+                violations.append(
+                    f'Policy "{policy.name}" requires confidence ≥ {threshold:.0%}; '
+                    f'latest run scored {latest_confidence:.0%}. '
+                    f'Re-run the workflow and improve retrieval quality before publishing.'
+                )
+            elif latest_confidence < threshold + 0.05:
+                warnings.append(
+                    f'Confidence {latest_confidence:.0%} is close to the minimum threshold of {threshold:.0%}.'
+                )
+
+    # 5. Publish or reject
+    if violations:
+        return PublishGateResult(
+            workflow_id=workflow_id,
+            published=False,
+            violations=violations,
+            warnings=warnings,
+            confidence_score=latest_confidence,
+            run_count=run_count,
+            policy_name=active_policy_name,
+        )
+
+    # All checks passed — activate
+    wf_dict["is_active"] = True
+    _workflow_repo.update(workflow_id, wf_dict)
+
+    return PublishGateResult(
+        workflow_id=workflow_id,
+        published=True,
+        violations=[],
+        warnings=warnings,
+        confidence_score=latest_confidence,
+        run_count=run_count,
+        policy_name=active_policy_name,
+    )
+
+
+
+
 class WorkflowSimulationRequest(BaseModel):
     project_id: str
     environment_id: str

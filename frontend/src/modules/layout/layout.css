@@ -1,28 +1,96 @@
 .shell-root {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   background-color: var(--color-bg);
   color: var(--color-text);
+  transition: grid-template-columns 0.22s ease;
 }
+
+.shell-root[data-sidebar-collapsed="true"] {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */
 .shell-sidebar {
+  --sidebar-w: 220px;
+  width: 220px;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
-  padding: 1.25rem 0.875rem 1.5rem;
+  padding: 0.75rem 0.6rem 1.5rem;
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.22s ease;
+  flex-shrink: 0;
+}
+
+/* Collapsed sidebar — icons only */
+.shell-sidebar--collapsed {
+  width: 56px;
+  padding: 0.75rem 0.45rem 1.5rem;
+}
+
+/* Hamburger/close toggle */
+.shell-hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  margin-left: auto;
+  padding: 0;
+  transition: background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.shell-sidebar--collapsed .shell-hamburger {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.shell-hamburger:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.shell-hamburger-icon {
+  width: 18px;
+  height: 18px;
 }
 
 /* Logo */
 .shell-logo {
   padding: 0 0.5rem;
   margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.shell-logo-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.shell-logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .shell-logo-mark {
@@ -37,12 +105,16 @@
 }
 
 .shell-logo-sub {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--color-text-faint);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   -webkit-text-fill-color: var(--color-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
+
 
 /* Nav section headers */
 .shell-nav-section {
@@ -90,10 +162,23 @@
 }
 
 .shell-nav-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   opacity: 0.75;
   flex-shrink: 0;
+}
+
+/* Collapsed: center icon in nav items */
+.shell-sidebar--collapsed .shell-nav-item {
+  justify-content: center;
+  padding: 0.55rem 0;
+}
+
+.shell-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .shell-nav-item.active .shell-nav-icon {
@@ -232,4 +317,22 @@
 .shell-seed-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* Collapsed seed button — icon only */
+.shell-seed-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.shell-seed-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.shell-sidebar--collapsed .shell-seed-btn {
+  justify-content: center;
+  padding: 0.5rem;
 }

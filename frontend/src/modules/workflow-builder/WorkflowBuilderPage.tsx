@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Edge, Node } from 'reactflow'
 import { NodePalette } from './NodePalette'
@@ -10,6 +11,7 @@ import { useSaveWorkflow, useWorkflow } from './useWorkflowApi'
 import { workflowTemplates, type WorkflowTemplateId } from './workflowTemplates'
 import { useToast } from '../ui/ToastContext'
 import { SkeletonBar } from '../ui/Skeleton'
+import { publishWorkflow, updateWorkflow, createWorkflow, type PublishGateResult } from '../../api/workflows'
 
 const RETRIEVAL_NODE_TYPES = new Set(['vector_retriever', 'lexical_retriever', 'graph_retriever', 'metadata_filter', 'sql_retriever'])
 const ANSWER_NODE_TYPES = new Set(['llm_answer_generator'])
@@ -122,23 +124,52 @@ export function WorkflowBuilderPage() {
 
   // ── Save / Publish ─────────────────────────────────────────────────────────
   const saveWorkflow = useSaveWorkflow()
+  const [govResult, setGovResult] = useState<PublishGateResult | null>(null)
+
+  const publishMutation = useMutation({
+    mutationFn: async (): Promise<PublishGateResult> => {
+      const definition = reactFlowToWorkflowDefinition(graphNodes, graphEdges, { ...meta, is_active: false })
+      let savedId = meta.id
+      try {
+        const saved = meta.id
+          ? await updateWorkflow(meta.id, definition)
+          : await createWorkflow(definition)
+        savedId = saved.id
+        setMeta(m => ({ ...m, id: saved.id }))
+        navigate(`/app/workflow-builder?workflowId=${saved.id}`, { replace: true })
+      } catch {
+        // continue with existing id if save fails
+      }
+      return publishWorkflow(savedId)
+    },
+    onSuccess: (gate: PublishGateResult) => {
+      setGovResult(gate)
+      if (gate.published) {
+        setMeta(m => ({ ...m, is_active: true }))
+        const pct = gate.confidence_score !== null ? Math.round(gate.confidence_score * 100) + '%' : 'N/A'
+        success(`Workflow published ✓  confidence ${pct}`)
+      }
+    },
+    onError: () => error('Failed to contact governance service'),
+  })
 
   function handleSave(isActive: boolean) {
-    const definition = reactFlowToWorkflowDefinition(graphNodes, graphEdges, {
-      ...meta,
-      is_active: isActive,
-    })
+    if (isActive) {
+      setGovResult(null)
+      publishMutation.mutate()
+      return
+    }
+    const definition = reactFlowToWorkflowDefinition(graphNodes, graphEdges, { ...meta, is_active: false })
     saveWorkflow.mutate(definition, {
       onSuccess: (saved) => {
-        const label = isActive ? 'published and active' : 'saved as draft'
-        success(`Workflow "${saved.name}" ${label}`)
+        success(`Workflow "${saved.name}" saved as draft`)
         setMeta(m => ({ ...m, id: saved.id, is_active: saved.is_active }))
-        // Update URL to reflect the real persisted id
         navigate(`/app/workflow-builder?workflowId=${saved.id}`, { replace: true })
       },
-      onError: () => error(isActive ? 'Failed to publish workflow' : 'Failed to save workflow'),
+      onError: () => error('Failed to save workflow'),
     })
   }
+
 
   // ── Node editing ───────────────────────────────────────────────────────────
   function handleNodeUpdate(nodeId: string, patch: NodeUpdatePatch) {
@@ -183,7 +214,7 @@ export function WorkflowBuilderPage() {
           <button
             type="button"
             onClick={() => handleSave(false)}
-            disabled={saveWorkflow.isPending || isLoading}
+            disabled={saveWorkflow.isPending || publishMutation.isPending || isLoading}
           >
             {saveWorkflow.isPending ? 'Saving…' : 'Save Draft'}
           </button>
@@ -191,15 +222,32 @@ export function WorkflowBuilderPage() {
             type="button"
             className="wf-publish-btn"
             onClick={() => handleSave(true)}
-            disabled={saveWorkflow.isPending || isLoading}
+            disabled={saveWorkflow.isPending || publishMutation.isPending || isLoading}
           >
-            {saveWorkflow.isPending ? 'Publishing…' : 'Publish'}
+            {publishMutation.isPending ? 'Checking governance…' : 'Publish'}
           </button>
         </div>
       </div>
       {validationWarnings.length > 0 && (
         <div className="wf-validation-banner" role="alert">
           {validationWarnings.join(' ')}
+        </div>
+      )}
+      {govResult && !govResult.published && govResult.violations.length > 0 && (
+        <div className="wf-gov-banner wf-gov-banner--blocked" role="alert">
+          <strong>⛔ Governance policy blocked publish</strong>
+          {govResult.policy_name && <span className="wf-gov-policy-name">{govResult.policy_name}</span>}
+          <ul className="wf-gov-violations">
+            {govResult.violations.map((v, i) => <li key={i}>{v}</li>)}
+          </ul>
+          {govResult.run_count === 0 && (
+            <p className="wf-gov-hint">Run the workflow from the Evaluation Harness to generate a confidence score, then try publishing again.</p>
+          )}
+        </div>
+      )}
+      {govResult?.warnings && govResult.warnings.length > 0 && (
+        <div className="wf-gov-banner wf-gov-banner--warn" role="alert">
+          ⚠ {govResult.warnings.join(' ')}
         </div>
       )}
       <div className="wf-body">

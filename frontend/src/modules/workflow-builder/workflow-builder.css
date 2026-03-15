@@ -190,6 +190,52 @@
   margin-bottom: 0.5rem;
 }
 
+/* ── Governance gate banners ──────────────────────────────────── */
+.wf-gov-banner {
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.wf-gov-banner--blocked {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+}
+
+.wf-gov-banner--warn {
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.06);
+  color: #fcd34d;
+}
+
+.wf-gov-policy-name {
+  display: inline-block;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.wf-gov-violations {
+  margin: 0.25rem 0 0;
+  padding-left: 1.2rem;
+  list-style: disc;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.wf-gov-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  opacity: 0.75;
+  font-style: italic;
+}
+
+
 /* ── Deep config panel additions ─────────────────────────────── */
 
 .wf-config-panel {
