@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
     listBenchmarkQueries,
@@ -192,7 +192,6 @@ export function EvaluationPage() {
             })
             // Auto-score each strategy
             for (const r of resp.results) {
-                const trace = r.trace as typeof r.trace & { chunks_retrieved?: number }
                 const retrievedTitles = (r.trace.retrieved_sources ?? []).map(s => {
                     const src = s as Record<string, unknown>
                     return String(src.title ?? '')
