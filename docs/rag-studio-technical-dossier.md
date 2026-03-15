@@ -1,6 +1,6 @@
 # RAG Studio — Technical Dossier
 
-> **Version:** 2.0 · March 2026  
+> **Version:** 2.1 · March 2026  
 > **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > **Repository:** [github.com/KinshukON/RAGOrchestraionStudio](https://github.com/KinshukON/RAGOrchestraionStudio)
 
@@ -75,21 +75,12 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 | **Design session creation** | Implemented | `ArchitectureCatalogPage.tsx`, `api/architectures.ts` | "Design this architecture" creates a persisted `DesignSession` in Postgres and navigates to `/app/designer?sessionId=…` |
 | **Guided Designer — architecture-specific forms** | Implemented | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerVector.tsx`, `designerVectorless.tsx`, `designerGraph.tsx`, `designerTemporal.tsx`, `designerHybrid.tsx`, `designerCustom.tsx` | 3-step wizard (Architecture profile → Retrieval & routing → Answering & governance); step groups are specific to each of the 6 architecture types; wizard state is saved to DB on every change |
 | **Guided Designer → Workflow generation** | Implemented | `DesignerPage.tsx`, `wizardStateToWorkflowDefinition()` | "Generate workflow →" converts `DesignerWizardState` into a `WorkflowDefinition` via `createWorkflow`, then navigates directly to Workflow Builder with the new workflow ID |
-| **Workflow Builder** | Implemented | `WorkflowBuilderPage.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx`, `NodeConfigPanel.tsx`, `ArchitectureSummaryPanel.tsx` | ReactFlow canvas; node palette (Input & Routing, Retrieval, Processing, Generation); NodeConfigPanel for per-node settings; ArchitectureSummaryPanel for template context; loads workflow from URL param; Save Draft and Publish actions |
-| Workflow CRUD API | Implemented (DB-backed) | `backend/routers/workflows.py` | `WorkflowDefinitionRecord` persisted in Postgres; `/runs` endpoint returns `WorkflowRun` history |
-| **Query Lab** | Implemented | `QueryLabPage.tsx`, `QueryInputPanel.tsx`, `ResultComparisonGrid.tsx`, `RunHistoryPanel.tsx` | Workflow selector (from DB), environment binding (from DB), multi-strategy simulation, auto-selects latest workflow, Top-K config, run history with 5-second auto-poll, save test-case action |
-| Evaluations API (test-case saving) | Partial | `api/evaluations.ts`, `backend/routers/evaluations.py` | `saveTestCase` persists query + results as an evaluation entry; no evaluation dashboard yet |
-| **Integrations Studio** | Implemented | `IntegrationsStudioPage.tsx`, `backend/routers/integrations.py` | Connector CRUD (LLM providers, vector DBs, document sources, graph DBs); environment binding matrix; integration wizard modal; backend DB-backed |
-| **Environments page** | Implemented | `EnvironmentsPage.tsx`, `backend/routers/environments.py` | List, create, and configure deployment environments (dev / staging / prod); DB-backed |
-| **Governance page** | Implemented (placeholder content) | `GovernancePage.tsx`, `backend/routers/governance.py` | Policy rule UI scaffolded; backend approval/audit endpoints return empty lists |
-| **Observability page** | Implemented | `ObservabilityPage.tsx`, `backend/routers/observability.py` | Dedicated observability dashboard (separate from admin observability); workflow run metrics and trace views |
-| Admin console — Users | Implemented | `AdminUsersPage.tsx`, `backend/routers/admin_users.py` | Tabular view of platform users; in-memory store |
-| Admin console — Roles | Implemented | `AdminRolesPage.tsx`, `backend/routers/admin_roles.py` | Role list with permission scaffolding; in-memory |
-| Admin console — Teams | Implemented | `AdminTeamsPage.tsx`, `backend/routers/admin_teams.py` | Team list with default-role column; in-memory |
-| Admin console — Views | Implemented | `AdminViewsPage.tsx`, `backend/routers/admin_views.py` | Custom view registry; in-memory |
-| Admin console — Preferences | Implemented | `AdminPreferencesPage.tsx`, `backend/routers/admin_preferences.py` | Per-user preference read/update via `useAuth` ID |
-| Admin Observability | Implemented | `AdminObservabilityPage.tsx`, `backend/routers/admin_observability.py` | Audit log table and platform metrics endpoint; in-memory |
-| Demo auto-seed | Implemented | `backend/routers/demo.py` | Seeds 6 `ArchitectureTemplate` records on startup if catalog is empty, enabling zero-config demo mode |
+| **Workflow Builder — deep node config** | Implemented | `WorkflowBuilderPage.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx`, `NodeConfigPanel.tsx`, `ArchitectureSummaryPanel.tsx`, `workflow-builder.css` | ReactFlow canvas; **deep per-node config panel**: 11 node types each expose specialist parameter groups — chunking strategy (recursive/sentence/semantic/sliding window), chunk size/overlap sliders, embedding model spectrum, ANN algorithm (HNSW/IVFFlat/Exact/LSH), BM25 k1+b tuning, graph traversal algorithm (BFS/DFS/PPR/Beam), hop depth, temporal as-of strategy, LLM selection + temperature/top-P, guardrail checks (PII/toxicity/injection/hallucination), context merge strategy |
+| Workflow CRUD API | Implemented (DB-backed) | `backend/routers/workflows.py` | `WorkflowDefinitionRecord` persisted in Postgres; `/runs` endpoint returns `WorkflowRun` history with `experiment_id`, `query`, `strategies_run`, `full_results`, `architecture_type` |
+| **Query Lab** | Implemented | `QueryLabPage.tsx`, `QueryInputPanel.tsx`, `ResultComparisonGrid.tsx`, `RunHistoryPanel.tsx` | Evidence cards per strategy: citeable `exp-XXXXXX` experiment ID, latency bar, retrieved chunks with scores, retrieval path; searchable + exportable run history; 5-s auto-poll |
+| **Evaluation Harness (Evidence Layer)** | Implemented | `modules/evaluation/EvaluationPage.tsx`, `backend/routers/evaluations.py` | 6 pre-seeded canonical enterprise benchmark queries; per-query execution across all active strategies; heuristic scoring (relevance, groundedness, completeness); 1–5 human rating override; JSON export for IEEE evidence appendices |
+| **Research Assistant (Evidence Layer)** | Implemented | `modules/research-assistant/ResearchAssistantPage.tsx` | Rule-based conversational interface for querying stored `WorkflowRun` data; suggestion pills (summarise, compare latency, methodology, deep-dive report); ad-hoc free-form queries; no external LLM dependency |
+| **Demo auto-seed + admin promotion** | Implemented | `backend/routers/demo.py` | Seeds architecture templates, roles, teams, users, integrations, environments, projects, workflows, governance; **promotes any user matching `kinshuk` in email to Platform Admin** on every seed call |
 | **UI System — Error Boundaries** | Implemented | `ErrorBoundary.tsx` | Wraps every `<Page>` component; captures and surfaces render errors gracefully |
 | **UI System — Toast Notifications** | Implemented | `ToastContext.tsx` | `useToast()` provides `success()`, `error()`, `info()` toasts consumed throughout the app |
 | **UI System — Skeleton Loaders** | Implemented | `Skeleton.tsx` | `SkeletonBar`, `SkeletonCard`, `PageSkeleton` used in Catalog, Designer, and other data-loading states |

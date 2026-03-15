@@ -11,13 +11,15 @@
 2. [Architecture Catalog](#2-architecture-catalog)
 3. [Guided Designer — Configure your pipeline](#3-guided-designer--configure-your-pipeline)
 4. [Guided Designer — Generate Workflow](#4-guided-designer--generate-workflow)
-5. [Workflow Builder](#5-workflow-builder)
+5. [Workflow Builder — Node Configuration](#5-workflow-builder--node-configuration)
 6. [Query Lab](#6-query-lab)
 7. [Integrations](#7-integrations)
 8. [Environments](#8-environments)
 9. [Governance & Guardrails](#9-governance--guardrails)
 10. [Observability & Traces](#10-observability--traces)
 11. [Admin — Users, Roles & Teams](#11-admin--users-roles--teams)
+12. [Evidence — Evaluation Harness](#12-evidence--evaluation-harness)
+13. [Evidence — Research Assistant](#13-evidence--research-assistant)
 
 ---
 
@@ -110,7 +112,7 @@ The button transitions to **"Generating workflow…"** while the backend builds 
 
 ---
 
-## 5. Workflow Builder
+## 5. Workflow Builder — Node Configuration
 
 **Sidebar: Architecture → Workflow Builder**
 
@@ -124,7 +126,25 @@ The Workflow Builder visualises your RAG pipeline as a **node-based directed gra
 |---|---|
 | **Left — Nodes palette** | All available node types grouped by category: Input & Routing, Retrieval, Processing, Generation |
 | **Centre — Canvas** | The live pipeline graph. Zoom with `+`/`−`, fit-to-window with the fullscreen icon |
-| **Right — Configuration** | Click any node on the canvas to inspect and edit its settings |
+| **Right — Configuration** | Click any node to expose its full deep-config panel |
+
+### Deep Node Configuration
+
+Clicking any canvas node opens a **deep configuration panel** with parameter groups specific to that node type. Every configurable dimension has a slider, dropdown, or textarea.
+
+| Node type | Key parameters |
+|---|---|
+| **Embedding generator** | Chunking strategy (recursive / sentence / semantic / sliding window), chunk size (64–4096 tokens), chunk overlap, embedding model (OpenAI / Cohere / BGE / E5 / custom), batch size, vector store (pgvector / Pinecone / Weaviate / Qdrant / Milvus / Chroma / OpenSearch) |
+| **Vector retriever** | Top-K (slider), similarity metric (cosine / dot / L2), ANN algorithm (HNSW / IVFFlat / Exact), metadata pre-filter DSL, MMR diversity lambda |
+| **Lexical retriever** | Algorithm (BM25 / TF-IDF / BM25+ / SPL), BM25 k1 + b sliders, index backend (Elasticsearch / Typesense / Meilisearch / Tantivy) |
+| **Graph retriever** | Traversal algorithm (BFS / DFS / PPR / Beam), max hop depth, max node cap, edge-type allowlist / blocklist, graph DB (Neo4j / Neptune / TigerGraph / NebulaGraph) |
+| **Temporal filter** | As-of date source (request date / extracted / fixed / session param), effective-from/to field names, lookback window, strict point-in-time toggle |
+| **Reranker** | Model (Cohere / Cross-encoder / BGE / custom), top-K after rerank, cross-encoder mode, score passthrough |
+| **LLM answer generator** | Model (GPT-4o / Claude / Gemini / Llama / Mistral / custom), max tokens, temperature slider, top-P, system prompt textarea, streaming toggle |
+| **Query classifier** | Classifier type (LLM / zero-shot / fine-tuned / rule), intent label list, confidence threshold |
+| **Metadata filter** | Filter DSL expression (multi-line with AND/OR/NOT), pass-through on empty toggle |
+| **Guardrail** | PII / toxicity / injection / hallucination checks independently, violation action (block / redact / warn / fallback) |
+| **Context assembler** | Merge strategy (RRF / weighted / deduplicate / concat), max context token cap |
 
 ### Actions
 
@@ -133,15 +153,13 @@ The Workflow Builder visualises your RAG pipeline as a **node-based directed gra
 | **Save Draft** | Persist the current state without publishing |
 | **Publish** | Mark the workflow as active and available in Query Lab |
 
-Workflows generated from the Designer are pre-labelled with the session number and architecture type (e.g. _"Vector RAG — Session #5"_).
-
 ---
 
 ## 6. Query Lab
 
 **Sidebar: Query Lab**
 
-Test your workflows interactively. After a workflow is generated, it appears automatically in the **Workflow** dropdown.
+Test your workflows interactively and compare retrieval strategies side-by-side.
 
 ![Query Lab — Vector RAG workflow loaded and ready to run](file:///Users/kinshukdutta/.gemini/antigravity/brain/0ff180c0-debb-4a64-a13c-d77151a12a27/querylab_with_workflow_1773472627110.png)
 
@@ -155,9 +173,28 @@ Test your workflows interactively. After a workflow is generated, it appears aut
 | **Strategies to compare** | Tick any combination: Vector, Vectorless, Graph, Temporal, Hybrid |
 | **Top-k** | Retrieval hint — number of chunks returned |
 
-Click **"Run simulation"** to execute. Results show per-strategy latency, retrieved chunks, and the generated answer side-by-side.
+Click **"Run simulation"** to execute.
 
-> The label _"Backend returns simulated traces"_ appears when no real API keys are configured. Connect an LLM provider in **Integrations** to enable live execution.
+### Results Cards (IEEE Evidence Layer)
+
+Each strategy returns a **comparison card** showing:
+
+- **Experiment ID** — a citeable `exp-XXXXXX` identifier for this exact run, useful for IEEE evidence logging
+- **Latency bar** — visual relative benchmark across strategies
+- **Retrieved chunks** — the top-scored chunks with source attribution and relevance scores
+- **Retrieval path** — the sequence of pipeline nodes traversed
+- **Answer** — the generated response
+- **Export** — download the run as JSON for offline analysis
+
+### Run History
+
+Every simulation is logged in the **Run History** panel below the results. You can:
+
+- **Search** runs by query text, strategy, or experiment ID
+- **Expand** any row to see full result detail
+- **Export** selected runs as CSV for reporting
+
+> _"Backend returns simulated traces"_ appears when no real API keys are configured. Connect an LLM provider in **Integrations** to enable live execution.
 
 ---
 
@@ -252,18 +289,73 @@ Group users into teams to scope workflow ownership and governance approval routi
 
 ---
 
+## 12. Evidence — Evaluation Harness
+
+**Sidebar: Evidence → Evaluation Harness**
+
+The Evaluation Harness provides a structured **benchmark test suite** for measuring and comparing RAG strategy quality across standardised enterprise queries.
+
+### Left panel — Benchmark queries
+
+Six canonical enterprise RAG queries are pre-seeded (covering multi-hop reasoning, temporal compliance, entity disambiguation, cross-document synthesis, and more). You can also:
+
+- **Add custom queries** via the "+ Add query" button
+- **Run all benchmarks** with a single click — each query executes across all active strategies
+- **Delete** custom queries you no longer need
+
+### Right panel — Scoring detail
+
+Clicking a query row opens the scoring breakdown:
+
+| Score dimension | What it measures |
+|---|---|
+| **Relevance** | How closely retrieved chunks match the query intent |
+| **Groundedness** | Whether the generated answer is supported by retrieved context |
+| **Completeness** | Whether all facets of the question are addressed |
+| **Human rating** | 1–5 star override from a human reviewer |
+
+Scores are computed heuristically (no external LLM call needed) and are stored persistently.
+
+### Export
+
+Click **"Export results"** to download a full benchmark report as JSON — suitable for inclusion in IEEE evaluation appendices.
+
+---
+
+## 13. Evidence — Research Assistant
+
+**Sidebar: Evidence → Research Assistant**
+
+The Research Assistant is a **conversational interface** that answers questions about your RAG experiments, methodology, and results — completely rule-based, no external LLM calls required.
+
+### Quick-start suggestions
+
+On first load, suggestion pills offer common prompts:
+
+- _"What was tested?"_ — summarises the strategies and queries run
+- _"Compare latency across strategies"_ — returns a table of latency medians per strategy
+- _"What is the methodology?"_ — explains the simulation and scoring approach
+- _"Generate deep-dive report"_ — produces a structured Markdown summary of all experiment runs
+
+### Ad-hoc questions
+
+Type any free-form question in the chat input. The assistant queries stored `WorkflowRun` data and returns structured answers with tables, metrics, and experiment IDs.
+
+---
+
 ## End-to-End Flow Summary
 
 ```
 Architecture Catalog  (pick a pattern)
-  └─ "Design this architecture"
-       └─ Guided Designer  (step 1: profile → step 2: retrieval → step 3: governance)
-            └─ "Generate workflow →"
-                 └─ Workflow Builder  (review / edit node graph, then Publish)
-                      └─ Query Lab  (test with real or simulated traces)
-                           └─ Observability  (monitor runs + audit trail)
+  └─ Guided Designer  (step 1: profile → step 2: retrieval → step 3: governance)
+       └─ Workflow Builder  (deep-configure each node → Publish)
+            └─ Query Lab  (run multi-strategy simulation → inspect evidence cards)
+                 ├─ Observability  (monitor runs + audit trail)
+                 └─ Evidence
+                      ├─ Evaluation Harness  (benchmark scoring, export)
+                      └─ Research Assistant  (conversational experiment Q&A)
 ```
 
 ---
 
-*RAG Studio v1.0 · For API reference see [architecture.md](./architecture.md)*
+*RAG Studio v1.1 · For API reference see [architecture.md](./architecture.md) · Deployed on [ragorchestrationstudio.com](https://ragorchestrationstudio.com)*

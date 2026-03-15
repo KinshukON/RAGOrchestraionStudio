@@ -23,11 +23,13 @@ Workflow Builder   (?workflowId= loads from API)
   │  GET  /api/workflows/{id}             →  fetch saved graph
   │  POST /api/workflows                  →  create new
   │  PATCH /api/workflows/{id}            →  save draft / publish
-  │  navigate /app/workflow-builder?workflowId={saved.id}   (URL updated on save)
+  │
+  │  Node config panel: per-node deep config
+  │  (chunking / embedding / ANN / graph traversal / BM25 / as-of date / LLM params / guardrails)
   ▼
 Query Lab   (auto-selects latest workflow & environment)
   │  GET  /api/workflows                  →  pick workflows[0] if no selection
-  │  POST /api/workflows/{id}/simulate-multi
+  │  POST /api/workflows/run-multi        →  SimulationEngine: returns experiment_id, chunks, latency
   │  POST /api/evaluations/query-cases    →  save test case
   ▼
 Governance
@@ -37,8 +39,14 @@ Environments   (binding matrix + promotion)
   │  PATCH /api/environments/{id}         →  update integration_bindings
   ▼
 Observability
-     GET /api/observability/runs
-     GET /api/observability/runs/{id}/tasks
+  │  GET /api/observability/runs
+  │  GET /api/observability/runs/{id}/tasks
+  ▼
+Evidence Layer   (IEEE-citeable audit trail)
+     GET/POST /api/evaluations/benchmark-queries
+     POST /api/evaluations/benchmark-queries/{id}/human-rating
+     GET  /api/evaluations/export
+     GET  /api/workflows/runs  →  ResearchAssistant queries stored WorkflowRun data
 ```
 
 ---
@@ -50,16 +58,18 @@ Observability
 | Shell | `modules/layout/` | `AppShell.tsx` (sidebar, breadcrumb, **auto-seed**, **help-icon header button** → `/app/guide`), `layout.css` |
 | Architecture Catalog | `modules/architecture-catalog/` | `ArchitectureCatalogPage.tsx` |
 | Guided Designer | `modules/guided-designer/` | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerToWorkflow.ts`, `designerTypes.ts`, `designer{Vector,Vectorless,Graph,Temporal,Hybrid,Custom}.tsx` |
-| Workflow Builder | `modules/workflow-builder/` | `WorkflowBuilderPage.tsx`, `NodeConfigPanel.tsx`, `ArchitectureSummaryPanel.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx`, `modelMapping.ts`, `workflowTemplates.ts`, `useWorkflowApi.ts` |
-| Query Lab | `modules/query-lab/` | `QueryLabPage.tsx`, `QueryInputPanel.tsx`, `ResultComparisonGrid.tsx`, `RunHistoryPanel.tsx` |
+| Workflow Builder | `modules/workflow-builder/` | `WorkflowBuilderPage.tsx`, `NodeConfigPanel.tsx` (**deep per-node config**: chunking/embedding/ANN/graph/BM25/temporal/LLM/guardrails), `ArchitectureSummaryPanel.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx`, `modelMapping.ts`, `workflowTemplates.ts`, `useWorkflowApi.ts` |
+| Query Lab | `modules/query-lab/` | `QueryLabPage.tsx`, `QueryInputPanel.tsx`, `ResultComparisonGrid.tsx` (evidence cards with experiment IDs + latency bars), `RunHistoryPanel.tsx` (searchable + exportable) |
 | Integrations Studio | `modules/integrations-studio/` | `IntegrationsStudioPage.tsx` |
 | Environments | `modules/environments/` | `EnvironmentsPage.tsx`, `EnvironmentDetailPanel.tsx` |
 | Governance | `modules/governance/` | `GovernancePage.tsx` |
 | Observability | `modules/observability/` | `ObservabilityPage.tsx` |
 | Admin | `modules/admin-*/` | Users, Roles, Teams, Views, Preferences, Observability |
+| **Evaluation Harness** | `modules/evaluation/` | `EvaluationPage.tsx` — 6 pre-seeded benchmark queries, heuristic scoring (relevance/groundedness/completeness), human ratings, JSON export |
+| **Research Assistant** | `modules/research-assistant/` | `ResearchAssistantPage.tsx` — rule-based chat interface querying stored `WorkflowRun` data; no external LLM calls |
 | User Guide | `modules/user-guide/` | `UserGuidePage.tsx` (route `/app/guide`): two-column layout, sticky TOC, flow banner, 14 screenshots from `/guide-images/`; `user-guide.css` includes `@media print` rules |
 | Shared UI | `modules/ui/` | `feedback.tsx` (PageHeader, StatusBadge, EmptyState+action, SimBanner), `ErrorBoundary.tsx`, `ToastContext.tsx`, `Skeleton.tsx` |
-| API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts` |
+| API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts`, `workflowRuns.ts` |
 
 ### User Guide & PDF
 
@@ -103,14 +113,14 @@ Converts wizard UI config into a typed `WorkflowDefinition` with pre-positioned 
 
 | Router | Prefix | Key Endpoints |
 |---|---|---|
-| `auth` | `/api/auth` | `POST /signin`, `POST /bootstrap-user` |
+| `auth` | `/api/auth` | `POST /google`, `POST /refresh`, `POST /logout` |
 | `projects` | `/api/projects` | CRUD for `Project` |
 | `architectures` | `/api/architectures` | `GET /catalog`, `POST /design-sessions`, `GET /design-sessions/{id}`, `PATCH /design-sessions/{id}` |
-| `workflows` | `/api/workflows` | `GET /`, `GET /{id}`, `POST /`, `PATCH /{id}`, `DELETE /{id}`, `POST /{id}/simulate-multi`, `PUT /{id}/publish`, `GET /runs`, `GET /by-architecture/{type}` |
+| `workflows` | `/api/workflows` | `GET /`, `GET /{id}`, `POST /`, `PATCH /{id}`, `DELETE /{id}`, **`POST /run-multi`** (SimulationEngine), `PUT /{id}/publish`, `GET /runs`, `GET /by-architecture/{type}` |
 | `integrations` | `/api/integrations` | CRUD for `Integration` |
 | `environments` | `/api/environments` | CRUD for `Environment` |
 | `governance` | `/api/governance` | `policies/`, `approval-rules/`, `bindings/` |
-| `evaluations` | `/api/evaluations` | `POST /query-cases`, `POST /runs` |
+| **`evaluations`** | `/api/evaluations` | `GET/POST /benchmark-queries`, `DELETE /benchmark-queries/{id}`, `POST /benchmark-queries/{id}/run`, `POST /benchmark-queries/{id}/human-rating`, `GET /export` |
 | `observability` | `/api/observability` | `GET /runs`, `GET /runs/{id}`, `GET /runs/{id}/tasks` |
 | `admin_users` | `/api/admin/users` | CRUD + `POST /bootstrap` |
 | `admin_roles` | `/api/admin/roles` | CRUD for `Role` with `permissions` JSON |
@@ -119,7 +129,7 @@ Converts wizard UI config into a typed `WorkflowDefinition` with pre-positioned 
 | `admin_views` | `/api/admin/views` | CRUD for `View` (upsert-by-key) |
 | `admin_preferences` | `/api/admin/preferences` | `GET /me`, `PATCH /me` |
 | `admin_observability` | `/api/admin/observability` | `GET/POST /audit-logs`, `GET/POST /events` |
-| `demo` | `/api/demo` | `POST /seed`, `GET /seed-status`, `DELETE /seed` |
+| `demo` | `/api/demo` | `POST /seed` (+ Kinshuk admin promotion), `GET /seed-status`, `DELETE /seed` |
 
 ---
 
@@ -132,7 +142,7 @@ Converts wizard UI config into a typed `WorkflowDefinition` with pre-positioned 
 | `WorkflowDefinition` | `id`, `project_id`, `architecture_type`, `name`, `description`, `version`, `nodes` (JSON), `edges` (JSON), `status`, `is_active` |
 | `Integration` | `id`, `name`, `provider_type`, `credentials_reference`, `health_status`, `reusable`, `environment_mapping` (JSON) |
 | `Environment` | `id`, `name`, `external_id`, `runtime_profile` (JSON), `promotion_status`, `health_status`, `integration_bindings` (JSON) |
-| `WorkflowRun` | `id`, `workflow_id`, `strategy_id`, `status`, `metrics` (JSON) |
+| `WorkflowRun` | `id`, `workflow_id`, `strategy_id`, `status`, `metrics` (JSON), **`experiment_id`** (citeable ID), **`query`**, **`strategies_run`** (JSON), **`full_results`** (JSON), **`architecture_type`** |
 | `TaskExecution` | `id`, `run_id`, `node_id`, `status`, `trace_metadata` (JSON) |
 
 ### `models_architecture.py`
@@ -199,7 +209,8 @@ The `POST /api/demo/seed` endpoint idempotently inserts:
 
 - **5 Roles** (Platform Admin, AI Architect, Knowledge Engineer, Auditor, Viewer)
 - **4 Teams** (Platform Engineering, AI/ML, Data Engineering, Compliance & Audit)
-- **4 Users** (admin, architect, engineer, auditor demo accounts)
+- **4 Demo Users** (admin, architect, engineer, auditor demo accounts)
+- **Kinshuk Dutta promoted to Platform Admin** — seed upgrades any existing Google-auth user with email matching `kinshuk` to Platform Admin + Platform Engineering team
 - **8 Integrations** (OpenAI Embeddings, Anthropic Claude, pgvector, Neo4j, Elasticsearch, S3, Datadog, Cohere Reranker)
 - **4 Environments** (dev, test, staging, prod with runtime profiles)
 - **3 Projects** (Support Portal, Claims Processing, Compliance Q&A)
