@@ -13,7 +13,7 @@ export function CostRoiPage() {
 
   // ── Fetch profiles from DB ──
   const profilesQ = useQuery({ queryKey: ['cost-profiles'], queryFn: listCostProfiles })
-  const profiles = profilesQ.data ?? []
+  const profiles = Array.isArray(profilesQ.data) ? profilesQ.data : []
   const scenariosQ = useQuery({ queryKey: ['cost-scenarios'], queryFn: () => listScenarios() })
   const savedScenarios = scenariosQ.data ?? []
 
@@ -47,7 +47,7 @@ export function CostRoiPage() {
     }
   }, [profiles, arch])
 
-  const currentProfile = useMemo(() => profiles.find(p => p.architecture_type === arch), [profiles, arch])
+  const currentProfile = useMemo(() => (profiles || []).find(p => p.architecture_type === arch), [profiles, arch])
 
   // ── Calculate via backend ──
   const calcMutation = useMutation({
