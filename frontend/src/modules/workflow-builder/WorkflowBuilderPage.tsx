@@ -151,7 +151,10 @@ export function WorkflowBuilderPage() {
         success(`Workflow published ✓  confidence ${pct}`)
       }
     },
-    onError: () => error('Failed to contact governance service'),
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      error(detail || 'Failed to contact governance service')
+    },
   })
 
   function handleSave(isActive: boolean) {

@@ -236,6 +236,8 @@ async def publish_workflow(
     from models_governance import GovernancePolicy as _GovPolicy
     from sqlmodel import select as _select
     from models_admin import AuditLog as _AuditLog
+    import logging
+    _log = logging.getLogger(__name__)
 
     # Rate-limit: max 10 publish attempts per user per 60 s
     enforce_rate_limit(current_user.user_id, "publish", limit=10, window_seconds=60)
@@ -245,16 +247,24 @@ async def publish_workflow(
     if not wf_dict:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # 2. Load governance policies from DB
-    with get_session() as session:
-        all_policies = list(session.exec(_select(_GovPolicy)).all())
-    workflow_policies = [p for p in all_policies if p.scope == "workflow"]
+    # 2. Load governance policies from DB (graceful if table is empty)
+    workflow_policies: list = []
+    try:
+        with get_session() as session:
+            all_policies = list(session.exec(_select(_GovPolicy)))
+        workflow_policies = [p for p in all_policies if p.scope == "workflow"]
+    except Exception as e:
+        _log.warning("Could not load governance policies: %s", e)
 
-    # 3. Get recent run data
-    with get_session() as session:
-        runs = list(session.exec(
-            select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)
-        ).all())
+    # 3. Get recent run data (graceful if no runs)
+    runs: list = []
+    try:
+        with get_session() as session:
+            runs = list(session.exec(
+                select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)
+            ))
+    except Exception as e:
+        _log.warning("Could not load workflow runs: %s", e)
 
     run_count = len(runs)
     latest_confidence: Optional[float] = None
@@ -306,16 +316,19 @@ async def publish_workflow(
 
     # 5. Publish or reject
     if violations:
-        # Audit: blocked publish attempt
-        with get_session() as _s:
-            _s.add(_AuditLog(
-                action="workflow.publish_blocked",
-                resource_type="workflow",
-                resource_id=workflow_id,
-                event_data={"violations": violations, "policy": active_policy_name},
-                ip=None,
-            ))
-            _s.commit()
+        # Audit: blocked publish attempt (non-blocking)
+        try:
+            with get_session() as _s:
+                _s.add(_AuditLog(
+                    action="workflow.publish_blocked",
+                    resource_type="workflow",
+                    resource_id=workflow_id,
+                    event_data={"violations": violations, "policy": active_policy_name},
+                    ip=None,
+                ))
+                _s.commit()
+        except Exception as e:
+            _log.warning("Audit log write failed: %s", e)
         return PublishGateResult(
             workflow_id=workflow_id,
             published=False,
@@ -330,16 +343,19 @@ async def publish_workflow(
     wf_dict["is_active"] = True
     _workflow_repo.update(workflow_id, wf_dict)
 
-    # Audit: successful publish
-    with get_session() as _s:
-        _s.add(_AuditLog(
-            action="workflow.published",
-            resource_type="workflow",
-            resource_id=workflow_id,
-            event_data={"confidence_score": latest_confidence, "run_count": run_count, "policy": active_policy_name},
-            ip=None,
-        ))
-        _s.commit()
+    # Audit: successful publish (non-blocking)
+    try:
+        with get_session() as _s:
+            _s.add(_AuditLog(
+                action="workflow.published",
+                resource_type="workflow",
+                resource_id=workflow_id,
+                event_data={"confidence_score": latest_confidence, "run_count": run_count, "policy": active_policy_name},
+                ip=None,
+            ))
+            _s.commit()
+    except Exception as e:
+        _log.warning("Audit log write failed: %s", e)
     return PublishGateResult(
         workflow_id=workflow_id,
         published=True,
@@ -348,6 +364,7 @@ async def publish_workflow(
         confidence_score=latest_confidence,
         run_count=run_count,
         policy_name=active_policy_name,
+
     )
 
 
