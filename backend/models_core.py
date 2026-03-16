@@ -31,6 +31,11 @@ class Integration(SQLModel, table=True):
     reusable: bool = True
     health_status: str | None = None
     last_tested_at: Optional[datetime] = None
+    # Security & sharing
+    owner_user_id: Optional[int] = None  # user.id who created/owns this integration
+    sharing_scope: str = "organization"  # private | team | organization
+    shared_with_team_ids: list = Field(default_factory=list, sa_column=Column("shared_with_team_ids", JSON, nullable=False, server_default="[]"))
+    credential_encrypted: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

@@ -416,22 +416,15 @@ async def clear_demo_data() -> Dict[str, Any]:
 async def get_seed_status() -> Dict[str, Any]:
     """
     Returns whether demo data has already been seeded.
-    Checks ALL major entities — not just workflows — so partial seeds are caught.
+    Checks ALL major entities so partial seeds are caught.
     """
+    from models_governance import GovernancePolicy
     with get_session() as session:
         workflow_count = len(list(session.exec(select(WorkflowDefinition)).all()))
         integration_count = len(list(session.exec(select(Integration)).all()))
         environment_count = len(list(session.exec(select(Environment)).all()))
-        # GovernancePolicy is currently a Pydantic BaseModel (in-memory),
-        # not a SQLModel table, so we cannot query it from the DB.
-        governance_count = 0
-        try:
-            from models_governance import GovernancePolicy
-            governance_count = len(list(session.exec(select(GovernancePolicy)).all()))
-        except Exception:
-            governance_count = 0
-    # seeded = true only when workflows, integrations, and environments are populated
-    seeded = all([workflow_count > 0, integration_count > 0, environment_count > 0])
+        governance_count = len(list(session.exec(select(GovernancePolicy)).all()))
+    seeded = all([workflow_count > 0, integration_count > 0, environment_count > 0, governance_count > 0])
     return {
         "seeded": seeded,
         "counts": {

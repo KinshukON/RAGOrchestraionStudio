@@ -1,17 +1,17 @@
 import { apiClient } from './client'
 
 export type GovernancePolicy = {
-  id: string
+  id: number | string
   name: string
   scope: string
   rules: Record<string, unknown>
-  created_by?: string | null
+  created_by?: number | string | null
   created_at: string
   updated_at: string
 }
 
 export type ApprovalRule = {
-  id: string
+  id: number | string
   name: string
   applies_to: string
   required_roles: string[]
@@ -22,8 +22,8 @@ export type ApprovalRule = {
 }
 
 export type GovernanceBinding = {
-  id: string
-  policy_id: string
+  id: number | string
+  policy_id: number | string
   workflow_id?: string | null
   environment_id?: string | null
   architecture_type?: string | null
@@ -37,7 +37,7 @@ export async function listPolicies(params?: { scope?: string }): Promise<Governa
   return res.data
 }
 
-export async function getPolicy(policyId: string): Promise<GovernancePolicy> {
+export async function getPolicy(policyId: number | string): Promise<GovernancePolicy> {
   const res = await apiClient.get<GovernancePolicy>(`/api/governance/policies/${policyId}`)
   return res.data
 }
@@ -53,14 +53,14 @@ export async function createPolicy(payload: {
 }
 
 export async function updatePolicy(
-  policyId: string,
+  policyId: number | string,
   payload: { name?: string; scope?: string; rules?: Record<string, unknown> }
 ): Promise<GovernancePolicy> {
   const res = await apiClient.patch<GovernancePolicy>(`/api/governance/policies/${policyId}`, payload)
   return res.data
 }
 
-export async function deletePolicy(policyId: string): Promise<void> {
+export async function deletePolicy(policyId: number | string): Promise<void> {
   await apiClient.delete(`/api/governance/policies/${policyId}`)
 }
 
@@ -81,7 +81,7 @@ export async function createApprovalRule(payload: {
 }
 
 export async function updateApprovalRule(
-  ruleId: string,
+  ruleId: number | string,
   payload: {
     name?: string
     applies_to?: string
@@ -94,7 +94,7 @@ export async function updateApprovalRule(
   return res.data
 }
 
-export async function deleteApprovalRule(ruleId: string): Promise<void> {
+export async function deleteApprovalRule(ruleId: number | string): Promise<void> {
   await apiClient.delete(`/api/governance/approval-rules/${ruleId}`)
 }
 
@@ -109,7 +109,7 @@ export async function listBindings(params?: {
 }
 
 export async function createBinding(payload: {
-  policy_id: string
+  policy_id: number | string
   workflow_id?: string
   environment_id?: string
   architecture_type?: string
@@ -119,6 +119,6 @@ export async function createBinding(payload: {
   return res.data
 }
 
-export async function deleteBinding(bindingId: string): Promise<void> {
+export async function deleteBinding(bindingId: number | string): Promise<void> {
   await apiClient.delete(`/api/governance/bindings/${bindingId}`)
 }

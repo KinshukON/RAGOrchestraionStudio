@@ -2,28 +2,32 @@
 Evaluations API — Benchmark Harness (IEEE paper-grade).
 Includes canonical enterprise query seeds, expected answers, rubric fields,
 scenario tags, pass/fail rating, heuristic scoring, and full export.
+
+Persisted in PostgreSQL via SQLModel + Alembic.
 """
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from sqlmodel import select
+
+from models_evaluation import BenchmarkQuery, EvaluationTestCase
+from db import get_session
 
 router = APIRouter()
-
-# ── In-memory stores (DB-ready design) ─────────────────────────────────────
-_test_cases: List[Dict[str, Any]] = []
-_benchmark_queries: List[Dict[str, Any]] = []
+_log = logging.getLogger(__name__)
 
 # ── Pre-seeded canonical enterprise benchmark queries ───────────────────────
 _CANONICAL_SEEDS: List[Dict[str, Any]] = [
     {
-        "id": "bq-seed-001",
+        "external_id": "bq-seed-001",
         "query": "What are the key differences between vector, graph, and hybrid RAG architectures for enterprise search?",
         "expected_answer": (
             "Vector RAG uses dense embedding search for semantic similarity. "
@@ -42,7 +46,6 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         ),
         "scenario_tag": "semantic",
         "difficulty": "medium",
-        "created_at": "2025-01-01T00:00:00Z",
         "scores": {
             "per_strategy": {
                 "vector":     {"strategy_id": "vector",     "latency_ms": 512,  "confidence_score": 0.82, "heuristic": {"relevance": 0.74, "groundedness": 0.67, "completeness": 0.88, "composite": 0.76}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
@@ -56,7 +59,7 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "status": "scored",
     },
     {
-        "id": "bq-seed-002",
+        "external_id": "bq-seed-002",
         "query": "How does temporal filtering improve RAG answer freshness and what are its tradeoffs?",
         "expected_answer": (
             "Temporal filtering applies recency windows (hard cutoff or decay factor) before "
@@ -74,7 +77,6 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         ),
         "scenario_tag": "temporal",
         "difficulty": "medium",
-        "created_at": "2025-01-01T00:00:00Z",
         "scores": {
             "per_strategy": {
                 "vector":     {"strategy_id": "vector",     "latency_ms": 488,  "confidence_score": 0.79, "heuristic": {"relevance": 0.70, "groundedness": 0.62, "completeness": 0.84, "composite": 0.72}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
@@ -88,7 +90,7 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "status": "scored",
     },
     {
-        "id": "bq-seed-003",
+        "external_id": "bq-seed-003",
         "query": "What is Reciprocal Rank Fusion and how is it used in hybrid RAG?",
         "expected_answer": (
             "RRF merges ranked lists from multiple retrievers using score = Σ 1/(k + rank_i) "
@@ -105,7 +107,6 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         ),
         "scenario_tag": "semantic",
         "difficulty": "hard",
-        "created_at": "2025-01-01T00:00:00Z",
         "scores": {
             "per_strategy": {
                 "vector":     {"strategy_id": "vector",     "latency_ms": 534,  "confidence_score": 0.78, "heuristic": {"relevance": 0.71, "groundedness": 0.58, "completeness": 0.79, "composite": 0.69}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
@@ -119,7 +120,7 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "status": "scored",
     },
     {
-        "id": "bq-seed-004",
+        "external_id": "bq-seed-004",
         "query": "What BM25 scoring parameters affect lexical retrieval quality in enterprise knowledge bases?",
         "expected_answer": (
             "BM25 uses term frequency (TF) and inverse document frequency (IDF) with parameters "
@@ -135,7 +136,6 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         ),
         "scenario_tag": "structured",
         "difficulty": "hard",
-        "created_at": "2025-01-01T00:00:00Z",
         "scores": {
             "per_strategy": {
                 "vector":     {"strategy_id": "vector",     "latency_ms": 501,  "confidence_score": 0.73, "heuristic": {"relevance": 0.62, "groundedness": 0.55, "completeness": 0.74, "composite": 0.64}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
@@ -149,7 +149,7 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "status": "scored",
     },
     {
-        "id": "bq-seed-005",
+        "external_id": "bq-seed-005",
         "query": "What P95 latency and faithfulness SLOs should a production enterprise RAG system target?",
         "expected_answer": (
             "Target SLOs: P95 end-to-end latency < 2000ms, answer faithfulness > 0.85, "
@@ -164,7 +164,6 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         ),
         "scenario_tag": "policy",
         "difficulty": "easy",
-        "created_at": "2025-01-01T00:00:00Z",
         "scores": {
             "per_strategy": {
                 "vector":     {"strategy_id": "vector",     "latency_ms": 467,  "confidence_score": 0.84, "heuristic": {"relevance": 0.79, "groundedness": 0.73, "completeness": 0.87, "composite": 0.80}, "human_rating": 4, "scored_at": "2025-01-01T00:00:00Z"},
@@ -178,7 +177,7 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         "status": "scored",
     },
     {
-        "id": "bq-seed-006",
+        "external_id": "bq-seed-006",
         "query": "How does graph traversal context assembly differ from flat vector retrieval context?",
         "expected_answer": (
             "Graph traversal expands multi-hop entity relationships up to 3 hops, collecting "
@@ -195,7 +194,6 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
         ),
         "scenario_tag": "graph",
         "difficulty": "medium",
-        "created_at": "2025-01-01T00:00:00Z",
         "scores": {
             "per_strategy": {
                 "vector":     {"strategy_id": "vector",     "latency_ms": 523,  "confidence_score": 0.76, "heuristic": {"relevance": 0.68, "groundedness": 0.63, "completeness": 0.80, "composite": 0.70}, "human_rating": 3, "scored_at": "2025-01-01T00:00:00Z"},
@@ -211,15 +209,29 @@ _CANONICAL_SEEDS: List[Dict[str, Any]] = [
 ]
 
 
-def _init_seeds() -> None:
-    """Idempotently load canonical seed queries."""
-    existing_ids = {q["id"] for q in _benchmark_queries}
-    for seed in _CANONICAL_SEEDS:
-        if seed["id"] not in existing_ids:
-            _benchmark_queries.append(dict(seed))
-
-
-_init_seeds()
+def seed_benchmark_queries() -> None:
+    """Idempotently load canonical seed queries into the database."""
+    with get_session() as session:
+        for seed in _CANONICAL_SEEDS:
+            existing = session.exec(
+                select(BenchmarkQuery).where(BenchmarkQuery.external_id == seed["external_id"])
+            ).first()
+            if not existing:
+                bq = BenchmarkQuery(
+                    external_id=seed["external_id"],
+                    query=seed["query"],
+                    expected_answer=seed["expected_answer"],
+                    expected_evidence=seed["expected_evidence"],
+                    rubric=seed["rubric"],
+                    scenario_tag=seed["scenario_tag"],
+                    difficulty=seed["difficulty"],
+                    scores=seed["scores"],
+                    human_rating=seed["human_rating"],
+                    status=seed["status"],
+                )
+                session.add(bq)
+        session.commit()
+    _log.info("[EVAL] Seeded %d canonical benchmark queries", len(_CANONICAL_SEEDS))
 
 
 # ── Heuristic scorer ─────────────────────────────────────────────────────────
@@ -313,25 +325,53 @@ class BenchmarkQueryResponse(BaseModel):
     human_rating: Optional[int]
     status: str
 
+    @classmethod
+    def from_model(cls, m: BenchmarkQuery) -> "BenchmarkQueryResponse":
+        return cls(
+            id=m.external_id,
+            query=m.query,
+            expected_answer=m.expected_answer,
+            expected_evidence=m.expected_evidence or [],
+            rubric=m.rubric,
+            scenario_tag=m.scenario_tag,
+            difficulty=m.difficulty,
+            created_at=m.created_at.isoformat() + "Z" if m.created_at else "",
+            scores=m.scores or {},
+            human_rating=m.human_rating,
+            status=m.status,
+        )
+
 
 # ── Test-case endpoints (backwards-compatible) ───────────────────────────────
 
 @router.post("/test-cases", response_model=TestCaseResponse)
 def create_test_case(payload: TestCaseCreate) -> TestCaseResponse:
-    id_ = str(uuid4())
-    now = datetime.utcnow().isoformat() + "Z"
-    record = {
-        "id": id_,
-        "workflow_id": payload.workflow_id,
-        "environment_id": payload.environment_id,
-        "query": payload.query,
-        "strategy_id": payload.strategy_id,
-        "expected_answer": payload.expected_answer,
-        "parameters": payload.parameters or {},
-        "created_at": now,
-    }
-    _test_cases.append(record)
-    return TestCaseResponse(**record)
+    ext_id = str(uuid4())
+    now = datetime.utcnow()
+    tc = EvaluationTestCase(
+        external_id=ext_id,
+        workflow_id=payload.workflow_id,
+        environment_id=payload.environment_id,
+        query=payload.query,
+        strategy_id=payload.strategy_id,
+        expected_answer=payload.expected_answer,
+        parameters=payload.parameters or {},
+        created_at=now,
+    )
+    with get_session() as session:
+        session.add(tc)
+        session.commit()
+        session.refresh(tc)
+    return TestCaseResponse(
+        id=tc.external_id,
+        workflow_id=tc.workflow_id,
+        environment_id=tc.environment_id,
+        query=tc.query,
+        strategy_id=tc.strategy_id,
+        expected_answer=tc.expected_answer,
+        parameters=tc.parameters or {},
+        created_at=tc.created_at.isoformat() + "Z" if tc.created_at else "",
+    )
 
 
 @router.get("/test-cases", response_model=List[TestCaseResponse])
@@ -339,90 +379,147 @@ def list_test_cases(
     workflow_id: Optional[str] = None,
     environment_id: Optional[str] = None,
 ) -> List[TestCaseResponse]:
-    out = list(_test_cases)
-    if workflow_id:
-        out = [t for t in out if t["workflow_id"] == workflow_id]
-    if environment_id:
-        out = [t for t in out if t["environment_id"] == environment_id]
-    return [TestCaseResponse(**t) for t in out]
+    with get_session() as session:
+        stmt = select(EvaluationTestCase)
+        if workflow_id:
+            stmt = stmt.where(EvaluationTestCase.workflow_id == workflow_id)
+        if environment_id:
+            stmt = stmt.where(EvaluationTestCase.environment_id == environment_id)
+        cases = list(session.exec(stmt).all())
+    return [
+        TestCaseResponse(
+            id=tc.external_id,
+            workflow_id=tc.workflow_id,
+            environment_id=tc.environment_id,
+            query=tc.query,
+            strategy_id=tc.strategy_id,
+            expected_answer=tc.expected_answer,
+            parameters=tc.parameters or {},
+            created_at=tc.created_at.isoformat() + "Z" if tc.created_at else "",
+        )
+        for tc in cases
+    ]
 
 
 # ── Benchmark harness endpoints ───────────────────────────────────────────────
 
 @router.get("/benchmark-queries", response_model=List[BenchmarkQueryResponse])
 def list_benchmark_queries(scenario_tag: Optional[str] = None) -> List[BenchmarkQueryResponse]:
-    out = list(_benchmark_queries)
-    if scenario_tag:
-        out = [q for q in out if q.get("scenario_tag") == scenario_tag]
-    return [BenchmarkQueryResponse(**q) for q in out]
+    with get_session() as session:
+        stmt = select(BenchmarkQuery)
+        if scenario_tag:
+            stmt = stmt.where(BenchmarkQuery.scenario_tag == scenario_tag)
+        queries = list(session.exec(stmt).all())
+    return [BenchmarkQueryResponse.from_model(q) for q in queries]
 
 
 @router.post("/benchmark-queries", response_model=BenchmarkQueryResponse)
 def create_benchmark_query(payload: BenchmarkQueryCreate) -> BenchmarkQueryResponse:
-    id_ = f"bq-{str(uuid4())[:8]}"
-    now = datetime.utcnow().isoformat() + "Z"
-    record: Dict[str, Any] = {
-        "id": id_,
-        "query": payload.query,
-        "expected_answer": payload.expected_answer,
-        "expected_evidence": payload.expected_evidence,
-        "rubric": payload.rubric,
-        "scenario_tag": payload.scenario_tag,
-        "difficulty": payload.difficulty,
-        "created_at": now,
-        "scores": {},
-        "human_rating": None,
-        "status": "pending",
-    }
-    _benchmark_queries.append(record)
-    return BenchmarkQueryResponse(**record)
+    ext_id = f"bq-{str(uuid4())[:8]}"
+    now = datetime.utcnow()
+    bq = BenchmarkQuery(
+        external_id=ext_id,
+        query=payload.query,
+        expected_answer=payload.expected_answer,
+        expected_evidence=payload.expected_evidence,
+        rubric=payload.rubric,
+        scenario_tag=payload.scenario_tag,
+        difficulty=payload.difficulty,
+        scores={},
+        human_rating=None,
+        status="pending",
+        created_at=now,
+        updated_at=now,
+    )
+    with get_session() as session:
+        session.add(bq)
+        session.commit()
+        session.refresh(bq)
+    return BenchmarkQueryResponse.from_model(bq)
 
 
 @router.patch("/benchmark-queries/{bq_id}/score", response_model=BenchmarkQueryResponse)
 def score_benchmark_query(bq_id: str, payload: BenchmarkScoreInput) -> BenchmarkQueryResponse:
-    record = next((q for q in _benchmark_queries if q["id"] == bq_id), None)
-    if not record:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Benchmark query not found")
+    with get_session() as session:
+        record = session.exec(
+            select(BenchmarkQuery).where(BenchmarkQuery.external_id == bq_id)
+        ).first()
+        if not record:
+            raise HTTPException(status_code=404, detail="Benchmark query not found")
 
-    heuristic = _score_heuristic(
-        query=record["query"],
-        expected_answer=record["expected_answer"],
-        model_answer=payload.model_answer,
-        retrieved_titles=payload.retrieved_titles,
-        expected_evidence=record.get("expected_evidence", []),
-    )
+        heuristic = _score_heuristic(
+            query=record.query,
+            expected_answer=record.expected_answer,
+            model_answer=payload.model_answer,
+            retrieved_titles=payload.retrieved_titles,
+            expected_evidence=record.expected_evidence or [],
+        )
 
-    strategy_score = {
-        "strategy_id": payload.strategy_id,
-        "latency_ms": payload.latency_ms,
-        "confidence_score": payload.confidence_score,
-        "heuristic": heuristic,
-        "human_rating": payload.human_rating,
-        "scored_at": datetime.utcnow().isoformat() + "Z",
-    }
+        strategy_score = {
+            "strategy_id": payload.strategy_id,
+            "latency_ms": payload.latency_ms,
+            "confidence_score": payload.confidence_score,
+            "heuristic": heuristic,
+            "human_rating": payload.human_rating,
+            "scored_at": datetime.utcnow().isoformat() + "Z",
+        }
 
-    if "per_strategy" not in record["scores"]:
-        record["scores"]["per_strategy"] = {}
-    record["scores"]["per_strategy"][payload.strategy_id] = strategy_score
+        scores = dict(record.scores or {})
+        if "per_strategy" not in scores:
+            scores["per_strategy"] = {}
+        scores["per_strategy"][payload.strategy_id] = strategy_score
+        record.scores = scores
 
-    if payload.human_rating is not None:
-        record["human_rating"] = payload.human_rating
+        if payload.human_rating is not None:
+            record.human_rating = payload.human_rating
 
-    # Mark as scored if at least one strategy has been evaluated
-    record["status"] = "scored"
+        record.status = "scored"
+        record.updated_at = datetime.utcnow()
 
-    return BenchmarkQueryResponse(**record)
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+        return BenchmarkQueryResponse.from_model(record)
 
 
 @router.get("/export")
 def export_all() -> JSONResponse:
     """Export all benchmark queries + scores as structured JSON (citable artefact)."""
+    with get_session() as session:
+        bqs = list(session.exec(select(BenchmarkQuery)).all())
+        tcs = list(session.exec(select(EvaluationTestCase)).all())
     return JSONResponse(
         content={
             "export_generated_at": datetime.utcnow().isoformat() + "Z",
-            "benchmark_queries": _benchmark_queries,
-            "test_cases": _test_cases,
+            "benchmark_queries": [
+                {
+                    "id": q.external_id,
+                    "query": q.query,
+                    "expected_answer": q.expected_answer,
+                    "expected_evidence": q.expected_evidence or [],
+                    "rubric": q.rubric,
+                    "scenario_tag": q.scenario_tag,
+                    "difficulty": q.difficulty,
+                    "scores": q.scores or {},
+                    "human_rating": q.human_rating,
+                    "status": q.status,
+                    "created_at": q.created_at.isoformat() + "Z" if q.created_at else "",
+                }
+                for q in bqs
+            ],
+            "test_cases": [
+                {
+                    "id": tc.external_id,
+                    "workflow_id": tc.workflow_id,
+                    "environment_id": tc.environment_id,
+                    "query": tc.query,
+                    "strategy_id": tc.strategy_id,
+                    "expected_answer": tc.expected_answer,
+                    "parameters": tc.parameters or {},
+                    "created_at": tc.created_at.isoformat() + "Z" if tc.created_at else "",
+                }
+                for tc in tcs
+            ],
         }
     )
 
@@ -437,22 +534,25 @@ def aggregated_scores() -> JSONResponse:
     """
     STRATEGIES = ["vector", "vectorless", "graph", "temporal", "hybrid"]
 
+    with get_session() as session:
+        all_bqs = list(session.exec(select(BenchmarkQuery)).all())
+
     latency_rows: List[Dict[str, Any]] = []
     score_accum: Dict[str, Dict[str, List[float]]] = {
         s: {"relevance": [], "groundedness": [], "completeness": []} for s in STRATEGIES
     }
     heatmap_rows: List[Dict[str, Any]] = []
 
-    for q in _benchmark_queries:
-        per_strat = q.get("scores", {}).get("per_strategy", {})
+    for q in all_bqs:
+        per_strat = (q.scores or {}).get("per_strategy", {})
         if not per_strat:
             continue
 
-        short_label = q["query"][:42] + "…"
+        short_label = q.query[:42] + "…"
         heatmap_row: Dict[str, Any] = {
-            "query_id": q["id"],
+            "query_id": q.external_id,
             "label": short_label,
-            "tag": q.get("scenario_tag", ""),
+            "tag": q.scenario_tag or "",
         }
 
         for sid in STRATEGIES:
@@ -461,7 +561,7 @@ def aggregated_scores() -> JSONResponse:
             lat = s.get("latency_ms")
             if lat is not None:
                 latency_rows.append({
-                    "query_id": q["id"],
+                    "query_id": q.external_id,
                     "label": short_label,
                     "strategy": sid,
                     "latency_ms": lat,

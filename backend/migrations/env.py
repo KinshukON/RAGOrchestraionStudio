@@ -21,7 +21,9 @@ import models_admin       # noqa: F401  (Role, RolePermission, Team, TeamMember,
 import models_core        # noqa: F401  (Project, Integration, Environment, WorkflowRun, …)
 import models_architecture  # noqa: F401  (ArchitectureTemplate, DesignSession)
 import models_cost        # noqa: F401  (CostProfile, CostScenario)
-# models_governance uses in-memory Pydantic only — nothing to migrate there
+import models_governance  # noqa: F401  (GovernancePolicy, ApprovalRule, GovernanceBinding)
+import models_evaluation  # noqa: F401  (BenchmarkQuery, EvaluationTestCase)
+
 
 # ── Alembic Config object (from alembic.ini) ──────────────────────────────────
 config = context.config

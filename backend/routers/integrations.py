@@ -41,6 +41,18 @@ class IntegrationConfig(BaseModel):
     reusable: bool = True
     health_status: str | None = None
     last_tested_at: Optional[str] = None  # ISO timestamp or None
+    # Security & sharing
+    owner_user_id: Optional[int] = None
+    sharing_scope: str = "organization"  # private | team | organization
+    shared_with_team_ids: List[int] = []
+    credential_encrypted: bool = False
+
+    @staticmethod
+    def _mask_credential(value: str) -> str:
+        """Mask credentials to show only last 4 chars. Never expose raw secrets."""
+        if not value or len(value) <= 4:
+            return "****"
+        return "****" + value[-4:]
 
     @classmethod
     def from_model(cls, model: IntegrationModel) -> "IntegrationConfig":
@@ -48,12 +60,16 @@ class IntegrationConfig(BaseModel):
             id=model.external_id,
             name=model.name,
             provider_type=model.provider_type,
-            credentials_reference=model.credentials_reference,
+            credentials_reference=cls._mask_credential(model.credentials_reference),
             environment_mapping=model.environment_mapping or {},
             default_usage_policies=model.default_usage_policies or {},
             reusable=model.reusable,
             health_status=model.health_status,
             last_tested_at=model.last_tested_at.isoformat() if model.last_tested_at else None,
+            owner_user_id=model.owner_user_id,
+            sharing_scope=model.sharing_scope or "organization",
+            shared_with_team_ids=model.shared_with_team_ids or [],
+            credential_encrypted=model.credential_encrypted,
         )
 
 
