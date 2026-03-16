@@ -19,18 +19,35 @@ interface ArchDefault extends Partial<Omit<ArchInputs, 'archType'>> {
 }
 
 const ARCH_DEFAULTS: Record<string, ArchDefault> = {
-  vector:     { topK: 8,  avgChunkSize: 512, latencyEstMs: 380 },
-  vectorless: { topK: 10, avgChunkSize: 256, latencyEstMs: 120 },
-  graph:      { topK: 5,  avgChunkSize: 768, latencyEstMs: 900 },
-  temporal:   { topK: 8,  avgChunkSize: 512, latencyEstMs: 450 },
-  hybrid:     { topK: 12, avgChunkSize: 512, latencyEstMs: 620 },
-  custom:     { topK: 8,  avgChunkSize: 512, latencyEstMs: 500 },
+  vector:             { topK: 8,  avgChunkSize: 512, latencyEstMs: 380 },
+  vectorless:         { topK: 10, avgChunkSize: 256, latencyEstMs: 120 },
+  graph:              { topK: 5,  avgChunkSize: 768, latencyEstMs: 900 },
+  temporal:           { topK: 8,  avgChunkSize: 512, latencyEstMs: 450 },
+  hybrid:             { topK: 12, avgChunkSize: 512, latencyEstMs: 620 },
+  custom:             { topK: 8,  avgChunkSize: 512, latencyEstMs: 500 },
+  agentic:            { topK: 10, avgChunkSize: 512, latencyEstMs: 1200 },
+  modular:            { topK: 8,  avgChunkSize: 512, latencyEstMs: 550 },
+  memory_augmented:   { topK: 10, avgChunkSize: 640, latencyEstMs: 480 },
+  multimodal:         { topK: 6,  avgChunkSize: 1024, latencyEstMs: 1400 },
+  federated:          { topK: 8,  avgChunkSize: 512, latencyEstMs: 950 },
+  streaming:          { topK: 5,  avgChunkSize: 256, latencyEstMs: 180 },
+  contextual:         { topK: 10, avgChunkSize: 512, latencyEstMs: 420 },
+  knowledge_enhanced: { topK: 6,  avgChunkSize: 768, latencyEstMs: 850 },
+  self_rag:           { topK: 8,  avgChunkSize: 512, latencyEstMs: 1100 },
+  hyde:               { topK: 8,  avgChunkSize: 512, latencyEstMs: 750 },
+  recursive:          { topK: 12, avgChunkSize: 512, latencyEstMs: 1300 },
+  domain_specific:    { topK: 8,  avgChunkSize: 640, latencyEstMs: 600 },
 }
 
 
 const ARCH_LABELS: Record<string, string> = {
   vector: 'Vector RAG', vectorless: 'Vectorless RAG', graph: 'Graph RAG',
   temporal: 'Temporal RAG', hybrid: 'Hybrid RAG', custom: 'Custom RAG',
+  agentic: 'Agentic RAG', modular: 'Modular RAG', memory_augmented: 'Memory-Augmented RAG',
+  multimodal: 'Multi-Modal RAG', federated: 'Federated RAG', streaming: 'Streaming RAG',
+  contextual: 'Contextual RAG', knowledge_enhanced: 'Knowledge-Enhanced RAG',
+  self_rag: 'Self-RAG', hyde: 'HyDE RAG', recursive: 'Recursive RAG',
+  domain_specific: 'Domain-Specific RAG',
 }
 
 function fmtUSD(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
