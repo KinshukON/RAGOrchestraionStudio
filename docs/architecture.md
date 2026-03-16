@@ -3,15 +3,21 @@
 > **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > **Frontend:** Vercel CDN (`frontend/dist` — `vercel.json` rewrites `/api/*` to Railway, `/(.*) → /index.html`)  
 > **Backend:** Railway (`ragorchestraionstudio-production.up.railway.app`)  
-> **Database:** Supabase PostgreSQL (SQLModel / psycopg2; `?supa=` pooler param stripped in `db.py`)
+> **Database:** Supabase PostgreSQL (SQLModel / psycopg2; `?supa=` pooler param stripped in `db.py`)  
+> **Version:** v2.0 (Sprints 1–4 complete)
 
 ---
 
 ## 1. End-to-End Flow
 
 ```
-Architecture Catalog
+Architecture Catalog + Architect Advisor
   │  POST /api/architectures/design-sessions  →  DesignSession (draft)
+  │  GET  /api/integrations                   →  RequiredIntegrationsPanel (live health per arch)
+  │  GET  /api/architectures/catalog          →  archProfiles.ts (per-arch requirements, cost tier)
+  ▼
+Industry Packs   (static vertical data — no API call, client-side only)
+  │  → navigate /app/designer with pre-selected architecture
   ▼
 Guided Designer   (per-arch wizard: vector / vectorless / graph / temporal / hybrid / custom)
   │  PATCH /api/architectures/design-sessions/{id}  →  wizard_state persisted
@@ -39,22 +45,33 @@ Query Lab
 Governance
   │  GET/POST /api/governance/policies, /approval-rules, /bindings
   ▼
-Environments   (binding matrix + promotion pipeline)
+Environments   (binding matrix + readiness score + promotion pipeline)
   │  PATCH /api/environments/{id}         →  update integration_bindings
+  │  GET   /api/integrations              →  compute readiness % (bound/total connectors)
   │
   │  [Promote — RBAC-gated: require_permission("approve_promotions")]
   │    POST /api/environments/{id}/promote →  GovernancePolicy check + rate_limit(5/min)
   │    ✓ promoted: AuditLog("environment.promoted", from/to status)
   │    ✗ blocked: 422 violations[]
   ▼
-Observability
+Observability   (6 tabs)
+  │  GET /api/observability/runs                →  Operations, Cost Analytics, Run History
+  │  GET /api/observability/runs/{id}           →  TraceExplorer run header
+  │  GET /api/observability/runs/{id}/tasks     →  TraceExplorer per-node latency bars
+  │  GET /api/evaluations/aggregated-scores     →  Retrieval Quality tab
+  │  GET /api/admin/observability/audit-logs    →  Governance Risk violations table
+  │  GET /api/workflows                         →  Governance Risk draft count
+  ▼
+Executive Summary   (aggregates 5 APIs on load)
+  │  GET /api/workflows + /api/environments + /api/integrations
+  │  GET /api/evaluations/aggregated-scores
   │  GET /api/observability/runs
-  │  GET /api/observability/runs/{id}/tasks
   ▼
 Evidence Layer   (IEEE-citeable audit trail)
      GET/POST /api/evaluations/benchmark-queries
      POST /api/evaluations/benchmark-queries/{id}/human-rating
      GET  /api/evaluations/export
+     GET  /api/evaluations/aggregated-scores   →  feeds Observability + Executive Summary
      GET  /api/workflows/runs  →  ResearchAssistant queries stored WorkflowRun data
 
 Admin (Platform Admin only)
@@ -62,7 +79,7 @@ Admin (Platform Admin only)
      GET /api/admin/sessions       →  per-user sessions (status, IP, user-agent)
      PATCH /api/admin/sessions/{id}/revoke
      DELETE /api/admin/sessions/by-user/{uid}
-     GET /api/admin/observability/audit-logs  →  per-user audit trail
+     GET /api/admin/observability/audit-logs  →  Global governance events + Governance Risk violations
 ```
 
 ---
@@ -72,22 +89,27 @@ Admin (Platform Admin only)
 | Module | Path | Key Files |
 |---|---|---|
 | Shell | `modules/layout/` | `AppShell.tsx` (collapsible sidebar 220px↔56px, hamburger toggle, localStorage persist, RBAC-gated Admin nav, `administer_platform` check, welcome toast on first sign-in, auto-seed + manual seed button), `layout.css` |
-| Architecture Catalog | `modules/architecture-catalog/` | `ArchitectureCatalogPage.tsx` (empty state CTA → seeds + refetches), `architecture-catalog.css` |
+| Architecture Catalog | `modules/architecture-catalog/` | `ArchitectureCatalogPage.tsx` (empty state CTA → seeds + refetches), **`RequiredIntegrationsPanel`** (live connector health per arch), `architecture-catalog.css` |
+| Architect Advisor | `modules/architecture-catalog/` | `ArchitectAdvisor.tsx` (5-question wizard → recommendation card with operational profile + required integrations panel; handles LCW / fine-tuning alternatives) |
+| Arch Profiles | `modules/architecture-catalog/` | `archProfiles.ts` — central source of truth for per-arch required integrations, operational complexity, cost tier, commercial use cases |
 | Guided Designer | `modules/guided-designer/` | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerToWorkflow.ts`, per-arch designer components |
 | Workflow Builder | `modules/workflow-builder/` | `WorkflowBuilderPage.tsx` (**Publish gated by `publish_workflows` permission**, governance-gate result banner), `NodeConfigPanel.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx` |
 | Query Lab | `modules/query-lab/` | `QueryLabPage.tsx`, `ResultComparisonGrid.tsx` (evidence cards + latency bars), `RunHistoryPanel.tsx` |
 | Integrations Studio | `modules/integrations-studio/` | `IntegrationsStudioPage.tsx` (live health dots from `test-connection`) |
-| Environments | `modules/environments/` | `EnvironmentsPage.tsx` (3-step promotion bar, EmptyState component), `EnvironmentDetailPanel.tsx` |
+| Environments | `modules/environments/` | `EnvironmentsPage.tsx` (readiness score pill + animated fill bar per card, 3-step promotion bar, EmptyState component), `environments.css` |
 | Governance | `modules/governance/` | `GovernancePage.tsx` |
-| Observability | `modules/observability/` | `ObservabilityPage.tsx` |
+| Observability | `modules/observability/` | `ObservabilityPage.tsx` (6 tabs: Operations, Retrieval Quality, Governance Risk, Cost Analytics, Run History, Audit Log), **`TraceExplorer.tsx`** (per-node latency bars, expandable detail panels, `trace-explorer.css`), `observability.css` |
+| Executive Summary | `modules/executive-summary/` | `ExecutiveSummaryPage.tsx` (5-API live rollup: KPIs, arch portfolio bars, integration health, quick actions), `executive-summary.css` |
+| Industry Packs | `modules/industry-packs/` | `IndustryPacksPage.tsx` (6 vertical solution packs — GA/Beta/Preview maturity, use cases, integrations, governance policies, benchmark suites), `industry-packs.css` |
+| Cost & ROI | `modules/cost-roi/` | `CostRoiPage.tsx` (cost estimation calculator by architecture) |
 | Admin — Users | `modules/admin-users/` | `AdminUsersPage.tsx` (**two-panel split layout**: user list left, drill-down right with Sessions tab + Audit Log tab), `admin.css` |
 | Admin — Roles/Teams | `modules/admin-roles/`, `modules/admin-teams/` | CRUD pages |
-| Evaluation Harness | `modules/evaluation/` | `EvaluationPage.tsx` — 6 pre-seeded benchmark queries, heuristic scoring, human ratings, JSON export |
+| Evaluation Harness | `modules/evaluation/` | `EvaluationPage.tsx` — 6 pre-seeded benchmark queries, heuristic scoring, human ratings, JSON export; `GET /api/evaluations/aggregated-scores` feeds Observability + Executive Summary |
 | Research Assistant | `modules/research-assistant/` | `ResearchAssistantPage.tsx` — rule-based chat over stored `WorkflowRun` data |
 | User Guide | `modules/user-guide/` | `UserGuidePage.tsx` (route `/app/guide`), `user-guide.css` |
 | Shared UI | `modules/ui/` | `feedback.tsx` (PageHeader, StatusBadge, EmptyState+action, SimBanner), `ToastContext.tsx`, `Skeleton.tsx` |
 | Auth | `modules/auth/` | `AuthContext.tsx` (`useAuth`, `useHasPermission` hook), `LandingPage.tsx` (RAGOS branding, `qc.clear()` post-OAuth, signingIn state) |
-| API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts`, `workflowRuns.ts` |
+| API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts` (incl. `aggregatedScores()`), `observability.ts`, `workflowRuns.ts` |
 
 ### Sign-in & Query Cache Refresh
 
@@ -133,15 +155,15 @@ After `signInWithGoogle()` resolves in `LandingPage.tsx`:
 | `integrations` | `/api/integrations` | CRUD + **`POST /{id}/test-connection`** (live health check) |
 | `environments` | `/api/environments` | CRUD + **`POST /{id}/promote`** (RBAC + governance gate + rate limit 5/min + AuditLog) |
 | `governance` | `/api/governance` | `policies/`, `approval-rules/`, `bindings/` |
-| `evaluations` | `/api/evaluations` | `GET/POST /benchmark-queries`, `DELETE /benchmark-queries/{id}`, `POST /benchmark-queries/{id}/run`, `POST /benchmark-queries/{id}/human-rating`, `GET /export` |
-| `observability` | `/api/observability` | `GET /runs`, `GET /runs/{id}`, `GET /runs/{id}/tasks` |
+| `evaluations` | `/api/evaluations` | `GET/POST /benchmark-queries`, `DELETE /benchmark-queries/{id}`, `POST /benchmark-queries/{id}/run`, `POST /benchmark-queries/{id}/human-rating`, `GET /export`, **`GET /aggregated-scores`** (feeds Observability Retrieval Quality + Executive Summary) |
+| `observability` | `/api/observability` | `GET /runs`, `GET /runs/{id}`, `GET /runs/{id}/tasks` (TaskSummary incl. `started_at`, `finished_at`, `trace_metadata` — consumed by TraceExplorer) |
 | `admin_users` | `/api/admin/users` | CRUD + `POST /bootstrap` |
 | `admin_roles` | `/api/admin/roles` | CRUD for `Role` with `permissions` JSON |
 | `admin_teams` | `/api/admin/teams` | CRUD for `Team` |
 | `admin_sessions` | `/api/admin/sessions` | `GET /` (filterable by `user_id`), `POST /`, `PATCH /{id}/revoke`, **`DELETE /by-user/{uid}`** (revoke all) |
 | `admin_views` | `/api/admin/views` | CRUD for `View` (upsert-by-key) |
 | `admin_preferences` | `/api/admin/preferences` | `GET /me`, `PATCH /me` |
-| `admin_observability` | `/api/admin/observability` | `GET/POST /audit-logs` (filterable by `limit`), `GET/POST /events` |
+| `admin_observability` | `/api/admin/observability` | `GET/POST /audit-logs` (filterable by `limit`; consumed by Governance Risk violations tab + global Audit Log), `GET/POST /events` |
 | `demo` | `/api/demo` | `POST /seed` (idempotent full seed), `GET /seed-status`, `DELETE /seed` |
 
 ---
@@ -277,3 +299,14 @@ Stored in `Role.permissions` JSON blob. Enforced via:
 
 - **Production URL**: https://ragorchestrationstudio.com/
 - **Google OAuth callback**: https://ragorchestrationstudio.com/auth/callback
+
+---
+
+## 10. Sprint History
+
+| Sprint | Features |
+|---|---|
+| **Sprint 1** | Architect Advisor (5-question wizard), RequiredIntegrationsPanel (catalog cards + advisor result), 4-view Observability dashboard (Operations, Retrieval Quality, Governance Risk, Cost Analytics), `archProfiles.ts` data layer |
+| **Sprint 2** | TraceExplorer (per-node latency bars, expandable detail, `trace-explorer.css`), Retrieval Quality tab wired to `aggregatedScores` API (live avg relevance/groundedness, top strategy) |
+| **Sprint 3** | IndustryPacksPage (6 vertical packs: FS, Healthcare, Legal, Retail, Manufacturing, Public Sector — GA/Beta/Preview maturity), ExecutiveSummaryPage (5-API live platform health rollup, architecture portfolio bar chart, quick actions) |
+| **Sprint 4** | Environment readiness score pill + animated fill bar on every env card, Governance Risk tab wired to live audit log violations (risk keyword filter, 7d KPI), Cost Analytics tab with per-arch run breakdown + Low/Medium/High cost tier badges |

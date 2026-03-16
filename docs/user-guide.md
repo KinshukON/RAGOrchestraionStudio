@@ -10,18 +10,21 @@
 1. [Signing In](#1-signing-in)
 2. [Shell — Sidebar & Navigation](#2-shell--sidebar--navigation)
 3. [Architecture Catalog](#3-architecture-catalog)
-4. [Guided Designer — Configure your pipeline](#4-guided-designer--configure-your-pipeline)
-5. [Guided Designer — Generate Workflow](#5-guided-designer--generate-workflow)
-6. [Workflow Builder — Node Configuration](#6-workflow-builder--node-configuration)
-7. [Query Lab](#7-query-lab)
-8. [Integrations](#8-integrations)
-9. [Environments & Promotion Pipeline](#9-environments--promotion-pipeline)
-10. [Governance & Guardrails](#10-governance--guardrails)
-11. [Observability & Traces](#11-observability--traces)
-12. [Admin — Users, Roles & Teams](#12-admin--users-roles--teams)
-13. [Admin — Session Management & Audit Trail](#13-admin--session-management--audit-trail)
-14. [Evidence — Evaluation Harness](#14-evidence--evaluation-harness)
-15. [Evidence — Research Assistant](#15-evidence--research-assistant)
+4. [Architect Advisor](#4-architect-advisor)
+5. [Industry Solution Packs](#5-industry-solution-packs)
+6. [Guided Designer — Configure your pipeline](#6-guided-designer--configure-your-pipeline)
+7. [Guided Designer — Generate Workflow](#7-guided-designer--generate-workflow)
+8. [Workflow Builder — Node Configuration](#8-workflow-builder--node-configuration)
+9. [Query Lab](#9-query-lab)
+10. [Integrations](#10-integrations)
+11. [Environments & Promotion Pipeline](#11-environments--promotion-pipeline)
+12. [Governance & Guardrails](#12-governance--guardrails)
+13. [Observability & Traces](#13-observability--traces)
+14. [Executive Summary](#14-executive-summary)
+15. [Admin — Users, Roles & Teams](#15-admin--users-roles--teams)
+16. [Admin — Session Management & Audit Trail](#16-admin--session-management--audit-trail)
+17. [Evidence — Evaluation Harness](#17-evidence--evaluation-harness)
+18. [Evidence — Research Assistant](#18-evidence--research-assistant)
 
 ---
 
@@ -52,10 +55,11 @@ Click the **hamburger icon (☰)** at the top of the sidebar to toggle. Preferen
 
 | Section | Items |
 |---|---|
-| **Architecture** | Catalog, Guided Designer, Workflow Builder |
-| **Evidence** | Query Lab, Evaluation Harness, Research Assistant |
-| **Integrations, Environments, Governance, Observability** | Top-level items |
-| **Admin** | Users, Roles, Teams, Sessions, Preferences, Views — **visible only to users with the `administer_platform` permission** |
+| **Architecture** | Catalog, Guided Designer, Workflow Builder, **Industry Packs** |
+| **Operate** | **Executive Summary**, Query Lab, Observability, Environments, Cost & ROI |
+| **Control** | Integrations, Governance |
+| **Evidence** | Evaluation Harness, Research Assistant |
+| **Admin** | Users, Roles, Teams, Sessions, Preferences, Views — **visible only to `administer_platform` users** |
 
 > Users without `administer_platform` see a locked "Admin (restricted)" item instead of the admin links.
 
@@ -69,7 +73,12 @@ The sidebar footer shows a **⟳ Load demo data** button. Click it at any time t
 
 **Sidebar: Architecture → Catalog**
 
-The catalog is your starting point. It presents **6 RAG architecture patterns**, each with a description, when-to-use guidance, strengths & tradeoffs, and typical backend components.
+The catalog is your starting point. It presents **6 RAG architecture patterns**, each with a description, when-to-use guidance, strengths & tradeoffs, typical backend components, and a **Required Integrations Panel** showing:
+
+- Live health status of each required connector
+- Operational complexity badge (Low / Medium / High)
+- Stack readiness indicator
+- CTA to configure missing integrations
 
 | Architecture | Best For |
 |---|---|
@@ -80,13 +89,64 @@ The catalog is your starting point. It presents **6 RAG architecture patterns**,
 | **Hybrid RAG** | Combining vector, lexical, and graph strategies |
 | **Custom RAG** | Bespoke pipelines beyond standard patterns |
 
-**Empty state**: If the catalog loads with no data (e.g., first visit with a clean database), a **"Load demo architectures"** button seeds the catalog directly without navigating away.
+**Empty state**: If the catalog loads with no data, a **"Load demo architectures"** button seeds the catalog directly without navigating away.
 
 ➡️ Click **"Design this architecture"** on any card to open the Guided Designer pre-configured for that type.
 
 ---
 
-## 4. Guided Designer — Configure your pipeline
+## 4. Architect Advisor
+
+**Sidebar: Architecture → Catalog** → click **"Get a recommendation"** at the top of the page.
+
+The **Architect Advisor** is a 5-question decision wizard that recommends the most appropriate RAG architecture (or suggests Long Context Window / Fine-tuning when RAG is not the right tool).
+
+### Questions asked
+
+1. **Business use-case** — 8 categories (Compliance Q&A, Customer Support, Code Search, etc.)
+2. **Data modality** — structured, unstructured, mixed, time-series
+3. **Volume** — < 10k, 10k–1M, > 1M documents
+4. **Freshness requirement** — real-time, daily, static
+5. **Governance sensitivity** — standard, regulated/HIPAA/FINRA, safety-critical
+
+### Output
+
+The advisor produces a **recommendation card** with:
+
+- Recommended architecture (or LCW/Fine-tuning alternative)
+- Operational profile: complexity badge, estimated setup days, cost tier, stack readiness
+- Required integrations with live health status
+- Optional integrations
+- CTA: **"Design this →"** pre-loads Guided Designer for the recommended type
+
+---
+
+## 5. Industry Solution Packs
+
+**Sidebar: Architecture → Industry Packs**
+
+Pre-packaged RAG configurations for six enterprise verticals — each contains reference integrations, governance policies, benchmark suites, and estimated setup time.
+
+| Pack | Maturity | Architectures | Setup |
+|---|---|---|---|
+| **Financial Services** — Compliance & Risk Q&A | GA | Vector, Temporal | 7 days |
+| **Healthcare** — Clinical Knowledge Assistant | GA | Graph, Hybrid | 10 days |
+| **Legal** — Contract Intelligence Suite | GA | Vectorless, Temporal | 5 days |
+| **Retail** — Product & Support Intelligence | GA | Vector, Hybrid | 3 days |
+| **Manufacturing** — Technical Documentation | Beta | Vector, Graph | 6 days |
+| **Government** — Civic Knowledge Engine | Preview | Vectorless, Temporal | 8 days |
+
+### Each pack includes
+
+- **Use cases** — 4–5 domain-specific scenarios
+- **Required integrations** — e.g. Bloomberg API, Epic FHIR, iManage, SAP PM
+- **Governance policies** — pre-configured rules (min confidence, data residency, citation enforcement)
+- **Benchmark suite** — domain-relevant evaluation metric names
+- **CTA** — "Launch Guided Designer →" pre-loads designer for the pack's primary architecture
+
+---
+
+## 6. Guided Designer — Configure your pipeline
 
 **Sidebar: Architecture → Guided Designer**
 
@@ -115,7 +175,7 @@ Configure the core data & indexing layer:
 
 ---
 
-## 5. Guided Designer — Generate Workflow
+## 7. Guided Designer — Generate Workflow
 
 Once all sections are reviewed, click **"Generate workflow →"**.
 
@@ -125,7 +185,7 @@ The button transitions to **"Generating workflow…"** while the backend compile
 
 ---
 
-## 6. Workflow Builder — Node Configuration
+## 8. Workflow Builder — Node Configuration
 
 **Sidebar: Architecture → Workflow Builder**
 
@@ -169,9 +229,9 @@ Rate limit: **10 publish attempts per user per 60 seconds** (HTTP 429 with `Retr
 
 ---
 
-## 7. Query Lab
+## 9. Query Lab
 
-**Sidebar: Query Lab**
+**Sidebar: Operate → Query Lab**
 
 Test workflows interactively and compare retrieval strategies side-by-side.
 
@@ -198,19 +258,11 @@ Each strategy returns a comparison card showing:
 - **Answer** — generated response
 - **Export** — download run as JSON
 
-### Run History
-
-Every simulation is logged in the **Run History** panel:
-
-- **Search** by query text, strategy, or experiment ID
-- **Expand** any row to see full result detail
-- **Export** selected runs as CSV
-
 ---
 
-## 8. Integrations
+## 10. Integrations
 
-**Sidebar: Integrations**
+**Sidebar: Control → Integrations**
 
 Manage connectors to LLM providers, vector stores, and document sources.
 
@@ -221,9 +273,9 @@ Manage connectors to LLM providers, vector stores, and document sources.
 
 ---
 
-## 9. Environments & Promotion Pipeline
+## 11. Environments & Promotion Pipeline
 
-**Sidebar: Environments**
+**Sidebar: Operate → Environments**
 
 Environments are deployment targets. Each has its own integration bindings and configuration overrides.
 
@@ -232,6 +284,16 @@ Environments are deployment targets. Each has its own integration bindings and c
 | **dev** | Local/sandbox testing, simulated execution |
 | **staging** | Pre-production validation with real LLMs |
 | **prod** | Live deployment serving end-user queries |
+
+### Readiness Score
+
+Each environment card displays a **live readiness score** — the percentage of available integrations that are bound and configured:
+
+- 🟢 **100%** — fully configured, ready to promote
+- 🟡 **Partial** — some connectors unbound
+- ⚫ **0%** — no integrations bound yet
+
+The readiness bar animates as you bind connectors.
 
 ### Promotion Pipeline
 
@@ -249,9 +311,9 @@ Click **Promote →** in the environment detail panel. The final step (`pending 
 
 ---
 
-## 10. Governance & Guardrails
+## 12. Governance & Guardrails
 
-**Sidebar: Governance**
+**Sidebar: Control → Governance**
 
 Define and enforce policies across the platform lifecycle.
 
@@ -265,28 +327,97 @@ Policies are checked automatically at publish and promote time — no manual app
 
 ---
 
-## 11. Observability & Traces
+## 13. Observability & Traces
 
-**Sidebar: Observability**
+**Sidebar: Operate → Observability**
 
-Monitor every workflow run:
+Operational command centre for monitoring runs, quality, governance risk, and cost. Six tabs:
 
-- **Run history** — timestamped log of every execution with status (success / failure / timeout)
-- **Trace analytics** — per-node latency breakdown for a selected run
-- **Audit trail** — global audit log of governance events (who published, promoted, or was blocked)
+### ⚡ Operations tab
 
-Use date, environment, and status filters to drill into specific runs.
+KPIs: total runs, success rate, failed runs, simulated runs, healthy integrations ratio.
+Also shows a per-architecture run breakdown table with success rate and execution mode (Simulated / Live).
+
+### 🎯 Retrieval Quality tab
+
+Fetches live data from the **Evaluation Harness**:
+
+- Avg relevance % and avg groundedness % (green ≥ 70%)
+- Top strategy by relevance score
+- Strategies benchmarked count
+- Per-workflow execution breakdown (simulated vs live)
+
+### 🛡️ Governance Risk tab
+
+Live audit-log-powered violations table:
+
+- **Policy events (7d)** KPI — turns red when violations exist
+- Filters audit log for risk keywords: `block, reject, deny, fail, violation, unauthorized, forbidden, error`
+- Violations table: timestamp, action badge (red), resource type:id, user ID
+- Draft workflows table — shows workflows awaiting governance review with link to Workflow Builder
+
+### 💰 Cost Analytics tab
+
+Per-architecture cost breakdown with cost tier mapping:
+
+| Architecture | Cost tier | Est. per 1k queries |
+|---|---|---|
+| Vector | Low | ~$0.10–$0.25 |
+| Vectorless | Low | ~$0.05–$0.15 |
+| Hybrid | Medium | ~$0.25–$0.60 |
+| Temporal | Medium | ~$0.20–$0.50 |
+| Graph | High | ~$0.50–$1.50 |
+
+Also shows simulated vs live run split and top-arch-cost-tier KPI.
+
+### 📜 Run History tab
+
+Filterable table of all workflow runs (by workflow, status, simulated flag). Click any row to open the **Trace Explorer**:
+
+#### Trace Explorer
+
+Visual per-node timeline for a selected run:
+
+- **Latency bars** — proportional to the slowest node; LLM nodes shown in purple
+- **Status dots** — 🟢 succeeded / 🔴 failed / 🟡 running / ⚫ neutral
+- **Expandable node detail** — started/finished timestamps, latency ms, error message, `trace_metadata` JSON
+- **Run-level payloads** — input payload shown on first node, output payload on last
+- **Summary row** — total nodes, success count, sum latency, wallclock
+
+Click **✕** to close and return to the run list.
+
+### 🔍 Audit Log tab
+
+Full global audit log — all governance-sensitive events across the platform (powered by `AdminObservabilityPage`).
 
 ---
 
-## 12. Admin — Users, Roles & Teams
+## 14. Executive Summary
+
+**Sidebar: Operate → Executive Summary**
+
+At-a-glance platform health dashboard — aggregates live data from 5 APIs on every page load.
+
+### Sections
+
+| Section | What it shows |
+|---|---|
+| **Platform health** | Active workflows, promoted environments, healthy integrations ratio, run success rate (ok/warn colour states) |
+| **Retrieval quality** | Avg relevance %, avg groundedness %, top strategy, strategies benchmarked (from Evaluation Harness) |
+| **Architecture portfolio** | Horizontal bar chart of run counts per architecture type (colour-coded) |
+| **Integration health** | Health dot + provider type + status badge per connector |
+| **Quick actions** | Shortcut cards to Catalog, Guided Designer, Evaluation Harness, Observability, Cost & ROI, Industry Packs |
+
+---
+
+## 15. Admin — Users, Roles & Teams
 
 **Sidebar: Admin → Users / Roles / Teams**  
 *Requires `administer_platform` permission.*
 
 ### Users
 
-View all platform users, their assigned roles, team, and account status. Click any row to open the detail panel (see §13).
+View all platform users, their assigned roles, team, and account status. Click any row to open the detail panel (see §16).
 
 To edit a user: click **Edit** in the Actions column, change Role or Team via dropdowns, click **Save**. To deactivate a user (removes access): click **Deactivate** (not available for your own account).
 
@@ -308,12 +439,10 @@ Group users into teams to scope workflow ownership and governance approval routi
 
 ---
 
-## 13. Admin — Session Management & Audit Trail
+## 16. Admin — Session Management & Audit Trail
 
 **Sidebar: Admin → Users** → click any user row  
 *Requires `administer_platform` permission.*
-
-Clicking a user row opens a **detail panel** on the right side of the Users page with two tabs:
 
 ### 🔑 Sessions Tab
 
@@ -347,7 +476,7 @@ Shows the 50 most recent audit events for the selected user, filtered from the g
 
 ---
 
-## 14. Evidence — Evaluation Harness
+## 17. Evidence — Evaluation Harness
 
 **Sidebar: Evidence → Evaluation Harness**
 
@@ -357,7 +486,7 @@ Structured benchmark test suite for measuring and comparing RAG strategy quality
 
 Six canonical enterprise RAG queries are pre-seeded (covering multi-hop reasoning, temporal compliance, entity disambiguation, cross-document synthesis, etc.). You can also:
 
-- **Add custom queries** via "**+ Add query**"
+- **Add custom queries** via "+ Add query"
 - **Run all benchmarks** with a single click
 - **Delete** custom queries you no longer need
 
@@ -372,13 +501,15 @@ Six canonical enterprise RAG queries are pre-seeded (covering multi-hop reasonin
 
 Scores are computed heuristically (no external LLM call needed) and stored persistently.
 
+Aggregated scores appear live in the **Observability → Retrieval Quality** and **Executive Summary** dashboards.
+
 ### Export
 
 Click **"Export results"** to download a full benchmark report as JSON — suitable for inclusion in IEEE evaluation appendices.
 
 ---
 
-## 15. Evidence — Research Assistant
+## 18. Evidence — Research Assistant
 
 **Sidebar: Evidence → Research Assistant**
 
@@ -402,18 +533,26 @@ Sign in (Google OAuth)
   └─ Welcome toast + demo data auto-loaded
        │
        ▼
-Architecture Catalog  (pick a pattern → or use empty-state CTA to load demo data)
+Architecture Catalog  (pick a pattern, or use Architect Advisor for a guided recommendation)
+  ├─ Industry Packs    (pre-configured vertical solution packs → Launch Guided Designer)
   └─ Guided Designer  (step 1: profile → step 2: retrieval → step 3: governance)
        └─ Workflow Builder  (deep-configure each node)
             │  [Publish — governance-gated, RBAC-gated, rate-limited]
             ▼
        Query Lab  (run multi-strategy simulation → inspect evidence cards)
-            ├─ Environments  (promote pipeline: draft → pending → promoted, governance-gated)
+            ├─ Environments  (readiness score + promote pipeline: draft → pending → promoted)
             ├─ Governance    (define policies that gate publish + promote)
             ├─ Integrations  (live health dots, test-connection)
-            ├─ Observability (run traces + global audit log)
+            ├─ Observability  ← 6 tabs:
+            │    ├─ Operations (KPIs + arch breakdown + integration health)
+            │    ├─ Retrieval Quality (live eval scores from Harness)
+            │    ├─ Governance Risk (audit log violations + draft reviews)
+            │    ├─ Cost Analytics (per-arch cost tier breakdown)
+            │    ├─ Run History → Trace Explorer (per-node latency bars, expandable detail)
+            │    └─ Audit Log (global governance events)
+            ├─ Executive Summary (5-API live platform health rollup)
             └─ Evidence
-                 ├─ Evaluation Harness  (benchmark scoring, export)
+                 ├─ Evaluation Harness  (benchmark scoring → feeds Observability Quality tab)
                  └─ Research Assistant  (conversational experiment Q&A)
 
 Admin (Platform Admin only)
@@ -423,4 +562,4 @@ Admin (Platform Admin only)
 
 ---
 
-*RAGOS v1.2 · For API reference see [architecture.md](./architecture.md) · Deployed on [ragorchestrationstudio.com](https://ragorchestrationstudio.com)*
+*RAGOS v2.0 · For API reference see [architecture.md](./architecture.md) · Deployed on [ragorchestrationstudio.com](https://ragorchestrationstudio.com)*
