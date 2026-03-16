@@ -3,10 +3,41 @@
 > **Live site**: [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > Sign in with your Google account to access the platform.
 
+**RAGOS is the enterprise control plane for choosing, validating, governing, and operating the right retrieval architecture for each AI use case.**
+
+The platform covers the full lifecycle: the **Architect Advisor** recommends architectures with setup days, cost tier, and required integrations; **Integrations and Environments** determine live readiness; **Governance** gates publish and promote with RBAC, thresholds, and audit logs; and the **Evidence Layer** (Observability, Cost Analytics, Executive Summary, Evaluation Harness, Research Assistant) provides operational visibility and quality assurance.
+
+![Dashboard — platform overview](./screenshots/dashboard.png)
+
+---
+
+## Who Uses RAGOS?
+
+| Persona | Role | Primary Concern | Key Pages |
+|---|---|---|---|
+| **Platform Admin** | User/role/team admin, promotion approvals, governance oversight | Risk, auditability, operational stability | Admin, Governance, Observability, Environments |
+| **AI Architect** | Architecture selection, workflow design, publishing, comparative testing | Picking the right retrieval pattern without overengineering | Catalog, Advisor, Designer, Builder, Query Lab |
+| **Knowledge / ML Engineer** | Query cases, evaluation runs, quality analysis, tuning | Benchmark quality, groundedness, completeness, trace data | Evaluation Harness, Query Lab, Research Assistant |
+| **Auditor / Compliance Lead** | Governance policies, risk review, promotion controls | Explainability, approvals, threshold failures, audit evidence | Governance, Observability → Audit Log |
+| **Executive Sponsor (VP/CIO/CTO)** | Budget, business case, platform health, strategic adoption | ROI, risk reduction, deployment maturity | Executive Summary, Cost & ROI |
+
+---
+
+## Edition Packaging
+
+| Edition | Includes | Best For |
+|---|---|---|
+| **Foundation** | Architecture Catalog, Architect Advisor, Guided Designer, Workflow Builder, basic Query Lab, demo seed data | PoCs, architecture workshops, internal platform incubation |
+| **Operate** | Foundation + Integrations, Environments, Governance, Run History, Trace Explorer, Observability, Evaluation Harness | Pre-production teams, innovation labs moving toward rollout |
+| **Enterprise** | Operate + Executive Summary, Cost & ROI, Industry Packs, Research Assistant, Admin (Users/Roles/Teams/Sessions), advanced audit | Regulated enterprises, central AI governance teams |
+| **Vertical Solutions** | Enterprise + industry-specific architecture profiles, connector bundles, benchmark suites, governance policy sets, ROI templates | Financial Services, Healthcare, Legal, Cybersecurity, Government |
+
 ---
 
 ## Table of Contents
 
+0. [Who Uses RAGOS?](#who-uses-ragos)
+0. [Edition Packaging](#edition-packaging)
 1. [Signing In](#1-signing-in)
 2. [Shell — Sidebar & Navigation](#2-shell--sidebar--navigation)
 3. [Architecture Catalog](#3-architecture-catalog)
@@ -20,11 +51,12 @@
 11. [Environments & Promotion Pipeline](#11-environments--promotion-pipeline)
 12. [Governance & Guardrails](#12-governance--guardrails)
 13. [Observability & Traces](#13-observability--traces)
-14. [Executive Summary](#14-executive-summary)
-15. [Admin — Users, Roles & Teams](#15-admin--users-roles--teams)
-16. [Admin — Session Management & Audit Trail](#16-admin--session-management--audit-trail)
-17. [Evidence — Evaluation Harness](#17-evidence--evaluation-harness)
-18. [Evidence — Research Assistant](#18-evidence--research-assistant)
+14. [Cost & ROI Analytics](#14-cost--roi-analytics)
+15. [Executive Summary](#15-executive-summary)
+16. [Admin — Users, Roles & Teams](#16-admin--users-roles--teams)
+17. [Admin — Session Management & Audit Trail](#17-admin--session-management--audit-trail)
+18. [Evidence — Evaluation Harness](#18-evidence--evaluation-harness)
+19. [Evidence — Research Assistant](#19-evidence--research-assistant)
 
 ---
 
@@ -72,6 +104,8 @@ The sidebar footer shows a **⟳ Load demo data** button. Click it at any time t
 ## 3. Architecture Catalog
 
 **Sidebar: Architecture → Catalog**
+
+![Architecture Catalog — 18 RAG patterns](./screenshots/catalog.png)
 
 The catalog is your starting point. It presents **18 RAG architecture patterns**, each with a description, when-to-use guidance, strengths & tradeoffs, typical backend components, and a **Required Integrations Panel** showing:
 
@@ -137,6 +171,8 @@ The advisor produces a **recommendation card** with:
 
 **Sidebar: Architecture → Industry Packs**
 
+![Industry Packs — vertical solution accelerators](./screenshots/industry-packs.png)
+
 Pre-packaged RAG configurations for six enterprise verticals — each contains reference integrations, governance policies, benchmark suites, and estimated setup time.
 
 | Pack | Maturity | Architectures | Setup |
@@ -161,6 +197,8 @@ Pre-packaged RAG configurations for six enterprise verticals — each contains r
 ## 6. Guided Designer — Configure your pipeline
 
 **Sidebar: Architecture → Guided Designer**
+
+![Guided Designer — 3-step pipeline configuration](./screenshots/designer.png)
 
 After clicking "Design this architecture", the Guided Designer opens. The left panel shows a **3-step navigation**; the right panel shows configuration fields simultaneously across three columns.
 
@@ -200,6 +238,8 @@ The button transitions to **"Generating workflow…"** while the backend compile
 ## 8. Workflow Builder — Node Configuration
 
 **Sidebar: Architecture → Workflow Builder**
+
+![Workflow Builder — visual node-based pipeline editor](./screenshots/workflow-builder.png)
 
 Visualises your RAG pipeline as a **node-based directed graph**. Edges represent data flow.
 
@@ -245,6 +285,8 @@ Rate limit: **10 publish attempts per user per 60 seconds** (HTTP 429 with `Retr
 
 **Sidebar: Operate → Query Lab**
 
+![Query Lab — multi-strategy simulation](./screenshots/query-lab.png)
+
 Test workflows interactively and compare retrieval strategies side-by-side.
 
 ### Controls
@@ -276,6 +318,8 @@ Each strategy returns a comparison card showing:
 
 **Sidebar: Control → Integrations**
 
+![Integrations Studio — 30 connectors across LLM, embedding, vector DB, and more](./screenshots/integrations.png)
+
 Manage connectors to LLM providers, vector stores, and document sources.
 
 - Each integration has a **live health indicator** (🟢 healthy / 🔴 error / ⚪ unknown) updated by `POST /api/integrations/{id}/test-connection`.
@@ -288,6 +332,8 @@ Manage connectors to LLM providers, vector stores, and document sources.
 ## 11. Environments & Promotion Pipeline
 
 **Sidebar: Operate → Environments**
+
+![Environments — deployment targets with readiness scoring](./screenshots/environments.png)
 
 Environments are deployment targets. Each has its own integration bindings and configuration overrides.
 
@@ -327,6 +373,8 @@ Click **Promote →** in the environment detail panel. The final step (`pending 
 
 **Sidebar: Control → Governance**
 
+![Governance — policies, approval rules, and bindings](./screenshots/governance.png)
+
 Define and enforce policies across the platform lifecycle.
 
 | Policy Scope | Example Rule |
@@ -342,6 +390,8 @@ Policies are checked automatically at publish and promote time — no manual app
 ## 13. Observability & Traces
 
 **Sidebar: Operate → Observability**
+
+![Observability — 6-tab operational command centre](./screenshots/observability.png)
 
 Operational command centre for monitoring runs, quality, governance risk, and cost. Six tabs:
 
@@ -404,9 +454,59 @@ Full global audit log — all governance-sensitive events across the platform (p
 
 ---
 
-## 14. Executive Summary
+## 14. Cost & ROI Analytics
+
+**Sidebar: Operate → Cost & ROI**
+
+![Cost & ROI Calculator — architecture-specific cost analysis](./screenshots/cost-roi.png)
+
+Full-featured cost analysis and ROI modelling for each of the 18 architecture types. All cost profiles are **stored in the database** — no hardcoded data.
+
+### Cost Profiles
+
+Each architecture has a persisted profile containing:
+
+| Field | Description |
+|---|---|
+| **Default Top-K** | Optimised chunk count for the architecture class |
+| **Chunk Size** | Default token count per retrieved chunk |
+| **Latency Estimate** | Expected round-trip retrieval latency (ms) with source citation |
+| **Embedding Cost** | Per-1M token embedding cost (e.g., OpenAI `text-embedding-3-large`) |
+| **LLM Input / Output Cost** | Per-1M token generation cost |
+| **Benchmark Sources** | Cited research papers and vendor pricing pages with URLs and dates |
+
+> **Disclosure**: Cost profiles are based on published vendor pricing (OpenAI, Anthropic, Pinecone, etc.) and peer-reviewed papers (e.g., HyDE, Self-RAG, IRCoT). All sources are disclosed per profile under **Benchmark Sources**.
+
+### ROI Calculator
+
+Configure your scenario:
+
+- **Monthly query volume** — expected queries per month
+- **Top-K, chunk size** — loaded from the architecture profile but adjustable
+- **Embedding / LLM costs** — update to your negotiated pricing
+- **Analyst hours / hourly rate** — for time-saved calculation
+- **Platform setup cost** — one-time implementation cost
+
+The calculator computes:
+
+- **Monthly retrieval + generation cost** with explanation
+- **Annual run cost** and **savings vs. manual process**
+- **Payback period** in months
+- Full drill-down into assumptions and benchmark sources
+
+### Saved Scenarios
+
+Save named scenarios for comparison. Each scenario persists the full parameter set plus computed results to the database.
+
+### Architecture Comparison Table
+
+Side-by-side comparison of all 18 profiles showing latency, cost tier, default parameters, and estimated per-1K-query cost — enabling architecture selection by economics.
+
+## 15. Executive Summary
 
 **Sidebar: Operate → Executive Summary**
+
+![Executive Summary — live platform health rollup](./screenshots/executive-summary.png)
 
 At-a-glance platform health dashboard — aggregates live data from 5 APIs on every page load.
 
@@ -422,9 +522,11 @@ At-a-glance platform health dashboard — aggregates live data from 5 APIs on ev
 
 ---
 
-## 15. Admin — Users, Roles & Teams
+## 16. Admin — Users, Roles & Teams
 
 **Sidebar: Admin → Users / Roles / Teams**  
+
+![Admin Users — role-based access control](./screenshots/admin-users.png)
 *Requires `administer_platform` permission.*
 
 ### Users
@@ -451,7 +553,7 @@ Group users into teams to scope workflow ownership and governance approval routi
 
 ---
 
-## 16. Admin — Session Management & Audit Trail
+## 17. Admin — Session Management & Audit Trail
 
 **Sidebar: Admin → Users** → click any user row  
 *Requires `administer_platform` permission.*
@@ -488,7 +590,7 @@ Shows the 50 most recent audit events for the selected user, filtered from the g
 
 ---
 
-## 17. Evidence — Evaluation Harness
+## 18. Evidence — Evaluation Harness
 
 **Sidebar: Evidence → Evaluation Harness**
 
@@ -521,7 +623,7 @@ Click **"Export results"** to download a full benchmark report as JSON — suita
 
 ---
 
-## 18. Evidence — Research Assistant
+## 19. Evidence — Research Assistant
 
 **Sidebar: Evidence → Research Assistant**
 
