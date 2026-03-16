@@ -28,8 +28,8 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 
 - **Real / Implemented:**
   - Google OAuth → JWT sign-in; `qc.clear()` post-OAuth fixes catalog auto-refresh; welcome toast on first sign-in.
-  - Architecture Catalog (6 RAG types), DB-backed templates, demo auto-seeding, empty-state CTA.
-  - Guided Designer: 6 architecture-specific step configurations, design-session persistence, workflow generation.
+  - Architecture Catalog (18 RAG types), DB-backed templates, demo auto-seeding, empty-state CTA.
+  - Guided Designer: 18 architecture-specific step configurations, design-session persistence, workflow generation.
   - Visual Workflow Builder: ReactFlow canvas, deep per-node config, governance-gated + RBAC-gated + rate-limited Publish.
   - Query Lab: multi-strategy simulation, evidence cards, run history, citeable experiment IDs.
   - Integrations Studio: CRUD + live health dots from real test-connection endpoint.
@@ -78,9 +78,9 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 | SPA shell with sidebar navigation | Implemented | `App.tsx`, `AppShell.tsx` | 15+ nested routes under `/app`; sidebar organises Architecture, Query Lab, Integrations, Governance, Observability, Admin, and User Guide sections |
 | Google OAuth sign-in (frontend + backend) | Implemented | `AuthContext.tsx`, `backend/routers/auth.py` | Google Identity Services on frontend; backend verifies ID token and issues JWT. Frontend now attaches token. |
 | Protected routes + auth state | Implemented | `App.tsx`, `AuthContext.tsx` | `ProtectedRoute` guards `/app/**`; state in `localStorage` |
-| **Architecture Catalog** | Implemented | `ArchitectureCatalogPage.tsx`, `backend/routers/architectures.py` | API-backed catalog of 6 RAG types (Vector, Vectorless, Graph, Temporal, Hybrid, Custom); each card shows description, when-to-use, strengths, tradeoffs; `demo.py` auto-seeds templates on startup |
+| **Architecture Catalog** | Implemented | `ArchitectureCatalogPage.tsx`, `backend/routers/architectures.py` | API-backed catalog of 18 RAG types (Vector, Vectorless, Graph, Temporal, Hybrid, Custom, Agentic, Modular, Memory-Augmented, Multi-Modal, Federated, Streaming, Contextual, Knowledge-Enhanced, Self-RAG, HyDE, Recursive, Domain-Specific); each card shows description, when-to-use, strengths, tradeoffs; auto-seeds templates on startup with upsert logic |
 | **Design session creation** | Implemented | `ArchitectureCatalogPage.tsx`, `api/architectures.ts` | "Design this architecture" creates a persisted `DesignSession` in Postgres and navigates to `/app/designer?sessionId=…` |
-| **Guided Designer — architecture-specific forms** | Implemented | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerVector.tsx`, `designerVectorless.tsx`, `designerGraph.tsx`, `designerTemporal.tsx`, `designerHybrid.tsx`, `designerCustom.tsx` | 3-step wizard (Architecture profile → Retrieval & routing → Answering & governance); step groups are specific to each of the 6 architecture types; wizard state is saved to DB on every change |
+| **Guided Designer — architecture-specific forms** | Implemented | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerVector.tsx`, `designerVectorless.tsx`, `designerGraph.tsx`, `designerTemporal.tsx`, `designerHybrid.tsx`, `designerCustom.tsx` | 3-step wizard (Architecture profile → Retrieval & routing → Answering & governance); step groups are specific to each architecture type; new types default to custom config; wizard state is saved to DB on every change |
 | **Guided Designer → Workflow generation** | Implemented | `DesignerPage.tsx`, `wizardStateToWorkflowDefinition()` | "Generate workflow →" converts `DesignerWizardState` into a `WorkflowDefinition` via `createWorkflow`, then navigates directly to Workflow Builder with the new workflow ID |
 | **Workflow Builder — deep node config** | Implemented | `WorkflowBuilderPage.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx`, `NodeConfigPanel.tsx`, `ArchitectureSummaryPanel.tsx`, `workflow-builder.css` | ReactFlow canvas; **deep per-node config panel**: 11 node types each expose specialist parameter groups — chunking strategy (recursive/sentence/semantic/sliding window), chunk size/overlap sliders, embedding model spectrum, ANN algorithm (HNSW/IVFFlat/Exact/LSH), BM25 k1+b tuning, graph traversal algorithm (BFS/DFS/PPR/Beam), hop depth, temporal as-of strategy, LLM selection + temperature/top-P, guardrail checks (PII/toxicity/injection/hallucination), context merge strategy |
 | Workflow CRUD API | Implemented (DB-backed) | `backend/routers/workflows.py` | `WorkflowDefinitionRecord` persisted in Postgres; `/runs` endpoint returns `WorkflowRun` history with `experiment_id`, `query`, `strategies_run`, `full_results`, `architecture_type` |
@@ -222,7 +222,7 @@ Architecture Catalog  (/app)
 
 ### 5.1 Retrieval Modes & Storage Backends
 
-Six RAG architecture types are modeled as first-class entities:
+Eighteen RAG architecture types are modeled as first-class entities:
 
 | Architecture | Frontend designer | Workflow node type | Retrieval implementation |
 |---|---|---|---|
@@ -398,7 +398,7 @@ The application surface has grown substantially since v1:
 **Defensible current contributions:**
 - An integrated platform that combines an architecture catalog, a guided multi-step designer, a visual workflow builder, a multi-strategy simulation lab, and an admin/governance console in a single deployable product.
 - A rich, typed schema for RAG workflows (`WorkflowDefinition`, `NodeType`, `WorkflowRun`, `TaskExecution`, `DesignSession`) suitable for empirical study of RAG orchestration patterns.
-- A practitioner-oriented designer that makes six RAG paradigm-specific configuration models (vector, vectorless, graph, temporal, hybrid, custom) accessible through a guided wizard — lowering the barrier to entry for enterprise RAG adoption.
+- A practitioner-oriented designer that makes eighteen RAG paradigm-specific configuration models accessible through a guided wizard — lowering the barrier to entry for enterprise RAG adoption.
 - A real-world deployment architecture (Vercel + Railway + Supabase) demonstrating the viability of cloud-native RAG control planes at low operational cost.
 
 **Contributions that need more evidence:**
@@ -435,17 +435,17 @@ The application surface has grown substantially since v1:
 ## 12. Manuscript Support Pack
 
 **Project description:**  
-RAG Studio is a production-deployed, browser-based control plane for enterprise RAG orchestration. It integrates an architecture catalog (6 RAG types), a 6-configuration guided designer, a visual node-based workflow builder, a multi-strategy query simulation lab, an integrations and environments hub, governance and observability dashboards, and an enterprise admin console into a single application. The frontend is a React 19 SPA hosted on Vercel; the backend is a FastAPI service on Railway backed by a Supabase PostgreSQL database.
+RAG Studio is a production-deployed, browser-based control plane for enterprise RAG orchestration. It integrates an architecture catalog (18 RAG types), a multi-configuration guided designer, a visual node-based workflow builder, a multi-strategy query simulation lab, an integrations and environments hub, governance and observability dashboards, and an enterprise admin console into a single application. The frontend is a React 19 SPA hosted on Vercel; the backend is a FastAPI service on Railway backed by a Supabase PostgreSQL database.
 
 **Key architectural claims (evidence-backed):**
 - End-to-end flow from architecture selection through guided configuration to workflow definition generation is implemented and deployed.
 - Design sessions and workflow definitions are persisted in Postgres via SQLModel, enabling design-state recovery across sessions.
-- Architecture-specific designer configurations cover six RAG paradigms at the field level (data source, chunking, embedding model, vector DB, similarity metric, Top-K, reranker, LLM, fallback strategy).
+- Architecture-specific designer configurations cover eighteen RAG paradigms at the field level (data source, chunking, embedding model, vector DB, similarity metric, Top-K, reranker, LLM, fallback strategy).
 - Workflow Builder uses ReactFlow to render typed node graphs; Save/Publish actions persist definitions to the database.
 - Query Lab auto-selects the latest workflow and environment, supports multi-strategy simulation, and saves test cases as evaluation seeds.
 
 **System capabilities (current):**
-- Architecture Catalog: discover and compare six RAG patterns with structured strengths/tradeoff metadata.
+- Architecture Catalog: discover and compare eighteen RAG patterns with structured strengths/tradeoff metadata.
 - Guided Designer: configure a RAG pipeline step-by-step with architecture-specific form groups; generate a saved `WorkflowDefinition`.
 - Workflow Builder: visually inspect and edit the generated node graph; publish workflows to make them available in Query Lab.
 - Query Lab: simulate multi-strategy queries, compare results side-by-side, review run history, save test cases.

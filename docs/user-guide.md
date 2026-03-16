@@ -73,10 +73,10 @@ The sidebar footer shows a **⟳ Load demo data** button. Click it at any time t
 
 **Sidebar: Architecture → Catalog**
 
-The catalog is your starting point. It presents **6 RAG architecture patterns**, each with a description, when-to-use guidance, strengths & tradeoffs, typical backend components, and a **Required Integrations Panel** showing:
+The catalog is your starting point. It presents **18 RAG architecture patterns**, each with a description, when-to-use guidance, strengths & tradeoffs, typical backend components, and a **Required Integrations Panel** showing:
 
 - Live health status of each required connector
-- Operational complexity badge (Low / Medium / High)
+- Operational complexity badge (Low / Medium / High / Very High)
 - Stack readiness indicator
 - CTA to configure missing integrations
 
@@ -88,6 +88,18 @@ The catalog is your starting point. It presents **6 RAG architecture patterns**,
 | **Temporal RAG** | Time-aware retrieval over event sequences |
 | **Hybrid RAG** | Combining vector, lexical, and graph strategies |
 | **Custom RAG** | Bespoke pipelines beyond standard patterns |
+| **Agentic RAG** | Autonomous agents with dynamic tool calls and reasoning |
+| **Modular RAG** | Swappable microservice modules for independent scaling |
+| **Memory-Augmented RAG** | Long-term context, personalized recommendations |
+| **Multi-Modal RAG** | Cross-modal retrieval (text, image, audio, video) |
+| **Federated RAG** | Privacy-preserving retrieval across decentralized orgs |
+| **Streaming RAG** | Real-time event stream processing and retrieval |
+| **Contextual Retrieval RAG** | Conversation-aware, session-state retrieval |
+| **Knowledge-Enhanced RAG** | Ontology and taxonomy-grounded retrieval |
+| **Self-RAG** | Self-reflection with iterative retrieval refinement |
+| **HyDE RAG** | Hypothetical document embedding for guided retrieval |
+| **Recursive / Multi-Step RAG** | Multiple rounds of retrieval and generation |
+| **Domain-Specific RAG** | Industry-tailored pipelines (legal, medical, financial) |
 
 **Empty state**: If the catalog loads with no data, a **"Load demo architectures"** button seeds the catalog directly without navigating away.
 

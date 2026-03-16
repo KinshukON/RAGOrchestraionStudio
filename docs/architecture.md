@@ -19,7 +19,7 @@ Architecture Catalog + Architect Advisor
 Industry Packs   (static vertical data — no API call, client-side only)
   │  → navigate /app/designer with pre-selected architecture
   ▼
-Guided Designer   (per-arch wizard: vector / vectorless / graph / temporal / hybrid / custom)
+Guided Designer   (per-arch wizard: 18 architecture types supported)
   │  PATCH /api/architectures/design-sessions/{id}  →  wizard_state persisted
   │
   │  [Generate Workflow →]
@@ -128,6 +128,18 @@ After `signInWithGoogle()` resolves in `LandingPage.tsx`:
 | `temporal` | input_query → temporal_filter → vector_retriever → llm_answer_generator |
 | `hybrid` | input_query → query_classifier → vector_retriever + lexical_retriever → reranker → llm_answer_generator |
 | `custom` | input_query → vector_retriever → llm_answer_generator (minimal starter graph) |
+| `agentic` | input_query → agent_controller → knowledge_retriever + db_query + guardrail → context_assembler → agent_reasoner |
+| `modular` | input_query → query_router → retrieval_module + reasoning_module + generation_module → output_assembler |
+| `memory_augmented` | input_query → memory_retriever + embedding → knowledge_retriever → context_merger → answer_generator |
+| `multimodal` | multi_modal_input → text_embedder + image_embedder + audio_embedder → multi_modal_retriever → cross_modal_reranker → generator |
+| `federated` | input_query → federation_router → source_a + source_b + source_c → federated_fusion → privacy_guardrail → answer_generator |
+| `streaming` | stream_ingestion → real_time_window → live_embedding → hot_index_retriever → stream_responder |
+| `contextual` | input_query → session_context + context_aware_rewriter → embedding → contextual_retriever → conversational_generator |
+| `knowledge_enhanced` | input_query → knowledge_graph_lookup + document_retriever → knowledge_fusion → knowledge_grounded_generator |
+| `self_rag` | input_query → embedding → retriever → draft_generator → self_evaluator → refined_generator |
+| `hyde` | input_query → hypothetical_doc_generator → hyde_embedding → guided_retriever → reranker → final_answer |
+| `recursive` | input_query → query_decomposer → round_1_retriever + round_2_retriever → multi_round_aggregator → final_synthesizer |
+| `domain_specific` | domain_query → domain_intent_classifier → domain_embedding + domain_corpus_retriever → compliance_checker → domain_expert_generator |
 
 ### Design Tokens (`index.css`)
 
