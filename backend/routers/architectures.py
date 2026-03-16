@@ -42,10 +42,8 @@ class DesignSessionUpdate(BaseModel):
 
 
 def _seed_templates_if_empty() -> None:
+    """Upsert architecture templates — inserts any templates whose key is not already in the DB."""
     with get_session() as session:
-        count = session.exec(select(ArchitectureTemplate)).first()
-        if count is not None:
-            return
 
         templates: list[ArchitectureTemplate] = [
             ArchitectureTemplate(
