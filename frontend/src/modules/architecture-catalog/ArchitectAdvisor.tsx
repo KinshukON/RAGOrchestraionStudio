@@ -202,6 +202,10 @@ export function ArchitectAdvisor({ onBrowse }: Props) {
     setOpen(true)
   }
 
+  function handleClose() {
+    setOpen(false)
+  }
+
   const currentQ = QUESTIONS[step]
   const progress = ((step) / QUESTIONS.length) * 100
 
@@ -236,7 +240,7 @@ export function ArchitectAdvisor({ onBrowse }: Props) {
             className="arch-advisor-btn arch-advisor-btn--primary"
             onClick={handleOpen}
           >
-            {open ? 'Restart advisor' : 'Start the advisor →'}
+            Start the advisor →
           </button>
         </div>
       </div>
@@ -244,6 +248,15 @@ export function ArchitectAdvisor({ onBrowse }: Props) {
       {/* ── Inline wizard panel ── */}
       {open && (
         <div className="arch-advisor-panel">
+          {/* Close button */}
+          <button
+            className="arch-advisor-close-btn"
+            onClick={handleClose}
+            aria-label="Close advisor"
+            title="Close advisor"
+          >
+            ✕
+          </button>
           {!result ? (
             <>
               {/* Progress bar */}

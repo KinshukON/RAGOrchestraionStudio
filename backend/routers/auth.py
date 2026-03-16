@@ -91,6 +91,7 @@ def _get_or_create_user(google_payload: Dict[str, Any]) -> tuple[User, List[str]
     email = google_payload.get("email", "")
     name = google_payload.get("name") or email
     picture = google_payload.get("picture")
+    platform_admin_email = os.getenv("PLATFORM_ADMIN_EMAIL", "").lower().strip()
 
     with get_session_ctx() as db:
         existing = db.exec(select(User).where(User.email == email)).first()
@@ -112,6 +113,34 @@ def _get_or_create_user(google_payload: Dict[str, Any]) -> tuple[User, List[str]
                 email=email,
                 picture_url=picture,
             )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        # Auto-bootstrap Platform Admin role for the designated admin email
+        if platform_admin_email and email.lower() == platform_admin_email and not user.role_id:
+            ADMIN_PERMS = {
+                "super:admin": True,
+                "administer_platform": True,
+                "manage_users": True,
+                "manage_roles": True,
+                "manage_teams": True,
+                "manage_integrations": True,
+                "view_observability": True,
+                "manage_governance": True,
+            }
+            admin_role = db.exec(select(Role).where(Role.name == "Platform Admin")).first()
+            if not admin_role:
+                admin_role = Role(name="Platform Admin", permissions=ADMIN_PERMS)
+                db.add(admin_role)
+                db.commit()
+                db.refresh(admin_role)
+            else:
+                admin_role.permissions = ADMIN_PERMS
+                db.add(admin_role)
+                db.commit()
+                db.refresh(admin_role)
+            user.role_id = admin_role.id
             db.add(user)
             db.commit()
             db.refresh(user)
