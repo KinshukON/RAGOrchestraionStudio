@@ -150,11 +150,240 @@ def _seed_templates_if_empty() -> None:
                     "varies": ["Any combination of supported providers and stores"],
                 },
             ),
+            # ── New architectures ──────────────────────────────────────────
+            ArchitectureTemplate(
+                key="agentic",
+                type="agentic",
+                title="Agentic RAG",
+                short_definition="Autonomous agents decide what to retrieve, when, and how using tool calls.",
+                when_to_use="You need dynamic, multi-step retrieval with tool use and autonomous decision-making.",
+                strengths={
+                    "dynamic_retrieval": "Agents decide retrieval strategy based on the query.",
+                    "tool_use": "Can call external APIs, databases, and tools as needed.",
+                    "complex_tasks": "Handles multi-turn, complex information gathering.",
+                },
+                tradeoffs={
+                    "unpredictable": "Agent decisions can be hard to debug and reproduce.",
+                    "latency": "Multiple tool calls increase end-to-end latency.",
+                    "cost": "More LLM calls per query mean higher cost.",
+                },
+                typical_backends={
+                    "agents": ["LangChain Agents", "OpenAI GPT-4 with Plugins", "Microsoft Semantic Kernel"],
+                    "tools": ["Custom tool APIs", "function calling", "ReAct prompting"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="modular",
+                type="modular",
+                title="Modular RAG",
+                short_definition="Independent, swappable modules for retrieval, reasoning, and generation.",
+                when_to_use="Large collaborative projects needing frequent updates to individual pipeline components.",
+                strengths={
+                    "flexibility": "Swap any module without affecting the rest of the pipeline.",
+                    "scalability": "Each module scales independently via microservices.",
+                    "maintainability": "Clear boundaries make debugging and testing easier.",
+                },
+                tradeoffs={
+                    "integration_overhead": "Module interfaces and data contracts need careful design.",
+                    "deployment_complexity": "Multiple services to deploy and monitor.",
+                },
+                typical_backends={
+                    "orchestration": ["Microservices Architecture", "Docker & Kubernetes", "Apache Kafka"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="memory_augmented",
+                type="memory_augmented",
+                title="Memory-Augmented RAG",
+                short_definition="External memory storage and retrieval for long-term context and personalization.",
+                when_to_use="Chatbots maintaining long-term context or providing personalized recommendations.",
+                strengths={
+                    "continuity": "Remembers past interactions across sessions.",
+                    "personalization": "Adapts responses based on user history and preferences.",
+                },
+                tradeoffs={
+                    "memory_management": "Memory can grow unbounded without pruning strategies.",
+                    "privacy": "Stored user context raises data privacy considerations.",
+                },
+                typical_backends={
+                    "memory_store": ["Redis", "Amazon DynamoDB"],
+                    "vector_store": ["Pinecone Vector Database"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="multimodal",
+                type="multimodal",
+                title="Multi-Modal RAG",
+                short_definition="Cross-modal retrieval across text, images, audio, and video.",
+                when_to_use="You need to process and retrieve from multiple data types — text, images, audio.",
+                strengths={
+                    "rich_responses": "Combines information from multiple modalities for richer answers.",
+                    "accessibility": "Handles diverse input types in one pipeline.",
+                },
+                tradeoffs={
+                    "model_complexity": "Requires multi-modal embedding models and alignment.",
+                    "compute_cost": "Processing multiple modalities is compute-intensive.",
+                },
+                typical_backends={
+                    "models": ["OpenAI CLIP", "TensorFlow Hub Models", "PyTorch Multi-Modal Libraries"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="federated",
+                type="federated",
+                title="Federated RAG",
+                short_definition="Decentralized data sources with privacy-preserving retrieval across organizations.",
+                when_to_use="Healthcare systems handling sensitive data or cross-organization collaboration.",
+                strengths={
+                    "data_security": "Data stays at source — only query results are shared.",
+                    "compliance": "Meets data residency and privacy regulations.",
+                },
+                tradeoffs={
+                    "latency": "Querying across federated sources adds network latency.",
+                    "consistency": "Different sources may have inconsistent schemas.",
+                },
+                typical_backends={
+                    "frameworks": ["TensorFlow Federated", "PySyft by OpenMined", "Federated Learning Libraries"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="streaming",
+                type="streaming",
+                title="Streaming RAG",
+                short_definition="Real-time data retrieval and generation from live event streams.",
+                when_to_use="Live reporting, financial tickers, social media monitoring — data arrives continuously.",
+                strengths={
+                    "real_time": "Up-to-date information with sub-second latency.",
+                    "live_data": "Processes events as they arrive, no batch delays.",
+                },
+                tradeoffs={
+                    "infrastructure": "Requires stream processing infrastructure (Kafka, Kinesis).",
+                    "ordering": "Event ordering and exactly-once processing are complex.",
+                },
+                typical_backends={
+                    "streaming": ["Apache Kafka Streams", "Amazon Kinesis", "Spark Streaming"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="contextual",
+                type="contextual",
+                title="Contextual Retrieval RAG",
+                short_definition="Context-aware retrieval using conversation history and session state.",
+                when_to_use="Conversational AI and customer support chatbots that need to maintain session context.",
+                strengths={
+                    "personalization": "Understands user intent through conversation history.",
+                    "coherence": "Generates contextually relevant follow-up answers.",
+                },
+                tradeoffs={
+                    "context_window": "Growing conversation history can exceed context limits.",
+                    "state_management": "Requires session state storage and management.",
+                },
+                typical_backends={
+                    "frameworks": ["Dialogflow by Google", "Rasa Open Source", "Microsoft Bot Framework"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="knowledge_enhanced",
+                type="knowledge_enhanced",
+                title="Knowledge-Enhanced RAG",
+                short_definition="Integration of structured knowledge bases, ontologies, and domain taxonomies.",
+                when_to_use="Educational tools and professional domain apps (legal, medical, financial).",
+                strengths={
+                    "factual_accuracy": "Grounded in verified, structured knowledge.",
+                    "domain_expertise": "Leverages expert-curated ontologies and taxonomies.",
+                },
+                tradeoffs={
+                    "knowledge_curation": "Requires building and maintaining structured knowledge.",
+                    "schema_evolution": "Ontology changes ripple through the retrieval pipeline.",
+                },
+                typical_backends={
+                    "knowledge": ["Knowledge Graph Embedding Libraries", "OWL APIs", "Apache Jena"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="self_rag",
+                type="self_rag",
+                title="Self-RAG",
+                short_definition="Self-reflection mechanisms with iterative refinement of retrieved content.",
+                when_to_use="Content creation tools and high-accuracy educational platforms.",
+                strengths={
+                    "accuracy": "Self-evaluates and iterates on retrieval quality.",
+                    "coherence": "Generates more coherent and well-reasoned responses.",
+                },
+                tradeoffs={
+                    "latency": "Multiple reflection iterations increase response time.",
+                    "complexity": "Self-evaluation logic adds implementation complexity.",
+                },
+                typical_backends={
+                    "models": ["OpenAI GPT models with fine-tuning", "Human-in-the-Loop platforms"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="hyde",
+                type="hyde",
+                title="HyDE RAG",
+                short_definition="Hypothetical Document Embeddings — generates a hypothetical answer to guide retrieval.",
+                when_to_use="Complex queries with implicit meaning or niche research fields.",
+                strengths={
+                    "recall": "Generates better retrieval queries through hypothetical documents.",
+                    "answer_quality": "Bridges the gap between query intent and document language.",
+                },
+                tradeoffs={
+                    "extra_llm_call": "Requires an additional LLM generation step before retrieval.",
+                    "noise": "Hypothetical documents can introduce false positive retrievals.",
+                },
+                typical_backends={
+                    "implementations": ["Custom Transformer implementations", "Haystack Pipelines"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="recursive",
+                type="recursive",
+                title="Recursive / Multi-Step RAG",
+                short_definition="Multiple rounds of retrieval and generation for deep analytical tasks.",
+                when_to_use="Analytical & problem-solving tasks, multi-turn dialogue systems.",
+                strengths={
+                    "depth": "Enhanced reasoning through iterative retrieve-then-generate cycles.",
+                    "understanding": "Builds deeper comprehension with each round.",
+                },
+                tradeoffs={
+                    "latency": "Multiple retrieval rounds multiply end-to-end time.",
+                    "cost": "Each round consumes additional LLM and retrieval resources.",
+                },
+                typical_backends={
+                    "frameworks": ["LangChain chains & agents", "DeepMind AlphaCode framework"],
+                },
+            ),
+            ArchitectureTemplate(
+                key="domain_specific",
+                type="domain_specific",
+                title="Domain-Specific RAG",
+                short_definition="Customized retrieval pipelines tailored for specific industries and domains.",
+                when_to_use="Legal research, medical diagnosis support, financial analysis tools.",
+                strengths={
+                    "relevance": "Tuned for domain-specific terminology and patterns.",
+                    "compliance": "Built-in regulatory and domain constraints.",
+                    "trustworthiness": "Higher accuracy within the target domain.",
+                },
+                tradeoffs={
+                    "narrow_scope": "Not generalizable to other domains.",
+                    "expertise_required": "Requires domain expert involvement in pipeline design.",
+                },
+                typical_backends={
+                    "platforms": ["LexPredict Contract Analytics", "Watson Health", "Financial NLP Tools"],
+                },
+            ),
         ]
 
         for tpl in templates:
-            session.add(tpl)
+            # Upsert: skip if key already exists
+            existing = session.exec(
+                select(ArchitectureTemplate).where(ArchitectureTemplate.key == tpl.key)
+            ).first()
+            if not existing:
+                session.add(tpl)
         session.commit()
+
 
 
 @router.get("/catalog", response_model=List[ArchitectureTemplateOut])

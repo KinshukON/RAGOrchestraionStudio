@@ -1,6 +1,11 @@
 import { apiClient } from './client'
 
-export type ArchitectureType = 'vector' | 'vectorless' | 'graph' | 'temporal' | 'hybrid' | 'custom'
+export type ArchitectureType =
+  | 'vector' | 'vectorless' | 'graph' | 'temporal' | 'hybrid' | 'custom'
+  | 'agentic' | 'modular' | 'memory_augmented' | 'multimodal'
+  | 'federated' | 'streaming' | 'contextual' | 'knowledge_enhanced'
+  | 'self_rag' | 'hyde' | 'recursive' | 'domain_specific'
+
 
 export type ArchitectureTemplate = {
   key: string

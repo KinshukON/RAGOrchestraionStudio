@@ -6,7 +6,13 @@ from sqlmodel import SQLModel, Field
 
 
 # Used in Pydantic response schemas – NOT attached to SQLModel table columns
-ArchitectureType = Literal["vector", "vectorless", "graph", "temporal", "hybrid", "custom"]
+ArchitectureType = Literal[
+    "vector", "vectorless", "graph", "temporal", "hybrid", "custom",
+    "agentic", "modular", "memory_augmented", "multimodal",
+    "federated", "streaming", "contextual", "knowledge_enhanced",
+    "self_rag", "hyde", "recursive", "domain_specific",
+]
+
 
 
 class ArchitectureTemplate(SQLModel, table=True):
