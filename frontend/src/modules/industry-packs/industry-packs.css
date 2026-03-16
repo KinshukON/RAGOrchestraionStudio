@@ -278,8 +278,13 @@
   color: #0f172a;
 }
 
-.ip-cta--primary:hover {
+.ip-cta--primary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-accent) 85%, #fff);
+}
+
+.ip-cta--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .ip-cta--ghost {
@@ -288,10 +293,320 @@
   border: 1px solid var(--color-accent);
 }
 
-.ip-cta--ghost:hover {
+.ip-cta--ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
+.ip-cta--ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Readiness score bar ── */
+.ip-readiness {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ip-readiness-bar-wrap {
+  height: 6px;
+  background: var(--color-surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.ip-readiness-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-sky, #38bdf8));
+  border-radius: 99px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.ip-readiness-label {
+  font-size: 0.68rem;
+  color: var(--color-text-faint);
+  font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/* Wizard Styles                                                         */
+/* ══════════════════════════════════════════════════════════════════════ */
+
+/* Progress stepper */
+.ip-wizard-progress {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 2rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.ip-wiz-step {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-faint);
+  transition: color 0.2s;
+}
+
+.ip-wiz-step--active {
+  color: var(--color-accent);
+}
+
+.ip-wiz-step--done {
+  color: var(--color-success, #10b981);
+}
+
+.ip-wiz-num {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--color-surface-2);
+  border: 1.5px solid var(--color-border);
+  transition: all 0.2s;
+}
+
+.ip-wiz-step--active .ip-wiz-num {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.ip-wiz-step--done .ip-wiz-num {
+  background: color-mix(in srgb, var(--color-success, #10b981) 15%, transparent);
+  border-color: var(--color-success, #10b981);
+  color: var(--color-success, #10b981);
+}
+
+.ip-wiz-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 0.5rem;
+}
+
+/* Wizard body */
+.ip-wizard-body {
+  animation: ip-wiz-fade-in 0.3s ease;
+}
+
+@keyframes ip-wiz-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ip-wiz-heading {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.3rem;
+}
+
+.ip-wiz-desc {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1.25rem;
+}
+
+.ip-wiz-ctx {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
+  border-radius: 99px;
+  font-size: 0.72rem;
+  color: var(--color-accent);
+  margin-bottom: 1rem;
+}
+
+.ip-wiz-ctx-label {
+  font-weight: 700;
+  color: var(--color-text-faint);
+}
+
+.ip-wiz-back {
+  margin-top: 1rem;
+  font-size: 0.78rem;
+}
+
+/* ── Use case selection cards ── */
+.ip-usecase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.ip-usecase-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.ip-usecase-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.ip-usecase-card strong {
+  font-size: 0.88rem;
+  color: var(--color-text);
+}
+
+.ip-usecase-desc {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── Infrastructure question options ── */
+.ip-infra-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 520px;
+}
+
+.ip-infra-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.ip-infra-option:hover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface));
+}
+
+.ip-infra-option strong {
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.ip-infra-hint {
+  font-size: 0.72rem;
+  color: var(--color-text-faint);
+}
+
+/* ── Recommendation card ── */
+.ip-rec-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ip-rec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.ip-rec-arch-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.ip-rec-confidence {
+  position: relative;
+  width: 160px;
+  height: 22px;
+  background: var(--color-surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.ip-rec-confidence-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-success, #10b981));
+  border-radius: 99px;
+  transition: width 0.6s ease;
+}
+
+.ip-rec-confidence-label {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ip-rec-rationale {
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  margin: 0 0 1.25rem;
+  padding: 0.85rem;
+  background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface));
+  border-radius: var(--radius);
+  border-left: 3px solid var(--color-accent);
+}
+
+.ip-rec-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.ip-rec-detail-section h4 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+  margin: 0 0 0.5rem;
+}
+
+.ip-rec-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* ── Responsive ── */
 @media (max-width: 700px) {
   .ip-detail-card--wide { grid-column: span 1; }
+  .ip-usecase-grid { grid-template-columns: 1fr; }
+  .ip-rec-confidence { width: 120px; }
 }
