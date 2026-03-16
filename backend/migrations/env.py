@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import models_admin       # noqa: F401  (Role, RolePermission, Team, TeamMember, User, Session, …)
 import models_core        # noqa: F401  (Project, Integration, Environment, WorkflowRun, …)
 import models_architecture  # noqa: F401  (ArchitectureTemplate, DesignSession)
+import models_cost        # noqa: F401  (CostProfile, CostScenario)
 # models_governance uses in-memory Pydantic only — nothing to migrate there
 
 # ── Alembic Config object (from alembic.ini) ──────────────────────────────────
