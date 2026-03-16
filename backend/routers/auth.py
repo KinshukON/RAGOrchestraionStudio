@@ -87,16 +87,20 @@ def _get_or_create_user(google_payload: Dict[str, Any]) -> tuple[User, List[str]
     Look up or create a User row from the Google token payload.
     Returns (user, permissions_list).
     """
+    import logging
+    log = logging.getLogger("auth.bootstrap")
+
     google_sub = google_payload["sub"]
     email = google_payload.get("email", "")
     name = google_payload.get("name") or email
     picture = google_payload.get("picture")
     platform_admin_email = os.getenv("PLATFORM_ADMIN_EMAIL", "").lower().strip()
 
+    log.warning("[AUTH] sign-in for email=%s, PLATFORM_ADMIN_EMAIL=%s", email, platform_admin_email)
+
     with get_session_ctx() as db:
         existing = db.exec(select(User).where(User.email == email)).first()
         if existing:
-            # Update last-seen info
             existing.name = name
             existing.external_subject = google_sub
             existing.picture_url = picture
@@ -104,8 +108,8 @@ def _get_or_create_user(google_payload: Dict[str, Any]) -> tuple[User, List[str]
             db.commit()
             db.refresh(existing)
             user = existing
+            log.warning("[AUTH] existing user id=%s role_id=%s", user.id, user.role_id)
         else:
-            # Create new user — no role_id by default (viewer access)
             user = User(
                 external_provider="google",
                 external_subject=google_sub,
@@ -116,9 +120,14 @@ def _get_or_create_user(google_payload: Dict[str, Any]) -> tuple[User, List[str]
             db.add(user)
             db.commit()
             db.refresh(user)
+            log.warning("[AUTH] created new user id=%s", user.id)
 
         # Auto-bootstrap Platform Admin role for the designated admin email
-        if platform_admin_email and email.lower() == platform_admin_email and not user.role_id:
+        # Always runs (even if user already has a role) to ensure admin is correct
+        email_matches = platform_admin_email and email.lower() == platform_admin_email
+        log.warning("[AUTH] email_matches=%s (email.lower()=%s vs env=%s)", email_matches, email.lower(), platform_admin_email)
+
+        if email_matches:
             ADMIN_PERMS = {
                 "super:admin": True,
                 "administer_platform": True,
@@ -135,24 +144,28 @@ def _get_or_create_user(google_payload: Dict[str, Any]) -> tuple[User, List[str]
                 db.add(admin_role)
                 db.commit()
                 db.refresh(admin_role)
+                log.warning("[AUTH] created Platform Admin role id=%s", admin_role.id)
             else:
                 admin_role.permissions = ADMIN_PERMS
                 db.add(admin_role)
                 db.commit()
                 db.refresh(admin_role)
+                log.warning("[AUTH] updated Platform Admin role id=%s", admin_role.id)
             user.role_id = admin_role.id
             db.add(user)
             db.commit()
             db.refresh(user)
+            log.warning("[AUTH] assigned role_id=%s to user id=%s", admin_role.id, user.id)
 
         # Resolve permissions from role if assigned
         permissions: List[str] = []
         if user.role_id:
             role_row = db.exec(select(Role).where(Role.id == user.role_id)).first()
+            log.warning("[AUTH] role_row=%s permissions_type=%s", role_row, type(role_row.permissions) if role_row else None)
             if role_row and isinstance(role_row.permissions, dict):
-                # permissions stored as {"perm_key": true, ...} OR as a list
                 raw = role_row.permissions
                 permissions = [k for k, v in raw.items() if v] if isinstance(raw, dict) else list(raw)
+        log.warning("[AUTH] final permissions=%s", permissions)
 
     return user, permissions
 
