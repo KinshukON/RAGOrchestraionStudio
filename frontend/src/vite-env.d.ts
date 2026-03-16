@@ -1,1 +1,1 @@
-# Sun Mar 15 23:37:22 EDT 2026
+/// <reference types="vite/client" />
