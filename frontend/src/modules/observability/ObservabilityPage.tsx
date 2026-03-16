@@ -70,8 +70,8 @@ function OperationsTab({ runs }: { runs: RunSummary[] }) {
 
   const archBreakdown = runs.reduce<Record<string, { ok: number; fail: number }>>((acc, r) => {
     const k = r.architecture_type ?? 'unknown'
-    acc[k] ??= { ok: 0, fail: 0 }
-    if (r.status === 'succeeded') acc[k].ok++ else acc[k].fail++
+    if (!acc[k]) acc[k] = { ok: 0, fail: 0 }
+    if (r.status === 'succeeded') { acc[k].ok++ } else { acc[k].fail++ }
     return acc
   }, {})
 
@@ -339,9 +339,9 @@ function CostAnalyticsTab({ runs }: { runs: RunSummary[] }) {
 
   const archBreakdown = runs.reduce<Record<string, { total: number; sim: number; live: number }>>((acc, r) => {
     const k = r.architecture_type ?? 'unknown'
-    acc[k] ??= { total: 0, sim: 0, live: 0 }
+    if (!acc[k]) acc[k] = { total: 0, sim: 0, live: 0 }
     acc[k].total++
-    if (r.is_simulated) acc[k].sim++ else acc[k].live++
+    if (r.is_simulated) { acc[k].sim++ } else { acc[k].live++ }
     return acc
   }, {})
 
