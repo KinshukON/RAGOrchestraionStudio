@@ -31,13 +31,20 @@ const REFRESH_TOKEN_KEY = 'rag-studio-refresh'
 // ── Google Identity Services types ────────────────────────────────────────────
 type GoogleCredentialResponse = { credential: string }
 
+type PromptMomentNotification = {
+  isNotDisplayed(): boolean
+  isSkippedMoment(): boolean
+  getNotDisplayedReason?(): string
+  getSkippedReason?(): string
+}
+
 declare global {
   interface Window {
     google?: {
       accounts: {
         id: {
           initialize(options: { client_id: string; callback: (r: GoogleCredentialResponse) => void }): void
-          prompt(): void
+          prompt(momentListener?: (n: PromptMomentNotification) => void): void
         }
       }
     }
@@ -135,46 +142,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await new Promise<void>((resolve, reject) => {
       let resolved = false
 
+      // Hard 30-second timeout — if Google never fires the callback (e.g. One Tap
+      // suppressed / blocked by browser), reject so the UI unblocks.
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          reject(new Error('Google sign-in timed out. Please try again or check your browser popup settings.'))
+        }
+      }, 30_000)
+
+      function settle(fn: () => void) {
+        clearTimeout(timeoutId)
+        if (!resolved) { resolved = true; fn() }
+      }
+
       loadGoogleIdentityScript()
         .then(() => {
-          if (!window.google?.accounts.id) throw new Error('Google Identity Services failed to initialize')
+          if (!window.google?.accounts.id) {
+            settle(() => reject(new Error('Google Identity Services failed to initialize')))
+            return
+          }
 
           window.google.accounts.id.initialize({
             client_id: clientId,
             async callback(response: GoogleCredentialResponse) {
               try {
-                const idToken = response.credential
-
-                // Exchange with backend for our signed JWT
                 const res = await apiClient.post<{
                   access_token: string
                   refresh_token: string
                   expires_in: number
                   user: { id: string; name: string; email: string; picture?: string; permissions: string[] }
-                }>('/api/auth/google', { id_token: idToken })
+                }>('/api/auth/google', { id_token: response.credential })
 
                 const { access_token, refresh_token, expires_in, user } = res.data
                 const nextState: AuthState = { user, accessToken: access_token }
-
                 setState(nextState)
                 saveAuth(nextState, refresh_token)
                 scheduleRefresh(expires_in)
-
-                if (!resolved) { resolved = true; resolve() }
+                settle(() => resolve())
               } catch (error) {
-                if (!resolved) { resolved = true; reject(error instanceof Error ? error : new Error(String(error))) }
+                settle(() => reject(error instanceof Error ? error : new Error(String(error))))
               }
             },
           })
 
-          try {
-            window.google?.accounts.id.prompt()
-          } catch (error) {
-            if (!resolved) { resolved = true; reject(error instanceof Error ? error : new Error('Failed to start Google sign-in')) }
-          }
+          // prompt() accepts an optional notification callback that fires when
+          // One Tap is suppressed or dismissed without user interaction.
+          window.google.accounts.id.prompt((notification: {
+            isNotDisplayed(): boolean
+            isSkippedMoment(): boolean
+            getNotDisplayedReason?(): string
+            getSkippedReason?(): string
+          }) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              const reason = notification.getNotDisplayedReason?.() ?? notification.getSkippedReason?.() ?? 'suppressed'
+              settle(() => reject(new Error(
+                `Google sign-in popup was blocked or suppressed (${reason}). ` +
+                `Please allow pop-ups for this site and try again.`
+              )))
+            }
+          })
         })
         .catch(err => {
-          if (!resolved) { resolved = true; reject(err instanceof Error ? err : new Error('Failed to load Google script')) }
+          settle(() => reject(err instanceof Error ? err : new Error('Failed to load Google script')))
         })
     })
   }, [scheduleRefresh])
