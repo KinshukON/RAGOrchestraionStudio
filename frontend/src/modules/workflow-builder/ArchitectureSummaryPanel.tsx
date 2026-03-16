@@ -14,6 +14,18 @@ const ARCH_LABELS: Record<string, string> = {
   temporal: 'Temporal RAG',
   hybrid: 'Hybrid RAG',
   custom: 'Custom RAG',
+  agentic: 'Agentic RAG',
+  modular: 'Modular RAG',
+  memory_augmented: 'Memory-Augmented RAG',
+  multimodal: 'Multi-Modal RAG',
+  federated: 'Federated RAG',
+  streaming: 'Streaming RAG',
+  contextual: 'Contextual RAG',
+  knowledge_enhanced: 'Knowledge-Enhanced RAG',
+  self_rag: 'Self-RAG',
+  hyde: 'HyDE RAG',
+  recursive: 'Recursive RAG',
+  domain_specific: 'Domain-Specific RAG',
 }
 
 export function ArchitectureSummaryPanel({ meta, designSessionId }: ArchitectureSummaryPanelProps) {

@@ -324,12 +324,25 @@ function GovernanceRiskTab() {
 
 // ── Cost Analytics tab ────────────────────────────────────────────────────
 const ARCH_COST: Record<string, { tier: string; estPer1k: string }> = {
-  vector:     { tier: 'Low',     estPer1k: '~$0.10–$0.25' },
-  vectorless: { tier: 'Low',     estPer1k: '~$0.05–$0.15' },
-  hybrid:     { tier: 'Medium',  estPer1k: '~$0.25–$0.60' },
-  temporal:   { tier: 'Medium',  estPer1k: '~$0.20–$0.50' },
-  graph:      { tier: 'High',    estPer1k: '~$0.50–$1.50' },
-  unknown:    { tier: 'Unknown', estPer1k: '—' },
+  vector:             { tier: 'Low',       estPer1k: '~$0.10–$0.25' },
+  vectorless:         { tier: 'Low',       estPer1k: '~$0.05–$0.15' },
+  hybrid:             { tier: 'Medium',    estPer1k: '~$0.25–$0.60' },
+  temporal:           { tier: 'Medium',    estPer1k: '~$0.20–$0.50' },
+  graph:              { tier: 'High',      estPer1k: '~$0.50–$1.50' },
+  custom:             { tier: 'Variable',  estPer1k: '~$0.15–$1.00' },
+  agentic:            { tier: 'Very High', estPer1k: '~$1.00–$3.00' },
+  modular:            { tier: 'Medium',    estPer1k: '~$0.20–$0.50' },
+  memory_augmented:   { tier: 'Medium',    estPer1k: '~$0.20–$0.50' },
+  multimodal:         { tier: 'Very High', estPer1k: '~$1.50–$4.00' },
+  federated:          { tier: 'High',      estPer1k: '~$0.40–$1.20' },
+  streaming:          { tier: 'Low',       estPer1k: '~$0.08–$0.20' },
+  contextual:         { tier: 'Medium',    estPer1k: '~$0.15–$0.40' },
+  knowledge_enhanced: { tier: 'High',      estPer1k: '~$0.50–$1.50' },
+  self_rag:           { tier: 'High',      estPer1k: '~$0.60–$2.00' },
+  hyde:               { tier: 'Medium',    estPer1k: '~$0.30–$0.80' },
+  recursive:          { tier: 'Very High', estPer1k: '~$0.80–$2.50' },
+  domain_specific:    { tier: 'Medium',    estPer1k: '~$0.25–$0.70' },
+  unknown:            { tier: 'Unknown',   estPer1k: '—' },
 }
 
 function CostAnalyticsTab({ runs }: { runs: RunSummary[] }) {
