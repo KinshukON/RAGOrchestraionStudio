@@ -67,6 +67,13 @@ interface Recommendation {
   explanation: string
   emoji: string
   color: string
+  // Infographic data
+  pipeline?: { label: string; icon: string }[]
+  useCases?: string[]
+  strengths?: string[]
+  tradeoffs?: string[]
+  costContext?: string
+  whyChosen?: string
 }
 
 function recommend(answers: Answers): Recommendation {
@@ -79,9 +86,20 @@ function recommend(answers: Answers): Recommendation {
       title: 'Long Context Window',
       subtitle: 'You may not need RAG at all',
       explanation:
-        'Your dataset is small enough to fit inside modern LLM context windows (Gemini 1.5 Pro, Claude 3.x, GPT-4o). Passing the entire corpus in the prompt gives full coverage with zero indexing overhead. Consider RAG only when context costs or latency become a concern.',
+        'Your dataset is small enough to fit inside modern LLM context windows (Gemini 1.5 Pro, Claude 3.x, GPT-4o). Passing the entire corpus in the prompt gives full coverage with zero indexing overhead.',
       emoji: '💡',
       color: 'advisor',
+      pipeline: [
+        { label: 'Full Corpus', icon: '📄' },
+        { label: 'Prompt', icon: '📝' },
+        { label: 'LLM', icon: '🧠' },
+        { label: 'Output', icon: '✅' },
+      ],
+      useCases: ['Small knowledge bases', 'Static FAQ', 'Single-document Q&A', 'Prototyping'],
+      strengths: ['Zero infrastructure', 'No embedding cost', 'Simple implementation', 'Full corpus coverage'],
+      tradeoffs: ['Cost scales with corpus size', 'Limited to context window', 'No source attribution', 'Latency increases with size'],
+      costContext: '~$0.01–0.10/query · No indexing cost · Scales poorly past 200K tokens',
+      whyChosen: 'Small dataset + no citation requirement + static data = context stuffing is simpler and cheaper than RAG.',
     }
   }
 
@@ -92,9 +110,20 @@ function recommend(answers: Answers): Recommendation {
       title: 'Fine-tuning',
       subtitle: 'Bake knowledge into the model weights',
       explanation:
-        'Your data is static and compact — a fine-tuned model will likely outperform RAG here. Fine-tuning internalises domain knowledge into weights, giving faster and cheaper inference once trained. Use RAG when data changes frequently or source attribution is required.',
+        'Your data is static and compact — a fine-tuned model will likely outperform RAG here. Fine-tuning internalises domain knowledge into weights, giving faster and cheaper inference once trained.',
       emoji: '🎛️',
       color: 'advisor',
+      pipeline: [
+        { label: 'Training Data', icon: '📊' },
+        { label: 'Fine-tune', icon: '⚙️' },
+        { label: 'Custom Model', icon: '🧠' },
+        { label: 'Output', icon: '✅' },
+      ],
+      useCases: ['Domain-specific language', 'Fixed task patterns', 'Internal jargon/terminology', 'Classification tasks'],
+      strengths: ['Fast inference', 'No retrieval latency', 'Embedded domain knowledge', 'Lower per-query cost'],
+      tradeoffs: ['Expensive to retrain', 'Knowledge goes stale', 'No source attribution', 'Needs training infrastructure'],
+      costContext: '$50–500 to fine-tune · ~$0.001/query after · Can\'t update without retraining',
+      whyChosen: 'Small + static dataset + no citation requirement → knowledge fits best in model weights.',
     }
   }
 
@@ -105,9 +134,22 @@ function recommend(answers: Answers): Recommendation {
       title: 'Graph RAG',
       subtitle: 'Entity-aware multi-hop retrieval',
       explanation:
-        'Your data has rich relationships between entities, or answering questions requires chaining multiple facts. Graph RAG traverses a knowledge graph (Neo4j, Neptune, etc.) alongside vector search to resolve entity paths — ideal for org hierarchies, supply chains, compliance networks, and biomedical knowledge.',
+        'Your data has rich relationships between entities, or answering questions requires chaining multiple facts. Graph RAG traverses a knowledge graph alongside vector search to resolve entity paths.',
       emoji: '🕸️',
       color: 'graph',
+      pipeline: [
+        { label: 'User Query', icon: '👤' },
+        { label: 'Entity Extract', icon: '🏷️' },
+        { label: 'Graph Traversal', icon: '🕸️' },
+        { label: 'Context Assembly', icon: '📋' },
+        { label: 'LLM', icon: '🧠' },
+        { label: 'Output', icon: '✅' },
+      ],
+      useCases: ['Org hierarchies', 'Supply chain analysis', 'Compliance networks', 'Biomedical knowledge', 'Legal case law'],
+      strengths: ['Multi-hop reasoning', 'Relationship-aware', 'Structured + unstructured', 'Explainable paths', 'High accuracy on entity queries'],
+      tradeoffs: ['Complex setup (Neo4j/Neptune)', 'Graph construction overhead', 'Higher latency', 'Needs entity extraction pipeline'],
+      costContext: '~$0.01–0.05/query · Neo4j cloud from $65/mo · Higher setup but precise answers',
+      whyChosen: 'Rich entity relationships or multi-hop reasoning needs → graph traversal outperforms flat vector search.',
     }
   }
 
@@ -118,9 +160,23 @@ function recommend(answers: Answers): Recommendation {
       title: 'Temporal RAG',
       subtitle: 'Time-aware retrieval over versioned records',
       explanation:
-        'Your data is time-sensitive — contract versions, regulatory filings, news feeds, or live logs. Temporal RAG applies as-of-date filters at retrieval time so the LLM only sees data that was valid at a specific point in time, avoiding stale or future-dated leakage.',
+        'Your data is time-sensitive — contract versions, regulatory filings, news feeds, or live logs. Temporal RAG applies as-of-date filters so the LLM only sees temporally valid data.',
       emoji: '⏱️',
       color: 'temporal',
+      pipeline: [
+        { label: 'User Query', icon: '👤' },
+        { label: 'Embedding', icon: '📐' },
+        { label: 'Time Filter', icon: '⏰' },
+        { label: 'Vector DB', icon: '🗄️' },
+        { label: 'Recency Score', icon: '📅' },
+        { label: 'LLM', icon: '🧠' },
+        { label: 'Output', icon: '✅' },
+      ],
+      useCases: ['News & media feeds', 'Contract versioning', 'Regulatory filings', 'System logs', 'Event-driven data'],
+      strengths: ['Recency-aware', 'Avoids stale data', 'Point-in-time queries', 'Freshness scoring'],
+      tradeoffs: ['Needs timestamp metadata', 'More complex indexing', 'Decay functions need tuning', 'Older data may be lost'],
+      costContext: '~$0.005–0.02/query · Same as vector + timestamp index · Streaming ingestor needed for real-time',
+      whyChosen: 'Time-sensitive data or continuous updates → temporal filtering prevents stale/future-dated answers.',
     }
   }
 
@@ -131,9 +187,24 @@ function recommend(answers: Answers): Recommendation {
       title: 'Hybrid RAG',
       subtitle: 'Combine vector, lexical, and graph strategies',
       explanation:
-        'Your corpus mixes document types, some structured and some unstructured. Hybrid RAG runs multiple retrieval strategies in parallel (dense vector, BM25 lexical, optional graph) and fuses results with RRF or weighted merging — great for enterprise search over heterogeneous data.',
+        'Your corpus mixes document types. Hybrid RAG runs multiple retrieval strategies in parallel and fuses results with RRF or weighted merging — great for enterprise search over heterogeneous data.',
       emoji: '🔀',
       color: 'hybrid',
+      pipeline: [
+        { label: 'User Query', icon: '👤' },
+        { label: 'Embedding', icon: '📐' },
+        { label: 'Vector Search', icon: '🗄️' },
+        { label: 'BM25 Search', icon: '🔍' },
+        { label: 'RRF Fusion', icon: '🔀' },
+        { label: 'Reranker', icon: '📊' },
+        { label: 'LLM', icon: '🧠' },
+        { label: 'Output', icon: '✅' },
+      ],
+      useCases: ['Enterprise search', 'Mixed doc types', 'High-accuracy Q&A', 'Legal/medical research', 'Competitive intelligence'],
+      strengths: ['Best overall accuracy', 'Multiple signal fusion', 'Handles diverse data', 'Cross-encoder reranking', 'Flexible architecture'],
+      tradeoffs: ['Higher complexity', 'Multiple indexes needed', '~2x latency vs single-strategy', 'More infrastructure cost'],
+      costContext: '~$0.01–0.05/query · 2-3 retrieval backends · ~100x cheaper than full LLM context at scale',
+      whyChosen: 'Mixed data types → no single retrieval strategy covers all formats; fusing multiple signals gives best accuracy.',
     }
   }
 
@@ -144,9 +215,22 @@ function recommend(answers: Answers): Recommendation {
       title: 'Vectorless RAG',
       subtitle: 'Precision retrieval without embeddings',
       explanation:
-        'Your data is well-structured and queries are precise enough that keyword/BM25 search outperforms fuzzy vector similarity. Vectorless RAG uses lexical retrieval (Elasticsearch, Typesense) for exact term matching with metadata filtering — lower latency and no embedding cost.',
+        'Your data is well-structured and queries are precise enough that keyword/BM25 search outperforms fuzzy vector similarity. Lower latency and no embedding cost.',
       emoji: '🎯',
       color: 'vectorless',
+      pipeline: [
+        { label: 'User Query', icon: '👤' },
+        { label: 'BM25 Search', icon: '🔍' },
+        { label: 'Metadata Filter', icon: '🏷️' },
+        { label: 'Top-K Docs', icon: '📄' },
+        { label: 'LLM', icon: '🧠' },
+        { label: 'Output', icon: '✅' },
+      ],
+      useCases: ['Keyword-rich content', 'Technical documentation', 'Structured databases', 'API reference', 'Product catalogs'],
+      strengths: ['No embedding cost', 'Fast retrieval', 'Exact term matching', 'Predictable results', 'Simple infrastructure'],
+      tradeoffs: ['Misses synonyms', 'No semantic understanding', 'Brittle to paraphrasing', 'Lower recall on ambiguous queries'],
+      costContext: '~$0.001/query · No embedding model needed · Elasticsearch/Typesense only',
+      whyChosen: 'Structured data + citation need + medium corpus → lexical BM25 gives precise, attributable results without embedding overhead.',
     }
   }
 
@@ -156,9 +240,26 @@ function recommend(answers: Answers): Recommendation {
     title: 'Vector RAG',
     subtitle: 'Semantic retrieval over embedded text',
     explanation:
-      'The best general-purpose starting point. Your corpus is large enough to need retrieval, semantic similarity search across dense embeddings (pgvector, Pinecone, Qdrant) will find the right chunks, and you need source attribution. Vector RAG scales from thousands to billions of documents.',
+      'The best general-purpose starting point. Dense embeddings find semantically similar chunks across large corpora. Scales from thousands to billions of documents with source attribution.',
     emoji: '⚡',
     color: 'vector',
+    pipeline: [
+      { label: 'Documents', icon: '📄' },
+      { label: 'Chunking', icon: '✂️' },
+      { label: 'Embedding', icon: '📐' },
+      { label: 'Vector DB', icon: '🗄️' },
+      { label: 'User Query', icon: '👤' },
+      { label: 'Semantic Search', icon: '🔎' },
+      { label: 'Top-K Docs', icon: '📋' },
+      { label: 'Reranking', icon: '📊' },
+      { label: 'LLM', icon: '🧠' },
+      { label: 'Output', icon: '✅' },
+    ],
+    useCases: ['Customer support', 'Internal knowledge bases', 'Compliance & legal', 'Enterprise document search', 'Research Q&A'],
+    strengths: ['Semantic understanding', 'Handles synonyms', 'Scales to billions', 'Source attribution', 'Broad ecosystem'],
+    tradeoffs: ['Embedding cost', 'Index maintenance', 'Chunking strategy matters', 'Approximation (ANN) tradeoffs'],
+    costContext: '~$0.001/query (RAG) vs $0.10 (full context) · ~100x cheaper at scale · Embedding once, retrieving many',
+    whyChosen: 'Large unstructured corpus + need for semantic similarity + source citations → classic Vector RAG is the proven starting point.',
   }
 }
 
@@ -300,19 +401,97 @@ export function ArchitectAdvisor({ onBrowse }: Props) {
               )}
             </>
           ) : (
-            /* ── Result card ── */
-            <div className={`arch-advisor-result arch-advisor-result--${result.color}`}>
-              <div className="arch-advisor-result-emoji">{result.emoji}</div>
-              <div className="arch-advisor-result-body">
-                <div className="arch-advisor-result-subtitle">{result.subtitle}</div>
-                <h3 className="arch-advisor-result-title">{result.title}</h3>
-                <p className="arch-advisor-result-explanation">{result.explanation}</p>
-                {/* ── Integration readiness + ops profile ── */}
-                {result.archType && (
-                  <RequiredIntegrationsPanel archType={result.archType} variant="result" />
-                )}
+            /* ── Rich infographic result ── */
+            <div className="advisor-infographic">
+              {/* Hero section */}
+              <div className={`advisor-info-hero advisor-info-hero--${result.color}`}>
+                <span className="advisor-info-hero-emoji">{result.emoji}</span>
+                <div>
+                  <div className="advisor-info-hero-subtitle">{result.subtitle}</div>
+                  <h2 className="advisor-info-hero-title">{result.title}</h2>
+                </div>
               </div>
-              <div className="arch-advisor-result-actions">
+
+              <p className="advisor-info-explanation">{result.explanation}</p>
+
+              {/* Why this was chosen */}
+              {result.whyChosen && (
+                <div className="advisor-info-why">
+                  <div className="advisor-info-section-icon">🎯</div>
+                  <div>
+                    <div className="advisor-info-why-label">Why This Was Chosen</div>
+                    <p className="advisor-info-why-text">{result.whyChosen}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Pipeline flow */}
+              {result.pipeline && (
+                <div className="advisor-info-section">
+                  <h4 className="advisor-info-section-title">The Retrieval Pipeline</h4>
+                  <div className="advisor-info-pipeline">
+                    {result.pipeline.map((step, i) => (
+                      <div key={i} className="advisor-info-pipeline-step">
+                        <div className="advisor-info-pipeline-icon">{step.icon}</div>
+                        <div className="advisor-info-pipeline-label">{step.label}</div>
+                        {i < (result.pipeline?.length ?? 0) - 1 && (
+                          <div className="advisor-info-pipeline-arrow">→</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Strengths vs Tradeoffs */}
+              {(result.strengths || result.tradeoffs) && (
+                <div className="advisor-info-comparison">
+                  {result.strengths && (
+                    <div className="advisor-info-col">
+                      <h4 className="advisor-info-col-title advisor-info-col-title--green">✅ Strengths</h4>
+                      <ul className="advisor-info-list">
+                        {result.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {result.tradeoffs && (
+                    <div className="advisor-info-col">
+                      <h4 className="advisor-info-col-title advisor-info-col-title--amber">⚠️ Tradeoffs</h4>
+                      <ul className="advisor-info-list">
+                        {result.tradeoffs.map((t, i) => <li key={i}>{t}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Use cases */}
+              {result.useCases && (
+                <div className="advisor-info-section">
+                  <h4 className="advisor-info-section-title">Where It's Used</h4>
+                  <div className="advisor-info-usecases">
+                    {result.useCases.map((uc, i) => (
+                      <span key={i} className="advisor-info-usecase-tag">{uc}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cost context */}
+              {result.costContext && (
+                <div className="advisor-info-cost">
+                  <span className="advisor-info-cost-icon">💰</span>
+                  <span className="advisor-info-cost-text">{result.costContext}</span>
+                </div>
+              )}
+
+              {/* Integration readiness */}
+              {result.archType && (
+                <RequiredIntegrationsPanel archType={result.archType} variant="result" />
+              )}
+
+              {/* Actions */}
+              <div className="advisor-info-actions">
                 {result.archType ? (
                   <button
                     className="arch-advisor-btn arch-advisor-btn--primary"
