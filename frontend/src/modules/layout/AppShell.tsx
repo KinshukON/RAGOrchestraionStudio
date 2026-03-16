@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import './layout.css'
 import { useAuth, useHasPermission } from '../auth/AuthContext'
 import { useToast } from '../ui/ToastContext'
+import { ChatWidget } from '../chat-widget/ChatWidget'
 
 // Minimal inline SVG icon helper
 function Icon({ d, title }: { d: string; title: string }) {
@@ -299,6 +300,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <ChatWidget />
     </div>
   )
 }
