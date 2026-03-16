@@ -15,7 +15,7 @@ export function CostRoiPage() {
   const profilesQ = useQuery({ queryKey: ['cost-profiles'], queryFn: listCostProfiles })
   const profiles = Array.isArray(profilesQ.data) ? profilesQ.data : []
   const scenariosQ = useQuery({ queryKey: ['cost-scenarios'], queryFn: () => listScenarios() })
-  const savedScenarios = scenariosQ.data ?? []
+  const savedScenarios = Array.isArray(scenariosQ.data) ? scenariosQ.data : []
 
   // ── State ──
   const [arch, setArch] = useState('')
@@ -179,7 +179,7 @@ export function CostRoiPage() {
           <div className="cr-field">
             <label>Architecture</label>
             <select value={arch} onChange={e => handleArchChange(e.target.value)}>
-              {profiles.map(p => (
+              {(profiles || []).map(p => (
                 <option key={p.architecture_type} value={p.architecture_type}>{p.label}</option>
               ))}
             </select>
@@ -360,7 +360,7 @@ export function CostRoiPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {profiles.map(p => {
+                    {(profiles || []).map(p => {
                       const isCurrent = p.architecture_type === arch
                       return (
                         <tr key={p.architecture_type} className={isCurrent ? 'cr-compare-current' : ''}
@@ -383,7 +383,7 @@ export function CostRoiPage() {
 
                 <h4>Assumptions</h4>
                 <ul className="cr-explain-list">
-                  {result.explanation.assumptions.map((a, i) => <li key={i}>{a}</li>)}
+                  {(result.explanation.assumptions || []).map((a, i) => <li key={i}>{a}</li>)}
                 </ul>
               </div>
 
@@ -403,7 +403,7 @@ export function CostRoiPage() {
                         <tr><th>Source</th><th>URL</th><th>Date</th></tr>
                       </thead>
                       <tbody>
-                        {result.explanation.benchmark_sources.map((s, i) => (
+                        {(result.explanation.benchmark_sources || []).map((s, i) => (
                           <tr key={i}>
                             <td>{s.name}</td>
                             <td><a href={s.url} target="_blank" rel="noopener noreferrer">{s.url}</a></td>
@@ -427,7 +427,7 @@ export function CostRoiPage() {
             <div className="cr-scenarios-section">
               <h3>Saved Scenarios</h3>
               <div className="cr-scenarios-list">
-                {savedScenarios.map(s => (
+                {(savedScenarios || []).map(s => (
                   <div key={s.id} className="cr-scenario-card">
                     <div className="cr-scenario-header">
                       <strong>{s.name}</strong>
