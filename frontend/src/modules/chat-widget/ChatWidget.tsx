@@ -229,7 +229,14 @@ export function ChatWidget() {
         onClick={() => open ? setOpen(false) : handleOpen()}
         aria-label={open ? 'Close chat' : 'Open RAG Architect'}
       >
-        {open ? '✕' : '💬'}
+        {open ? '✕' : (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+            {/* Back bubble */}
+            <path d="M20 2H8C6.9 2 6 2.9 6 4V12C6 13.1 6.9 14 8 14H14L18 18V14H20C21.1 14 22 13.1 22 12V4C22 2.9 21.1 2 20 2Z" fill="rgba(255,255,255,0.5)" />
+            {/* Front bubble */}
+            <path d="M16 8H4C2.9 8 2 8.9 2 10V18C2 19.1 2.9 20 4 20H6V24L10 20H16C17.1 20 18 19.1 18 18V10C18 8.9 17.1 8 16 8Z" fill="#fff" />
+          </svg>
+        )}
       </button>
 
       {/* Panel */}
