@@ -7,6 +7,9 @@ import { EmptyState, LoadingMessage } from '../ui/feedback'
 import { IntegrationWizard } from '../admin-integrations/IntegrationWizard'
 import { SkeletonGrid } from '../ui/Skeleton'
 import { useToast } from '../ui/ToastContext'
+import { ConnectorCatalog } from './ConnectorCatalog'
+import { ConnectorConfigDrawer } from './ConnectorConfigDrawer'
+import type { ConnectorDef } from './connectorRegistry'
 import './integrations-studio.css'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -33,12 +36,13 @@ export function IntegrationsStudioPage() {
   const integrations = integrationsQuery.data ?? []
   const environments = environmentsQuery.data ?? []
   const saveEnvironment = useSaveEnvironment()
-  const [activeTab, setActiveTab] = useState<'list' | 'matrix'>('list')
+  const [activeTab, setActiveTab] = useState<'catalog' | 'list' | 'matrix'>('catalog')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [editing, setEditing] = useState<IntegrationConfig | null>(null)
   const [testResult, setTestResult] = useState<TestConnectionResult | null>(null)
+  const [selectedConnector, setSelectedConnector] = useState<ConnectorDef | null>(null)
 
   const testMutation = useMutation({
     mutationFn: (id: string) => testConnection(id),
@@ -79,10 +83,17 @@ export function IntegrationsStudioPage() {
       <div className="int-studio-tabs">
         <button
           type="button"
+          className={activeTab === 'catalog' ? 'int-studio-tab int-studio-tab--active' : 'int-studio-tab'}
+          onClick={() => setActiveTab('catalog')}
+        >
+          Catalog
+        </button>
+        <button
+          type="button"
           className={activeTab === 'list' ? 'int-studio-tab int-studio-tab--active' : 'int-studio-tab'}
           onClick={() => setActiveTab('list')}
         >
-          List
+          Active
         </button>
         <button
           type="button"
@@ -92,6 +103,13 @@ export function IntegrationsStudioPage() {
           Binding matrix
         </button>
       </div>
+
+      {activeTab === 'catalog' && (
+        <ConnectorCatalog
+          integrations={integrations}
+          onSelect={(c) => setSelectedConnector(c)}
+        />
+      )}
 
       {activeTab === 'list' && (
         <div className="int-studio-list-layout">
@@ -280,6 +298,13 @@ export function IntegrationsStudioPage() {
             setWizardOpen(false)
             if (editing?.id === selectedIntegration?.id) setSelectedIntegration(null)
           }}
+        />
+      )}
+
+      {selectedConnector && (
+        <ConnectorConfigDrawer
+          connector={selectedConnector}
+          onClose={() => setSelectedConnector(null)}
         />
       )}
     </div>
