@@ -53,9 +53,13 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
-    # Seed canonical benchmark queries into DB (idempotent)
-    from routers.evaluations import seed_benchmark_queries
-    seed_benchmark_queries()
+    # Seed canonical benchmark queries into DB (idempotent, graceful if table missing)
+    try:
+        from routers.evaluations import seed_benchmark_queries
+        seed_benchmark_queries()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Benchmark seed skipped: %s", e)
 
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
