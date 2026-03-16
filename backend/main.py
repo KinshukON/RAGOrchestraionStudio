@@ -18,6 +18,7 @@ from routers import (
     admin_preferences,
     admin_observability,
     architectures,
+    cost_roi,
     demo,
 )
 from db import init_db
@@ -70,6 +71,7 @@ app.include_router(admin_sessions.router, prefix="/api/admin/sessions", tags=["a
 app.include_router(admin_views.router, prefix="/api/admin/views", tags=["admin-views"])
 app.include_router(admin_preferences.router, prefix="/api/admin/preferences", tags=["admin-preferences"])
 app.include_router(admin_observability.router, prefix="/api/admin/observability", tags=["admin-observability"])
+app.include_router(cost_roi.router, prefix="/api/cost-roi", tags=["cost-roi"])
 app.include_router(demo.router, prefix="/api/demo", tags=["demo"])
 
 

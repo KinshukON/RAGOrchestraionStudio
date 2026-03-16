@@ -1,99 +1,174 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { listCostProfiles, calculateCost, saveScenario, listScenarios, deleteScenario, type CalculateResponse } from '../../api/costRoi'
+import { useToast } from '../ui/ToastContext'
 import './cost-roi.css'
-
-// ── Types ────────────────────────────────────────────────────────────────
-interface ArchInputs {
-  archType: string
-  monthlyQueryVolume: number
-  avgChunkSize: number          // tokens
-  topK: number
-  embeddingCostPer1MTokens: number   // $/1M tokens
-  llmInputCostPer1MTokens: number
-  llmOutputCostPer1MTokens: number
-  avgInputTokens: number             // tokens per query (context)
-  avgOutputTokens: number
-}
-
-interface ArchDefault extends Partial<Omit<ArchInputs, 'archType'>> {
-  latencyEstMs?: number
-}
-
-const ARCH_DEFAULTS: Record<string, ArchDefault> = {
-  vector:             { topK: 8,  avgChunkSize: 512, latencyEstMs: 380 },
-  vectorless:         { topK: 10, avgChunkSize: 256, latencyEstMs: 120 },
-  graph:              { topK: 5,  avgChunkSize: 768, latencyEstMs: 900 },
-  temporal:           { topK: 8,  avgChunkSize: 512, latencyEstMs: 450 },
-  hybrid:             { topK: 12, avgChunkSize: 512, latencyEstMs: 620 },
-  custom:             { topK: 8,  avgChunkSize: 512, latencyEstMs: 500 },
-  agentic:            { topK: 10, avgChunkSize: 512, latencyEstMs: 1200 },
-  modular:            { topK: 8,  avgChunkSize: 512, latencyEstMs: 550 },
-  memory_augmented:   { topK: 10, avgChunkSize: 640, latencyEstMs: 480 },
-  multimodal:         { topK: 6,  avgChunkSize: 1024, latencyEstMs: 1400 },
-  federated:          { topK: 8,  avgChunkSize: 512, latencyEstMs: 950 },
-  streaming:          { topK: 5,  avgChunkSize: 256, latencyEstMs: 180 },
-  contextual:         { topK: 10, avgChunkSize: 512, latencyEstMs: 420 },
-  knowledge_enhanced: { topK: 6,  avgChunkSize: 768, latencyEstMs: 850 },
-  self_rag:           { topK: 8,  avgChunkSize: 512, latencyEstMs: 1100 },
-  hyde:               { topK: 8,  avgChunkSize: 512, latencyEstMs: 750 },
-  recursive:          { topK: 12, avgChunkSize: 512, latencyEstMs: 1300 },
-  domain_specific:    { topK: 8,  avgChunkSize: 640, latencyEstMs: 600 },
-}
-
-
-const ARCH_LABELS: Record<string, string> = {
-  vector: 'Vector RAG', vectorless: 'Vectorless RAG', graph: 'Graph RAG',
-  temporal: 'Temporal RAG', hybrid: 'Hybrid RAG', custom: 'Custom RAG',
-  agentic: 'Agentic RAG', modular: 'Modular RAG', memory_augmented: 'Memory-Augmented RAG',
-  multimodal: 'Multi-Modal RAG', federated: 'Federated RAG', streaming: 'Streaming RAG',
-  contextual: 'Contextual RAG', knowledge_enhanced: 'Knowledge-Enhanced RAG',
-  self_rag: 'Self-RAG', hyde: 'HyDE RAG', recursive: 'Recursive RAG',
-  domain_specific: 'Domain-Specific RAG',
-}
 
 function fmtUSD(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 function fmtK(n: number) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n.toString() }
 
 export function CostRoiPage() {
-  const [arch, setArch] = useState('vector')
+  const qc = useQueryClient()
+  const { success, error: toastError } = useToast()
+
+  // ── Fetch profiles from DB ──
+  const profilesQ = useQuery({ queryKey: ['cost-profiles'], queryFn: listCostProfiles })
+  const profiles = profilesQ.data ?? []
+  const scenariosQ = useQuery({ queryKey: ['cost-scenarios'], queryFn: () => listScenarios() })
+  const savedScenarios = scenariosQ.data ?? []
+
+  // ── State ──
+  const [arch, setArch] = useState('')
   const [monthly, setMonthly] = useState(50000)
-  const [embedding, setEmbedding] = useState(0.13)      // $/1M tokens (text-embedding-3-small)
-  const [llmInput, setLlmInput] = useState(2.50)        // $/1M tokens (GPT-4o)
+  const [topK, setTopK] = useState(8)
+  const [chunkSize, setChunkSize] = useState(512)
+  const [embedding, setEmbedding] = useState(0.13)
+  const [llmInput, setLlmInput] = useState(2.50)
   const [llmOutput, setLlmOutput] = useState(10.00)
-  const [avgContext, setAvgContext] = useState(1800)     // tokens per query
-  const [avgOutput, setAvgOutput] = useState(350)
-  const [analystHrs, setAnalystHrs] = useState(40)      // manual lookup hrs/month
-  const [analystRate, setAnalystRate] = useState(120)   // $/hr
-  const [platformSetup, setPlatformSetup] = useState(25000) // one-time setup cost
-  const [topK, setTopK] = useState(ARCH_DEFAULTS[arch]?.topK ?? 8)
-  const [chunkSize, setChunkSize] = useState(ARCH_DEFAULTS[arch]?.avgChunkSize ?? 512)
+  const [avgContext, setAvgContext] = useState(1800)
+  const [avgOutputTokens, setAvgOutputTokens] = useState(350)
+  const [analystHrs, setAnalystHrs] = useState(40)
+  const [analystRate, setAnalystRate] = useState(120)
+  const [platformSetup, setPlatformSetup] = useState(25000)
+  const [drillOpen, setDrillOpen] = useState<string | null>(null)
+  const [showSources, setShowSources] = useState(false)
+  const [saveName, setSaveName] = useState('')
 
-  // Latency estimate (ms) — derived from arch
-  const latencyMs = (ARCH_DEFAULTS[arch] as { latencyEstMs?: number })?.latencyEstMs ?? 500
+  // Set arch to first profile once loaded
+  useEffect(() => {
+    if (profiles.length > 0 && !arch) {
+      const first = profiles[0]
+      setArch(first.architecture_type)
+      setTopK(first.default_top_k)
+      setChunkSize(first.default_chunk_size)
+      setEmbedding(first.embedding_cost_per_1m)
+      setLlmInput(first.llm_input_cost_per_1m)
+      setLlmOutput(first.llm_output_cost_per_1m)
+    }
+  }, [profiles, arch])
 
-  // ── Cost computation ────────────────────────────────────────────────
-  const retrievalTokensPerQuery = topK * chunkSize
-  const embeddingCostPerQuery = (retrievalTokensPerQuery / 1_000_000) * embedding
-  const llmInputCostPerQuery = (avgContext / 1_000_000) * llmInput
-  const llmOutputCostPerQuery = (avgOutput / 1_000_000) * llmOutput
-  const costPerQuery = embeddingCostPerQuery + llmInputCostPerQuery + llmOutputCostPerQuery
-  const monthlyCost = costPerQuery * monthly
-  const annualCost = monthlyCost * 12
+  const currentProfile = useMemo(() => profiles.find(p => p.architecture_type === arch), [profiles, arch])
 
-  const manualMonthly = analystHrs * analystRate
-  const manualAnnual = manualMonthly * 12
-  const annualSavings = manualAnnual - annualCost
-  const paybackMonths = annualSavings > 0 ? Math.ceil(((platformSetup + annualCost / 12) / (manualMonthly - monthlyCost))) : Infinity
+  // ── Calculate via backend ──
+  const calcMutation = useMutation({
+    mutationFn: calculateCost,
+  })
 
-  const positiveROI = annualSavings > 0
+  const triggerCalc = useCallback(() => {
+    if (!arch) return
+    calcMutation.mutate({
+      architecture_type: arch,
+      monthly_query_volume: monthly,
+      top_k: topK,
+      chunk_size: chunkSize,
+      embedding_cost_per_1m: embedding,
+      llm_input_cost_per_1m: llmInput,
+      llm_output_cost_per_1m: llmOutput,
+      avg_context_tokens: avgContext,
+      avg_output_tokens: avgOutputTokens,
+      analyst_hours_saved: analystHrs,
+      analyst_hourly_rate: analystRate,
+      platform_setup_cost: platformSetup,
+    })
+  }, [arch, monthly, topK, chunkSize, embedding, llmInput, llmOutput, avgContext, avgOutputTokens, analystHrs, analystRate, platformSetup, calcMutation])
+
+  // Auto-calculate on any input change
+  useEffect(() => {
+    if (arch) triggerCalc()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arch, monthly, topK, chunkSize, embedding, llmInput, llmOutput, avgContext, avgOutputTokens, analystHrs, analystRate, platformSetup])
+
+  const result: CalculateResponse | null = calcMutation.data ?? null
+  const positiveROI = result ? result.annual_savings > 0 : false
+
+  // ── Save scenario ──
+  const saveMut = useMutation({
+    mutationFn: saveScenario,
+    onSuccess: () => {
+      success('Scenario saved!')
+      setSaveName('')
+      qc.invalidateQueries({ queryKey: ['cost-scenarios'] })
+    },
+    onError: () => toastError('Failed to save scenario'),
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: deleteScenario,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cost-scenarios'] }),
+  })
+
+  function handleSave() {
+    if (!result || !saveName.trim()) return
+    saveMut.mutate({
+      name: saveName.trim(),
+      architecture_type: arch,
+      inputs: result.inputs_used,
+      results: {
+        cost_per_query: result.cost_per_query,
+        monthly_cost: result.monthly_cost,
+        annual_cost: result.annual_cost,
+        annual_savings: result.annual_savings,
+        payback_months: result.payback_months,
+      },
+    })
+  }
+
+  function handleArchChange(newArch: string) {
+    setArch(newArch)
+    const p = profiles.find(pr => pr.architecture_type === newArch)
+    if (p) {
+      setTopK(p.default_top_k)
+      setChunkSize(p.default_chunk_size)
+      setEmbedding(p.embedding_cost_per_1m)
+      setLlmInput(p.llm_input_cost_per_1m)
+      setLlmOutput(p.llm_output_cost_per_1m)
+    }
+  }
+
+  // ── Drillable metric tile ──
+  function MetricTile({ id, label, value, sub, variant, explanation }: {
+    id: string; label: string; value: string | number; sub?: string;
+    variant?: 'ok' | 'warn' | 'info' | 'positive' | 'negative' | 'warning';
+    explanation?: string
+  }) {
+    const isOpen = drillOpen === id
+    return (
+      <div className={`cr-metric cr-metric--${variant ?? 'info'} ${isOpen ? 'cr-metric--drilled' : ''}`}
+        onClick={() => setDrillOpen(isOpen ? null : id)} role="button" tabIndex={0}>
+        <div className="cr-metric-label">{label}</div>
+        <div className="cr-metric-value">{value}{sub && <span className="cr-metric-unit"> {sub}</span>}</div>
+        <div className="cr-drill-indicator">{isOpen ? '▲' : '▼'} details</div>
+        {isOpen && explanation && (
+          <div className="cr-drill-panel" onClick={e => e.stopPropagation()}>
+            <p className="cr-drill-text">{explanation}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (profilesQ.isLoading) {
+    return (
+      <div className="cr-root">
+        <div className="cr-header"><h1 className="cr-title">Cost & ROI Calculator</h1></div>
+        <p style={{ color: 'var(--color-text-muted)' }}>Loading cost profiles from database…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="cr-root">
       <div className="cr-header">
-        <h1 className="cr-title">Cost &amp; ROI Calculator</h1>
-        <p className="cr-subtitle">
-          Estimate the cost of running your RAG architecture and compare it against the value it delivers.
-          All figures are indicative — adjust inputs to match your actual usage.
-        </p>
+        <div>
+          <h1 className="cr-title">Cost & ROI Calculator</h1>
+          <p className="cr-subtitle">
+            All cost parameters are sourced from the database. Click any metric tile to drill into the calculation.
+            Benchmark sources are disclosed below.
+          </p>
+        </div>
+        <div className="cr-as-of">
+          As of {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </div>
       </div>
 
       <div className="cr-layout">
@@ -103,17 +178,18 @@ export function CostRoiPage() {
 
           <div className="cr-field">
             <label>Architecture</label>
-            <select value={arch} onChange={e => {
-              const a = e.target.value
-              setArch(a)
-              setTopK(ARCH_DEFAULTS[a]?.topK ?? 8)
-              setChunkSize(ARCH_DEFAULTS[a]?.avgChunkSize ?? 512)
-            }}>
-              {Object.entries(ARCH_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+            <select value={arch} onChange={e => handleArchChange(e.target.value)}>
+              {profiles.map(p => (
+                <option key={p.architecture_type} value={p.architecture_type}>{p.label}</option>
               ))}
             </select>
           </div>
+
+          {currentProfile && (
+            <div className="cr-profile-note">
+              <span className="cr-note-label">Profile note:</span> {currentProfile.notes}
+            </div>
+          )}
 
           <div className="cr-field">
             <label>Monthly query volume</label>
@@ -170,8 +246,8 @@ export function CostRoiPage() {
 
           <div className="cr-field">
             <label>Avg output tokens / query</label>
-            <input type="number" step="50" min="50" value={avgOutput}
-              onChange={e => setAvgOutput(+e.target.value)} className="cr-number-input" />
+            <input type="number" step="50" min="50" value={avgOutputTokens}
+              onChange={e => setAvgOutputTokens(+e.target.value)} className="cr-number-input" />
           </div>
 
           <h2 className="cr-section-title">Value Baseline</h2>
@@ -193,126 +269,180 @@ export function CostRoiPage() {
             <input type="number" step={1000} min="0" value={platformSetup}
               onChange={e => setPlatformSetup(+e.target.value)} className="cr-number-input" />
           </div>
+
+          {/* Save scenario */}
+          <h2 className="cr-section-title">Save Scenario</h2>
+          <div className="cr-field">
+            <input type="text" placeholder="Scenario name…" value={saveName}
+              onChange={e => setSaveName(e.target.value)} className="cr-number-input" />
+          </div>
+          <button className="cr-save-btn" onClick={handleSave}
+            disabled={!saveName.trim() || !result || saveMut.isPending}>
+            {saveMut.isPending ? 'Saving…' : '💾 Save current calculation'}
+          </button>
         </aside>
 
         {/* ── Results panel ── */}
         <section className="cr-results">
-          <div className="cr-arch-badge" data-arch={arch}>
-            {ARCH_LABELS[arch]}
-          </div>
-
-          {/* Key metrics */}
-          <div className="cr-metrics-grid">
-            <div className="cr-metric">
-              <div className="cr-metric-label">Cost per query</div>
-              <div className="cr-metric-value">{fmtUSD(costPerQuery * 1000)}<span className="cr-metric-unit"> /1K queries</span></div>
-            </div>
-            <div className="cr-metric">
-              <div className="cr-metric-label">Monthly infra cost</div>
-              <div className="cr-metric-value">{fmtUSD(monthlyCost)}</div>
-            </div>
-            <div className="cr-metric">
-              <div className="cr-metric-label">Annual infra cost</div>
-              <div className="cr-metric-value">{fmtUSD(annualCost)}</div>
-            </div>
-            <div className={`cr-metric ${positiveROI ? 'cr-metric--positive' : 'cr-metric--negative'}`}>
-              <div className="cr-metric-label">Annual net savings</div>
-              <div className="cr-metric-value">{positiveROI ? '+' : ''}{fmtUSD(annualSavings)}</div>
-            </div>
-            <div className="cr-metric">
-              <div className="cr-metric-label">Estimated latency</div>
-              <div className="cr-metric-value">{latencyMs}<span className="cr-metric-unit"> ms</span></div>
-            </div>
-            <div className={`cr-metric ${positiveROI ? 'cr-metric--positive' : 'cr-metric--warning'}`}>
-              <div className="cr-metric-label">Payback period</div>
-              <div className="cr-metric-value">
-                {paybackMonths === Infinity ? 'N/A' : `${paybackMonths} mo`}
+          {result ? (
+            <>
+              <div className="cr-arch-badge" data-arch={arch}>
+                {result.architecture_label}
               </div>
-            </div>
-          </div>
 
-          {/* Cost breakdown */}
-          <div className="cr-breakdown">
-            <h3>Cost breakdown per query</h3>
-            <div className="cr-breakdown-bar">
-              <div className="cr-bar-seg cr-bar-seg--embedding"
-                style={{ width: `${(embeddingCostPerQuery / costPerQuery * 100).toFixed(1)}%` }}
-                title={`Embedding: ${fmtUSD(embeddingCostPerQuery * 1000)} /1K`} />
-              <div className="cr-bar-seg cr-bar-seg--llm-input"
-                style={{ width: `${(llmInputCostPerQuery / costPerQuery * 100).toFixed(1)}%` }}
-                title={`LLM input: ${fmtUSD(llmInputCostPerQuery * 1000)} /1K`} />
-              <div className="cr-bar-seg cr-bar-seg--llm-output"
-                style={{ width: `${(llmOutputCostPerQuery / costPerQuery * 100).toFixed(1)}%` }}
-                title={`LLM output: ${fmtUSD(llmOutputCostPerQuery * 1000)} /1K`} />
-            </div>
-            <div className="cr-breakdown-legend">
-              <span><span className="cr-legend-dot cr-legend-dot--embedding"/>Embedding ({(embeddingCostPerQuery / costPerQuery * 100).toFixed(0)}%)</span>
-              <span><span className="cr-legend-dot cr-legend-dot--llm-input"/>LLM input ({(llmInputCostPerQuery / costPerQuery * 100).toFixed(0)}%)</span>
-              <span><span className="cr-legend-dot cr-legend-dot--llm-output"/>LLM output ({(llmOutputCostPerQuery / costPerQuery * 100).toFixed(0)}%)</span>
-            </div>
-          </div>
-
-          {/* ROI narrative */}
-          <div className={`cr-roi-card ${positiveROI ? 'cr-roi-card--positive' : 'cr-roi-card--negative'}`}>
-            <div className="cr-roi-icon">{positiveROI ? '📈' : '⚠️'}</div>
-            <div>
-              <div className="cr-roi-title">
-                {positiveROI
-                  ? `Positive ROI — payback in ${paybackMonths} month${paybackMonths === 1 ? '' : 's'}`
-                  : 'Infra cost exceeds current manual baseline'}
+              {/* Drillable KPI tiles */}
+              <div className="cr-metrics-grid">
+                <MetricTile id="cpq" label="Cost per query" value={fmtUSD(result.cost_per_1k_queries)} sub="/1K queries"
+                  variant="info"
+                  explanation={`Embedding: ${fmtUSD(result.breakdown.embedding_cost_per_query * 1000)}/1K + LLM input: ${fmtUSD(result.breakdown.llm_input_cost_per_query * 1000)}/1K + LLM output: ${fmtUSD(result.breakdown.llm_output_cost_per_query * 1000)}/1K. Formula: (topK × chunkSize × embeddingRate) + (contextTokens × inputRate) + (outputTokens × outputRate).`} />
+                <MetricTile id="mc" label="Monthly infra cost" value={fmtUSD(result.monthly_cost)}
+                  variant="info"
+                  explanation={`${fmtK(monthly)} queries/month × ${fmtUSD(result.cost_per_query)}/query = ${fmtUSD(result.monthly_cost)}/month. This is the pure compute cost excluding infrastructure (hosting, vector DB, etc.).`} />
+                <MetricTile id="ac" label="Annual infra cost" value={fmtUSD(result.annual_cost)}
+                  variant="info"
+                  explanation={`Monthly cost × 12 = ${fmtUSD(result.monthly_cost)} × 12 = ${fmtUSD(result.annual_cost)}.`} />
+                <MetricTile id="ns" label="Annual net savings" value={`${positiveROI ? '+' : ''}${fmtUSD(result.annual_savings)}`}
+                  variant={positiveROI ? 'positive' : 'negative'}
+                  explanation={`Manual cost: ${fmtUSD(result.manual_monthly)}/mo × 12 = ${fmtUSD(result.manual_monthly * 12)}/yr. Minus annual infra: ${fmtUSD(result.annual_cost)} = ${fmtUSD(result.annual_savings)} savings.`} />
+                <MetricTile id="lat" label="Estimated latency" value={`${result.latency_estimate_ms}`} sub="ms"
+                  variant="info"
+                  explanation={currentProfile?.latency_source ?? 'No source available.'} />
+                <MetricTile id="pb" label="Payback period"
+                  value={result.payback_months != null ? `${result.payback_months} mo` : 'N/A'}
+                  variant={positiveROI ? 'positive' : 'warning'}
+                  explanation={`Setup cost: ${fmtUSD(platformSetup)}. Monthly net savings: ${fmtUSD(result.manual_monthly - result.monthly_cost)}. Payback = setup / monthly net = ${result.payback_months ?? 'N/A'} months.`} />
               </div>
-              <p className="cr-roi-body">
-                {positiveROI
-                  ? `At ${fmtK(monthly)} queries/month, ${ARCH_LABELS[arch]} costs ${fmtUSD(monthlyCost)}/month vs ${fmtUSD(manualMonthly)}/month in analyst time — saving ${fmtUSD(annualSavings)} annually after the ${fmtUSD(platformSetup)} setup investment.`
-                  : `Analyst time savings (${fmtUSD(manualMonthly)}/mo) are less than infra cost (${fmtUSD(monthlyCost)}/mo). Increase query volume or reduce per-query cost to reach ROI.`}
-              </p>
-            </div>
-          </div>
 
-          {/* Architecture comparison table */}
-          <div className="cr-compare">
-            <h3>Architecture comparison at {fmtK(monthly)} queries/month</h3>
-            <table className="cr-compare-table">
-              <thead>
-                <tr>
-                  <th>Architecture</th>
-                  <th>Est. monthly cost</th>
-                  <th>Latency</th>
-                  <th>Relative cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(ARCH_LABELS).map(([a, label]) => {
-                  const d = ARCH_DEFAULTS[a] as { topK?: number; avgChunkSize?: number; latencyEstMs?: number }
-                  const arcK = d?.topK ?? 8
-                  const arcChunk = d?.avgChunkSize ?? 512
-                  const arcLatency = d?.latencyEstMs ?? 500
-                  const arcEmbed = (arcK * arcChunk / 1_000_000) * embedding
-                  const arcIn = (avgContext / 1_000_000) * llmInput
-                  const arcOut = (avgOutput / 1_000_000) * llmOutput
-                  const arcMonth = (arcEmbed + arcIn + arcOut) * monthly
-                  const isCurrent = a === arch
-                  return (
-                    <tr key={a} className={isCurrent ? 'cr-compare-current' : ''}>
-                      <td>{label}{isCurrent && <span className="cr-compare-selected"> ◀ selected</span>}</td>
-                      <td>{fmtUSD(arcMonth)}</td>
-                      <td>{arcLatency} ms</td>
-                      <td>
-                        <div className="cr-compare-bar-wrap">
-                          <div className="cr-compare-bar"
-                            style={{ width: `${Math.min(100, arcMonth / (Math.max(...Object.keys(ARCH_DEFAULTS).map(ak => {
-                              const dd = ARCH_DEFAULTS[ak] as { topK?: number; avgChunkSize?: number }
-                              return ((dd?.topK ?? 8) * (dd?.avgChunkSize ?? 512) / 1_000_000 * embedding + avgContext / 1_000_000 * llmInput + avgOutput / 1_000_000 * llmOutput) * monthly
-                            }))) * 100).toFixed(1)}%` }}
-                          />
-                        </div>
-                      </td>
+              {/* Cost breakdown */}
+              <div className="cr-breakdown">
+                <h3>Cost breakdown per query</h3>
+                <div className="cr-breakdown-bar">
+                  <div className="cr-bar-seg cr-bar-seg--embedding"
+                    style={{ width: `${result.breakdown.embedding_pct}%` }}
+                    title={`Embedding: ${fmtUSD(result.breakdown.embedding_cost_per_query * 1000)} /1K`} />
+                  <div className="cr-bar-seg cr-bar-seg--llm-input"
+                    style={{ width: `${result.breakdown.llm_input_pct}%` }}
+                    title={`LLM input: ${fmtUSD(result.breakdown.llm_input_cost_per_query * 1000)} /1K`} />
+                  <div className="cr-bar-seg cr-bar-seg--llm-output"
+                    style={{ width: `${result.breakdown.llm_output_pct}%` }}
+                    title={`LLM output: ${fmtUSD(result.breakdown.llm_output_cost_per_query * 1000)} /1K`} />
+                </div>
+                <div className="cr-breakdown-legend">
+                  <span><span className="cr-legend-dot cr-legend-dot--embedding"/>Embedding ({result.breakdown.embedding_pct}%)</span>
+                  <span><span className="cr-legend-dot cr-legend-dot--llm-input"/>LLM input ({result.breakdown.llm_input_pct}%)</span>
+                  <span><span className="cr-legend-dot cr-legend-dot--llm-output"/>LLM output ({result.breakdown.llm_output_pct}%)</span>
+                </div>
+              </div>
+
+              {/* ROI narrative */}
+              <div className={`cr-roi-card ${positiveROI ? 'cr-roi-card--positive' : 'cr-roi-card--negative'}`}>
+                <div className="cr-roi-icon">{positiveROI ? '📈' : '⚠️'}</div>
+                <div>
+                  <div className="cr-roi-title">
+                    {positiveROI
+                      ? `Positive ROI — payback in ${result.payback_months} month${result.payback_months === 1 ? '' : 's'}`
+                      : 'Infra cost exceeds current manual baseline'}
+                  </div>
+                  <p className="cr-roi-body">{result.explanation.methodology}</p>
+                </div>
+              </div>
+
+              {/* Architecture comparison */}
+              <div className="cr-compare">
+                <h3>Architecture comparison at {fmtK(monthly)} queries/month</h3>
+                <table className="cr-compare-table">
+                  <thead>
+                    <tr>
+                      <th>Architecture</th>
+                      <th>Latency</th>
+                      <th>Default Top-K</th>
+                      <th>Notes</th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {profiles.map(p => {
+                      const isCurrent = p.architecture_type === arch
+                      return (
+                        <tr key={p.architecture_type} className={isCurrent ? 'cr-compare-current' : ''}
+                          onClick={() => handleArchChange(p.architecture_type)} style={{ cursor: 'pointer' }}>
+                          <td>{p.label}{isCurrent && <span className="cr-compare-selected"> ◀ selected</span>}</td>
+                          <td>{p.latency_estimate_ms} ms</td>
+                          <td>{p.default_top_k}</td>
+                          <td className="cr-compare-notes">{p.notes}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Methodology + Assumptions */}
+              <div className="cr-explain-section">
+                <h3>Calculation Methodology</h3>
+                <p className="cr-explain-text">{result.explanation.methodology}</p>
+
+                <h4>Assumptions</h4>
+                <ul className="cr-explain-list">
+                  {result.explanation.assumptions.map((a, i) => <li key={i}>{a}</li>)}
+                </ul>
+              </div>
+
+              {/* Benchmark Sources Disclosure */}
+              <div className="cr-sources-section">
+                <button className="cr-sources-toggle" onClick={() => setShowSources(s => !s)}>
+                  {showSources ? '▼' : '▶'} Benchmark Data Sources ({result.explanation.benchmark_sources.length})
+                </button>
+                {showSources && (
+                  <div className="cr-sources-list">
+                    <p className="cr-sources-disclaimer">
+                      Cost estimates and latency figures are derived from the following benchmarks and pricing pages.
+                      These sources are indicative and may not reflect your specific deployment.
+                    </p>
+                    <table className="cr-sources-table">
+                      <thead>
+                        <tr><th>Source</th><th>URL</th><th>Date</th></tr>
+                      </thead>
+                      <tbody>
+                        {result.explanation.benchmark_sources.map((s, i) => (
+                          <tr key={i}>
+                            <td>{s.name}</td>
+                            <td><a href={s.url} target="_blank" rel="noopener noreferrer">{s.url}</a></td>
+                            <td>{s.date}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="cr-loading-results">
+              <p>Select an architecture to see cost analysis.</p>
+            </div>
+          )}
+
+          {/* Saved scenarios */}
+          {savedScenarios.length > 0 && (
+            <div className="cr-scenarios-section">
+              <h3>Saved Scenarios</h3>
+              <div className="cr-scenarios-list">
+                {savedScenarios.map(s => (
+                  <div key={s.id} className="cr-scenario-card">
+                    <div className="cr-scenario-header">
+                      <strong>{s.name}</strong>
+                      <span className="cr-scenario-arch">{s.architecture_type}</span>
+                    </div>
+                    <div className="cr-scenario-meta">
+                      Monthly: {fmtUSD((s.results as Record<string, number>).monthly_cost ?? 0)} ·
+                      Savings: {fmtUSD((s.results as Record<string, number>).annual_savings ?? 0)}/yr
+                    </div>
+                    <button className="cr-scenario-delete" onClick={() => deleteMut.mutate(s.id)}>✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
