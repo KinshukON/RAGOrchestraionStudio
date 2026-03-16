@@ -171,12 +171,95 @@ async def sign_in_with_google(payload: GoogleSignInRequest) -> AuthResponse:
             ),
         )
     except HTTPException:
-        raise  # let FastAPI handle 401/502 etc. normally
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Sign-in error: {type(exc).__name__}: {exc}\n\n{_tb.format_exc()}",
+            detail=f"Sign-in error: {type(exc).__name__}: {exc}",
         ) from exc
+
+
+class GoogleCodeRequest(BaseModel):
+    code: str = Field(..., description="OAuth 2.0 authorization code from Google redirect")
+    redirect_uri: str = Field(..., description="Redirect URI used in the original auth request")
+
+
+GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+
+
+@router.post("/google-code", response_model=AuthResponse)
+async def sign_in_with_google_code(payload: GoogleCodeRequest) -> AuthResponse:
+    """
+    Exchange a Google authorization code for application access + refresh tokens.
+    Used by the redirect-based OAuth flow (replaces deprecated One Tap).
+    Requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars.
+    """
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
+    if not client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GOOGLE_CLIENT_SECRET is not configured on the server",
+        )
+
+    # Exchange authorization code for tokens
+    try:
+        token_response = requests.post(
+            GOOGLE_TOKEN_ENDPOINT,
+            data={
+                "code": payload.code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": payload.redirect_uri,
+                "grant_type": "authorization_code",
+            },
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to reach Google token endpoint",
+        ) from exc
+
+    if token_response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Google token exchange failed: {token_response.text}",
+        )
+
+    token_data = token_response.json()
+    id_token = token_data.get("id_token")
+    if not id_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google did not return an id_token",
+        )
+
+    # Reuse the existing id_token verification + user upsert logic
+    google_payload = _verify_google_id_token(id_token)
+    user, permissions = _get_or_create_user(google_payload)
+
+    access_token, expires_in = create_access_token(
+        user_id=str(user.id),
+        email=user.email,
+        name=user.name,
+        permissions=permissions,
+    )
+    refresh_token = create_refresh_token(user_id=str(user.id))
+    _create_db_session(user.id or 0)
+
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=expires_in,
+        user=AuthUser(
+            id=str(user.id),
+            name=user.name,
+            email=user.email,
+            permissions=permissions,
+        ),
+    )
 
 
 

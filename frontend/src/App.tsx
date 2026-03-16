@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { LandingPage } from './modules/auth/LandingPage'
+import { AuthCallbackPage } from './modules/auth/AuthCallbackPage'
 import { AppShell } from './modules/layout/AppShell'
 import { WorkflowBuilderPage } from './modules/workflow-builder/WorkflowBuilderPage'
 import { QueryStudioPage } from './modules/query-studio/QueryStudioPage'
@@ -46,6 +47,7 @@ function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route
           path="/app"
           element={
