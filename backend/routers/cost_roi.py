@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -487,11 +488,12 @@ async def save_scenario(body: ScenarioCreate, user_id: str = "anonymous") -> Sce
         return ScenarioOut.model_validate(scenario, from_attributes=True)
 
 
-@router.delete("/scenarios/{scenario_id}", status_code=204)
-async def delete_scenario(scenario_id: int) -> None:
+@router.delete("/scenarios/{scenario_id}")
+async def delete_scenario(scenario_id: int):
     with get_session() as session:
         scenario = session.get(CostScenario, scenario_id)
         if not scenario:
             raise HTTPException(404, "Scenario not found")
         session.delete(scenario)
         session.commit()
+    return Response(status_code=204)
