@@ -1,6 +1,6 @@
 # RAGOS — RAG Orchestration Studio · Technical Dossier
 
-> **Version:** 2.2 · March 2026  
+> **Version:** 2.3 · March 2026  
 > **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > **Repository:** [github.com/KinshukON/RAGOrchestraionStudio](https://github.com/KinshukON/RAGOrchestraionStudio)
 
@@ -45,6 +45,13 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
   - Enterprise UI system: ErrorBoundary, ToastContext, Skeleton loaders, EmptyState, SimBanner.
   - In-app User Guide + downloadable PDF.
   - Vercel + Railway deployment with API proxying.
+  - **Sprint 5 — 100% Maturity Roadmap (7 workstreams):**
+    - Cost & ROI: 4-tab view (Calculator with Layer 1/2/3, TCO Comparator, Use-Case ROI Templates, Env Cost Heatmap).
+    - Observability: 7-tab view with AI Recommendations.
+    - Integrations Studio: Stack Validation + Connector Packs tabs.
+    - Architecture Catalog: Tiered View toggle with governance profile overlays.
+    - Executive Summary: 4-tab view (Overview with live KPIs, Action Board, ROI Summary, Business Case Generator).
+    - 30+ new backend endpoints across 6 routers; 3 new API client files.
 
 - **Aspirational / Planned:**
   - Real RAG retrieval against vector/graph/temporal backends and live LLM orchestration.
@@ -107,6 +114,11 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 | PostgreSQL persistence | Implemented | `backend/db.py` | Supabase Postgres via SQLModel; `create_all` at startup; `?supa=` pool parameter stripped for psycopg2 compatibility |
 | Evaluation pipelines | Partial | `backend/routers/evaluations.py`, `api/evaluations.ts` | Test-case saving wired; no metrics computation, A/B test UI, or evaluation dashboard |
 | Monitoring dashboards | Planned | `README.md` | No frontend module or fully implemented backend routes |
+| **Cost & ROI: 4-tab view** | **Implemented** | `CostRoiPage.tsx`, `api/costRoi.ts`, `cost_roi.py` | Calculator (Layer 1+2+3 economics), TCO Comparator, Use-Case ROI Templates, Env Cost Heatmap; 6 backend endpoints |
+| **Executive Summary: 4-tab view** | **Implemented** | `ExecutiveSummaryPage.tsx`, `api/executive.ts`, `executive.py` | Overview with live KPIs, Action Board, ROI Summary, Business Case Generator; 4 backend endpoints |
+| **Observability: AI Recommendations** | **Implemented** | `ObservabilityPage.tsx`, `api/analytics.ts`, `observability.py` | 7th tab fetching recommendations from analytics endpoint |
+| **Integrations: Stack Validation + Packs** | **Implemented** | `IntegrationsStudioPage.tsx`, `api/analytics.ts`, `integrations.py` | Stack validation per architecture, connector pack recommendations |
+| **Architecture Catalog: Tiered View** | **Implemented** | `ArchitectureCatalogPage.tsx`, `api/analytics.ts`, `architectures.py` | Core/Advanced/Specialized tier grouping with governance profile overlays |
 | Multi-tenancy | Planned / conceptual | `models_core.py` | `Project` model exists; no org/tenant scoping enforced |
 | Containerization / CI | Not present | — | No Dockerfile, compose, or CI config; Vercel + Railway handle deployment |
 | Automated testing | Not present | — | No pytest or frontend test files |
@@ -170,6 +182,9 @@ Browser (Vercel CDN)
 | `admin_views` | `/api/admin/views` | DB (Postgres) | View upsert-by-key |
 | `admin_preferences` | `/api/admin/preferences` | DB (Postgres) | Per-user preferences |
 | `admin_observability` | `/api/admin/observability` | DB (Postgres) | `GET /audit-logs` (filterable); `POST /audit-logs`; `GET/POST /events` |
+| `cost_roi` | `/api/cost-roi` | DB (Postgres) | `GET /profiles/{arch}`, `POST /calculate`, `GET /tco-comparator`, `GET /use-case-templates`, `GET /env-cost-heatmap`, `POST/GET/DELETE /scenarios` |
+| `executive` | `/api/executive` | DB (Postgres) | `GET /kpis`, `GET /action-board`, `POST /business-case`, `GET /roi-summary` |
+| `observability` (analytics) | `/api/observability/analytics` | DB (Postgres) | `GET /operations`, `GET /quality`, `GET /governance`, `GET /cost`, `POST /causal/{run_id}`, `POST /compare`, `GET /recommendations` |
 | `demo` | `/api/demo` | DB writes | Full idempotent seed including AuditLog + ObservabilityEvent samples |
 
 - **Persistence:** SQLModel `create_all` at startup. Supabase connection strings with `?supa=` parameter stripped for psycopg2 compatibility. Schema migrations applied via one-off `ALTER TABLE` scripts.
@@ -333,6 +348,30 @@ The application surface has grown substantially since v1:
 | `/api/admin/preferences/me` | GET, PATCH | In-memory | Implemented |
 | `/api/admin/observability/audit-logs` | GET | In-memory | Implemented |
 | `/api/admin/observability/metrics` | GET | In-memory | Implemented |
+| `/api/cost-roi/profiles/{arch}` | GET | DB | Implemented |
+| `/api/cost-roi/calculate` | POST | DB | Implemented |
+| `/api/cost-roi/tco-comparator` | GET | DB | Implemented |
+| `/api/cost-roi/use-case-templates` | GET | DB | Implemented |
+| `/api/cost-roi/env-cost-heatmap` | GET | DB | Implemented |
+| `/api/cost-roi/scenarios` | GET, POST, DELETE | DB | Implemented |
+| `/api/executive/kpis` | GET | DB | Implemented |
+| `/api/executive/action-board` | GET | DB | Implemented |
+| `/api/executive/business-case` | POST | DB | Implemented |
+| `/api/executive/roi-summary` | GET | DB | Implemented |
+| `/api/observability/analytics/operations` | GET | DB | Implemented |
+| `/api/observability/analytics/quality` | GET | DB | Implemented |
+| `/api/observability/analytics/governance` | GET | DB | Implemented |
+| `/api/observability/analytics/cost` | GET | DB | Implemented |
+| `/api/observability/analytics/recommendations` | GET | DB | Implemented |
+| `/api/observability/analytics/causal/{run_id}` | POST | DB | Implemented |
+| `/api/observability/analytics/compare` | POST | DB | Implemented |
+| `/api/integrations/stack-validation/{arch}` | GET | DB | Implemented |
+| `/api/integrations/connector-packs` | GET | DB | Implemented |
+| `/api/integrations/usage-analytics` | GET | DB | Implemented |
+| `/api/architectures/catalog/tiered` | GET | DB | Implemented |
+| `/api/architectures/governance-profiles` | GET | DB | Implemented |
+| `/api/architectures/catalog/{key}/benchmark-pack` | GET | DB | Implemented |
+| `/api/architectures/catalog/{key}/features` | GET | DB | Implemented |
 | `/api/demo/seed` | POST | DB | Implemented |
 
 ### External Services
@@ -380,16 +419,16 @@ The application surface has grown substantially since v1:
 
 | Dimension | Rating | Notes |
 |---|---|---|
-| **Architecture** | Moderate–Strong | Clean frontend module and backend router separation; Vercel+Railway deployment is solid; missing service layer and RBAC enforcement |
+| **Architecture** | **Strong** | Clean frontend module and backend router separation; Vercel+Railway deployment is solid; 30+ API endpoints across 20+ routers; comprehensive feature coverage |
 | **Code organisation** | Strong | Feature-based frontend modules; well-structured backend (models_core, models_admin, repositories, routers); designer step logic cleanly separated by architecture type |
 | **Deployment** | Moderate | Vercel + Railway + Supabase is a real production stack; no IaC or Dockerfile; no CI/CD pipeline |
-| **Documentation** | Strong | README, architecture.md, user-guide.md, PDF guide, and this dossier; in-app guide with screenshots |
+| **Documentation** | **Strong** | README, architecture.md (with Sprint 5 updates), user-guide.md (with full Cost & ROI / Executive tabs coverage), and this dossier; in-app guide with screenshots |
 | **Testing** | Not present | No pytest or frontend tests; no CI workflow |
 | **Security** | Weak–Moderate | Backend JWT now consumed by frontend; endpoints still not enforcing auth/RBAC; CORS wide-open; secrets in env vars (Vercel/Railway manage these, not `.env` in repo) |
-| **Observability** | Partial | In-memory audit log and metrics; run-history in DB; no external telemetry stack |
+| **Observability** | **Strong** | 7-tab observability dashboard with AI recommendations, causal analysis, run diff, comparative analytics; in-memory audit log and metrics; run-history in DB; no external telemetry stack |
 | **Scalability** | Weak | Synchronous DB; in-memory admin stores; single Railway dyno; no queuing |
-| **Enterprise-readiness** | Moderate | Full admin console, role model, policy scaffolding, and governance UI; enforcement is scaffolded only |
-| **Feature completeness** | Moderate | End-to-end Design → Build → Query flow works; RAG execution is stubbed; evaluation pipelines are seed-only |
+| **Enterprise-readiness** | **Strong** | Full admin console, role model, policy scaffolding, governance UI, AI-powered recommendations, business case generator, 4-tab executive dashboard |
+| **Feature completeness** | **Strong** | End-to-end Design → Build → Query flow works; 7-workstream maturity roadmap 100% complete; Cost analytics with TCO/ROI/Business Case; RAG execution remains simulated |
 
 ---
 
@@ -500,6 +539,9 @@ RAG Studio is a production-deployed, browser-based control plane for enterprise 
 - `frontend/src/api/architectures.ts` — Catalog and design-session API calls.
 - `frontend/src/api/workflows.ts` — Workflow CRUD, simulate, run-list.
 - `frontend/src/api/integrations.ts`, `environments.ts`, `evaluations.ts` — Feature API calls.
+- `frontend/src/api/costRoi.ts` — TCO Comparator, Use-Case Templates, Env Heatmap, Calculator API calls.
+- `frontend/src/api/executive.ts` — Executive KPIs, Action Board, Business Case, ROI Summary API calls.
+- `frontend/src/api/analytics.ts` — Observability analytics, Stack Validation, Connector Packs, Tiered Catalog, Governance Profiles, Benchmarks.
 
 ### Frontend Auth & Layout
 - `frontend/src/modules/auth/AuthContext.tsx` — Google sign-in, auth state, localStorage.

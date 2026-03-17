@@ -393,7 +393,7 @@ Policies are checked automatically at publish and promote time — no manual app
 
 ![Observability — 6-tab operational command centre](./screenshots/observability.png)
 
-Operational command centre for monitoring runs, quality, governance risk, and cost. Six tabs:
+Operational command centre for monitoring runs, quality, governance risk, and cost. Seven tabs:
 
 ### ⚡ Operations tab
 
@@ -452,6 +452,16 @@ Click **✕** to close and return to the run list.
 
 Full global audit log — all governance-sensitive events across the platform (powered by `AdminObservabilityPage`).
 
+### 🤖 AI Recommendations tab
+
+Fetches AI-generated recommendations from `/api/observability/analytics/recommendations`:
+
+- **Priority badges** — critical / high / medium / low
+- **Evidence** — data-driven observations from run patterns
+- **Actionable recommendations** — specific suggested changes (highlighted in accent colour)
+
+Recommendations are generated based on current run data — they analyse failure patterns, performance anomalies, and governance gaps to suggest platform improvements.
+
 ---
 
 ## 14. Cost & ROI Analytics
@@ -460,47 +470,64 @@ Full global audit log — all governance-sensitive events across the platform (p
 
 ![Cost & ROI Calculator — architecture-specific cost analysis](./screenshots/cost-roi.png)
 
-Full-featured cost analysis and ROI modelling for each of the 18 architecture types. All cost profiles are **stored in the database** — no hardcoded data.
+Full-featured cost analysis and ROI modelling for each of the 18 architecture types. All cost profiles are **stored in the database** — no hardcoded data. Four tabs:
 
-### Cost Profiles
+### 🧮 Calculator tab
 
-Each architecture has a persisted profile containing:
+The core cost estimation engine with **three layers** of analysis:
 
-| Field | Description |
+**Layer 1 — Engineering Economics:**
+- Cost per 1k queries, average latency, token consumption
+- Index/storage overhead, reranker cost, graph traversal cost
+- Infrastructure cost by environment
+
+**Layer 2 — Business Impact:**
+- Analyst time saved, support ticket deflection
+- Compliance review time reduced, avoided escalations
+- Reduction in failed answers and manual search effort
+
+**Layer 3 — Executive Summary:**
+- Monthly savings estimate, payback period
+- Risk reduction score
+- Architecture recommendation based on value objective
+
+Configure your scenario with monthly query volume, Top-K, chunk size, embedding/LLM costs, analyst hours/hourly rate, and platform setup cost. Save named scenarios for comparison.
+
+### 📊 TCO Comparator tab
+
+Side-by-side **Total Cost of Ownership** comparison across all 18 architecture types:
+
+| Metric | Description |
 |---|---|
-| **Default Top-K** | Optimised chunk count for the architecture class |
-| **Chunk Size** | Default token count per retrieved chunk |
-| **Latency Estimate** | Expected round-trip retrieval latency (ms) with source citation |
-| **Embedding Cost** | Per-1M token embedding cost (e.g., OpenAI `text-embedding-3-large`) |
-| **LLM Input / Output Cost** | Per-1M token generation cost |
-| **Benchmark Sources** | Cited research papers and vendor pricing pages with URLs and dates |
+| Monthly cost | All-in infrastructure + token cost |
+| Net savings | Monthly savings vs. manual process |
+| Payback period | Months to recoup platform investment |
+| Risk score | Architecture-specific risk assessment |
 
-> **Disclosure**: Cost profiles are based on published vendor pricing (OpenAI, Anthropic, Pinecone, etc.) and peer-reviewed papers (e.g., HyDE, Self-RAG, IRCoT). All sources are disclosed per profile under **Benchmark Sources**.
+Enables architecture selection by economics rather than technical preference alone.
 
-### ROI Calculator
+### 🏢 Use-Case Templates tab
 
-Configure your scenario:
+Pre-built ROI models for enterprise use cases:
 
-- **Monthly query volume** — expected queries per month
-- **Top-K, chunk size** — loaded from the architecture profile but adjustable
-- **Embedding / LLM costs** — update to your negotiated pricing
-- **Analyst hours / hourly rate** — for time-saved calculation
-- **Platform setup cost** — one-time implementation cost
+- **Support Assistant** — ticket deflection and analyst time savings
+- **Compliance Q&A** — regulatory review acceleration
+- **Incident Investigation** — mean-time-to-resolution reduction
+- **Contract Intelligence** — clause extraction and review automation
 
-The calculator computes:
+Each template shows the recommended architecture, projected annual value, key business driver, and supporting rationale.
 
-- **Monthly retrieval + generation cost** with explanation
-- **Annual run cost** and **savings vs. manual process**
-- **Payback period** in months
-- Full drill-down into assumptions and benchmark sources
+### 🌡️ Env Heatmap tab
 
-### Saved Scenarios
+Cost distribution across deployment environments (dev, staging, prod):
 
-Save named scenarios for comparison. Each scenario persists the full parameter set plus computed results to the database.
+| Environment | Monthly Cost | % of Total | Cost Tier |
+|---|---|---|---|
+| Development | Low | ~10% | Budget |
+| Staging | Medium | ~25% | Standard |
+| Production | High | ~65% | Premium |
 
-### Architecture Comparison Table
-
-Side-by-side comparison of all 18 profiles showing latency, cost tier, default parameters, and estimated per-1K-query cost — enabling architecture selection by economics.
+Helps identify cost hotspots and optimisation targets across the deployment pipeline.
 
 ## 15. Executive Summary
 
@@ -508,17 +535,58 @@ Side-by-side comparison of all 18 profiles showing latency, cost tier, default p
 
 ![Executive Summary — live platform health rollup](./screenshots/executive-summary.png)
 
-At-a-glance platform health dashboard — aggregates live data from 5 APIs on every page load.
+Platform intelligence dashboard with four tabs:
 
-### Sections
+### 📊 Overview tab
+
+**Live Platform KPIs** (from `/api/executive/kpis`):
+- Total runs, success rate, failure rate
+- Active architectures (with list)
+- Total cost and average cost per run
+- Average latency across all runs
+- Active environments (with list)
+
+Plus existing health metrics:
 
 | Section | What it shows |
 |---|---|
-| **Platform health** | Active workflows, promoted environments, healthy integrations ratio, run success rate (ok/warn colour states) |
-| **Retrieval quality** | Avg relevance %, avg groundedness %, top strategy, strategies benchmarked (from Evaluation Harness) |
-| **Architecture portfolio** | Horizontal bar chart of run counts per architecture type (colour-coded) |
+| **Platform health** | Active workflows, promoted environments, healthy integrations ratio, run success rate |
+| **Retrieval quality** | Avg relevance %, avg groundedness %, top strategy, strategies benchmarked |
+| **Architecture portfolio** | Horizontal bar chart of run counts per architecture type |
 | **Integration health** | Health dot + provider type + status badge per connector |
-| **Quick actions** | Shortcut cards to Catalog, Guided Designer, Evaluation Harness, Observability, Cost & ROI, Industry Packs |
+| **Quick actions** | Shortcut cards to Catalog, Designer, Evaluation, Observability, Cost & ROI, Industry Packs |
+
+### 🎯 Action Board tab
+
+Prioritised list of "what to do next" actions generated from platform state analysis:
+
+- **Priority levels**: high (amber border), medium (accent border), low (neutral)
+- **Categories**: architecture, quality, cost, governance, integrations
+- **Click-to-navigate**: each action links directly to the relevant page
+
+### 💰 ROI Summary tab
+
+Cross-architecture ROI comparison table:
+
+| Column | Data |
+|---|---|
+| Architecture | Architecture type label |
+| Monthly Cost | Total infrastructure + token cost |
+| Monthly Value | Projected business value |
+| Net/mo | Net monthly savings (green = positive, red = negative) |
+| Latency | Average response time in ms |
+
+Highlights the **recommended architecture** based on highest net monthly savings.
+
+### 📋 Business Case tab
+
+Full Business Case Generator — select any architecture to produce a structured document:
+
+- **Architecture overview** with latency profile
+- **Investment**: platform setup cost, monthly operating, annual operating
+- **Returns**: monthly business value, net savings, payback period, annual net
+- **Impact breakdown**: per-category monthly savings (analyst time, ticket deflection, etc.)
+- **Executive recommendation**: architecture rationale + next steps
 
 ---
 

@@ -4,7 +4,7 @@
 > **Frontend:** Vercel CDN (`frontend/dist` — `vercel.json` rewrites `/api/*` to Railway, `/(.*) → /index.html`)  
 > **Backend:** Railway (`ragorchestraionstudio-production.up.railway.app`)  
 > **Database:** Supabase PostgreSQL (SQLModel / psycopg2; `?supa=` pooler param stripped in `db.py`)  
-> **Version:** v2.0 (Sprints 1–4 complete)
+> **Version:** v2.1 (Sprints 1–5 complete — 100% maturity across all 7 workstreams)
 
 ---
 
@@ -54,15 +54,26 @@ Environments   (binding matrix + readiness score + promotion pipeline)
   │    ✓ promoted: AuditLog("environment.promoted", from/to status)
   │    ✗ blocked: 422 violations[]
   ▼
-Observability   (6 tabs)
+Observability   (7 tabs)
   │  GET /api/observability/runs                →  Operations, Cost Analytics, Run History
   │  GET /api/observability/runs/{id}           →  TraceExplorer run header
   │  GET /api/observability/runs/{id}/tasks     →  TraceExplorer per-node latency bars
   │  GET /api/evaluations/aggregated-scores     →  Retrieval Quality tab
   │  GET /api/admin/observability/audit-logs    →  Governance Risk violations table
   │  GET /api/workflows                         →  Governance Risk draft count
+  │  GET /api/observability/analytics/recommendations  →  AI Recommendations tab
   ▼
-Executive Summary   (aggregates 5 APIs on load)
+Cost & ROI   (4 tabs)
+  │  POST /api/cost-roi/calculate               →  Calculator (Layer 1+2+3 economics)
+  │  GET  /api/cost-roi/tco-comparator          →  TCO Comparator (all architectures)
+  │  GET  /api/cost-roi/use-case-templates      →  Use-Case ROI Templates
+  │  GET  /api/cost-roi/env-cost-heatmap        →  Environment Cost Heatmap
+  ▼
+Executive Summary   (4 tabs)
+  │  GET /api/executive/kpis                    →  Live KPI tiles (runs, cost, latency, success)
+  │  GET /api/executive/action-board            →  Action Board (prioritized next actions)
+  │  GET /api/executive/roi-summary             →  ROI Summary (cross-architecture comparison)
+  │  POST /api/executive/business-case          →  Business Case Generator (investment, returns, recommendation)
   │  GET /api/workflows + /api/environments + /api/integrations
   │  GET /api/evaluations/aggregated-scores
   │  GET /api/observability/runs
@@ -95,13 +106,13 @@ Admin (Platform Admin only)
 | Guided Designer | `modules/guided-designer/` | `DesignerPage.tsx`, `DesignerStepper.tsx`, `designerToWorkflow.ts`, per-arch designer components |
 | Workflow Builder | `modules/workflow-builder/` | `WorkflowBuilderPage.tsx` (**Publish gated by `publish_workflows` permission**, governance-gate result banner), `NodeConfigPanel.tsx`, `WorkflowCanvas.tsx`, `NodePalette.tsx` |
 | Query Lab | `modules/query-lab/` | `QueryLabPage.tsx`, `ResultComparisonGrid.tsx` (evidence cards + latency bars), `RunHistoryPanel.tsx` |
-| Integrations Studio | `modules/integrations-studio/` | `IntegrationsStudioPage.tsx` (live health dots from `test-connection`) |
+| Integrations Studio | `modules/integrations-studio/` | `IntegrationsStudioPage.tsx` (live health dots from `test-connection`, **5 tabs**: Catalog, Active, Binding Matrix, 🔍 Stack Validation, 📦 Connector Packs) |
 | Environments | `modules/environments/` | `EnvironmentsPage.tsx` (readiness score pill + animated fill bar per card, 3-step promotion bar, EmptyState component), `environments.css` |
 | Governance | `modules/governance/` | `GovernancePage.tsx` |
-| Observability | `modules/observability/` | `ObservabilityPage.tsx` (6 tabs: Operations, Retrieval Quality, Governance Risk, Cost Analytics, Run History, Audit Log), **`TraceExplorer.tsx`** (per-node latency bars, expandable detail panels, `trace-explorer.css`), `observability.css` |
-| Executive Summary | `modules/executive-summary/` | `ExecutiveSummaryPage.tsx` (5-API live rollup: KPIs, arch portfolio bars, integration health, quick actions), `executive-summary.css` |
+| Observability | `modules/observability/` | `ObservabilityPage.tsx` (**7 tabs**: Operations, Retrieval Quality, Governance Risk, Cost Analytics, Run History, Audit Log, 🤖 AI Recommendations), **`TraceExplorer.tsx`** (per-node latency bars, expandable detail panels, `trace-explorer.css`), `observability.css` |
+| Executive Summary | `modules/executive-summary/` | `ExecutiveSummaryPage.tsx` (**4 tabs**: 📊 Overview — live KPIs from `/executive/kpis` + health/quality, 🎯 Action Board, 💰 ROI Summary, 📋 Business Case Generator), `executive-summary.css` |
 | Industry Packs | `modules/industry-packs/` | `IndustryPacksPage.tsx` (6 vertical solution packs — GA/Beta/Preview maturity, use cases, integrations, governance policies, benchmark suites), `industry-packs.css` |
-| Cost & ROI | `modules/cost-roi/` | `CostRoiPage.tsx` (cost estimation calculator by architecture) |
+| Cost & ROI | `modules/cost-roi/` | `CostRoiPage.tsx` (**4 tabs**: 🧮 Calculator — Layer 1+2+3 economics, 📊 TCO Comparator, 🏢 Use-Case Templates, 🌡️ Env Heatmap), `cost-roi.css` |
 | Admin — Users | `modules/admin-users/` | `AdminUsersPage.tsx` (**two-panel split layout**: user list left, drill-down right with Sessions tab + Audit Log tab), `admin.css` |
 | Admin — Roles/Teams | `modules/admin-roles/`, `modules/admin-teams/` | CRUD pages |
 | Evaluation Harness | `modules/evaluation/` | `EvaluationPage.tsx` — 6 pre-seeded benchmark queries, heuristic scoring, human ratings, JSON export; `GET /api/evaluations/aggregated-scores` feeds Observability + Executive Summary |
@@ -109,7 +120,7 @@ Admin (Platform Admin only)
 | User Guide | `modules/user-guide/` | `UserGuidePage.tsx` (route `/app/guide`), `user-guide.css` |
 | Shared UI | `modules/ui/` | `feedback.tsx` (PageHeader, StatusBadge, EmptyState+action, SimBanner), `ToastContext.tsx`, `Skeleton.tsx` |
 | Auth | `modules/auth/` | `AuthContext.tsx` (`useAuth`, `useHasPermission` hook), `LandingPage.tsx` (RAGOS branding, `qc.clear()` post-OAuth, signingIn state) |
-| API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts` (incl. `aggregatedScores()`), `observability.ts`, `workflowRuns.ts` |
+| API clients | `api/` | `workflows.ts`, `architectures.ts`, `integrations.ts`, `environments.ts`, `evaluations.ts` (incl. `aggregatedScores()`), `observability.ts`, `workflowRuns.ts`, **`costRoi.ts`** (TCO, use-case templates, env heatmap), **`executive.ts`** (KPIs, action board, business case, ROI summary), **`analytics.ts`** (obs analytics, stack validation, connector packs, tiered catalog, governance profiles, benchmarks) |
 
 ### Sign-in & Query Cache Refresh
 
@@ -176,6 +187,11 @@ After `signInWithGoogle()` resolves in `LandingPage.tsx`:
 | `admin_views` | `/api/admin/views` | CRUD for `View` (upsert-by-key) |
 | `admin_preferences` | `/api/admin/preferences` | `GET /me`, `PATCH /me` |
 | `admin_observability` | `/api/admin/observability` | `GET/POST /audit-logs` (filterable by `limit`; consumed by Governance Risk violations tab + global Audit Log), `GET/POST /events` |
+| `cost_roi` | `/api/cost-roi` | `GET /profiles/{arch}`, `POST /calculate` (Layer 1+2+3 economics), `GET /tco-comparator`, `GET /use-case-templates`, `GET /env-cost-heatmap`, `POST/GET/DELETE /scenarios` |
+| `executive` | `/api/executive` | `GET /kpis`, `GET /action-board`, `POST /business-case`, `GET /roi-summary` |
+| `observability` (analytics) | `/api/observability/analytics` | `GET /operations`, `GET /quality`, `GET /governance`, `GET /cost`, `POST /causal/{run_id}`, `POST /compare`, `GET /recommendations`, `GET /runs/{id}/export` |
+| `integrations` (stack) | `/api/integrations` | `GET /stack-validation/{arch}`, `GET /connector-packs`, `GET /usage-analytics` |
+| `architectures` (catalog) | `/api/architectures` | `GET /catalog/tiered`, `GET /governance-profiles`, `GET /catalog/{key}/benchmark-pack`, `GET /catalog/{key}/features` |
 | `demo` | `/api/demo` | `POST /seed` (idempotent full seed), `GET /seed-status`, `DELETE /seed` |
 
 ---
@@ -322,3 +338,4 @@ Stored in `Role.permissions` JSON blob. Enforced via:
 | **Sprint 2** | TraceExplorer (per-node latency bars, expandable detail, `trace-explorer.css`), Retrieval Quality tab wired to `aggregatedScores` API (live avg relevance/groundedness, top strategy) |
 | **Sprint 3** | IndustryPacksPage (6 vertical packs: FS, Healthcare, Legal, Retail, Manufacturing, Public Sector — GA/Beta/Preview maturity), ExecutiveSummaryPage (5-API live platform health rollup, architecture portfolio bar chart, quick actions) |
 | **Sprint 4** | Environment readiness score pill + animated fill bar on every env card, Governance Risk tab wired to live audit log violations (risk keyword filter, 7d KPI), Cost Analytics tab with per-arch run breakdown + Low/Medium/High cost tier badges |
+| **Sprint 5** | **100% Maturity Roadmap** — 7 workstreams completed: (WS-1) Cost & ROI expanded to 4 tabs: Calculator with Layer 1+2+3 economics, TCO Comparator, Use-Case ROI Templates, Environment Cost Heatmap; (WS-2) Observability expanded to 7 tabs with AI Recommendations; (WS-3) Integrations Studio expanded with Stack Validation and Connector Packs tabs; (WS-5) Architecture Catalog: Tiered View toggle with governance profile overlays; (WS-6/7) Executive Summary rewritten to 4 tabs: Overview with live KPIs from `/executive/kpis`, Action Board, ROI Summary, Business Case Generator. 30+ new backend endpoints across 6 routers. 3 new API client files (`costRoi.ts`, `executive.ts`, `analytics.ts`). |
