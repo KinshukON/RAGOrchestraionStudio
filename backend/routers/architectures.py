@@ -477,3 +477,159 @@ async def update_design_session(session_id: int, payload: DesignSessionUpdate) -
             derived_architecture_definition=ds.derived_architecture_definition,
         )
 
+
+# ── WS-5: Tiered Catalog ─────────────────────────────────────────────────
+
+_ARCHITECTURE_TIERS = {
+    "core": {
+        "label": "Core Architectures",
+        "description": "Production-proven patterns with full tooling support.",
+        "architectures": ["vector", "vectorless", "graph", "temporal", "hybrid"],
+    },
+    "advanced": {
+        "label": "Advanced Architectures",
+        "description": "Sophisticated patterns for specialized enterprise use cases.",
+        "architectures": ["agentic", "modular", "custom", "self_rag", "hyde"],
+    },
+    "specialized": {
+        "label": "Specialized Architectures",
+        "description": "Domain-specific and emerging patterns.",
+        "architectures": ["memory_augmented", "multimodal", "federated", "streaming", "contextual", "knowledge_enhanced", "recursive", "domain_specific"],
+    },
+}
+
+
+@router.get("/catalog/tiered")
+async def tiered_catalog() -> dict:
+    """Group architectures into Core / Advanced / Specialized tiers."""
+    try:
+        _seed_templates_if_empty()
+    except Exception:
+        pass
+
+    with get_session() as session:
+        rows = list(session.exec(select(ArchitectureTemplate)))
+    by_key = {r.key: r for r in rows}
+
+    tiers = []
+    for tier_key, tier_info in _ARCHITECTURE_TIERS.items():
+        archs = []
+        for key in tier_info["architectures"]:
+            t = by_key.get(key)
+            if t:
+                archs.append({
+                    "key": t.key, "type": t.type, "title": t.title,
+                    "short_definition": t.short_definition,
+                    "readiness": "production" if tier_key == "core" else ("beta" if tier_key == "advanced" else "experimental"),
+                    "has_benchmark_pack": key in _BENCHMARK_PACKS,
+                    "has_governance_profile": key in _GOVERNANCE_PROFILES,
+                })
+        tiers.append({
+            "tier": tier_key,
+            "label": tier_info["label"],
+            "description": tier_info["description"],
+            "architecture_count": len(archs),
+            "architectures": archs,
+        })
+    return {"tiers": tiers, "total_architectures": len(rows)}
+
+
+# ── WS-5: Per-Architecture Governance Profiles ───────────────────────────
+
+_GOVERNANCE_PROFILES = {
+    "vector": {"quality_threshold": 0.75, "approval_required": False, "max_latency_ms": 2000, "cost_limit_per_query": 0.05, "allowed_environments": ["development", "staging", "production"]},
+    "vectorless": {"quality_threshold": 0.80, "approval_required": False, "max_latency_ms": 1000, "cost_limit_per_query": 0.02, "allowed_environments": ["development", "staging", "production"]},
+    "graph": {"quality_threshold": 0.70, "approval_required": True, "max_latency_ms": 5000, "cost_limit_per_query": 0.10, "allowed_environments": ["development", "staging", "production"]},
+    "temporal": {"quality_threshold": 0.75, "approval_required": False, "max_latency_ms": 3000, "cost_limit_per_query": 0.06, "allowed_environments": ["development", "staging", "production"]},
+    "hybrid": {"quality_threshold": 0.80, "approval_required": True, "max_latency_ms": 4000, "cost_limit_per_query": 0.08, "allowed_environments": ["development", "staging", "production"]},
+    "agentic": {"quality_threshold": 0.65, "approval_required": True, "max_latency_ms": 10000, "cost_limit_per_query": 0.20, "allowed_environments": ["development", "staging"]},
+    "self_rag": {"quality_threshold": 0.85, "approval_required": True, "max_latency_ms": 8000, "cost_limit_per_query": 0.15, "allowed_environments": ["development", "staging"]},
+    "hyde": {"quality_threshold": 0.75, "approval_required": False, "max_latency_ms": 5000, "cost_limit_per_query": 0.10, "allowed_environments": ["development", "staging"]},
+    "recursive": {"quality_threshold": 0.70, "approval_required": True, "max_latency_ms": 12000, "cost_limit_per_query": 0.25, "allowed_environments": ["development"]},
+    "knowledge_enhanced": {"quality_threshold": 0.80, "approval_required": True, "max_latency_ms": 6000, "cost_limit_per_query": 0.12, "allowed_environments": ["development", "staging"]},
+}
+
+
+@router.get("/governance-profiles")
+async def list_governance_profiles() -> dict:
+    """Return per-architecture governance defaults."""
+    return {"profiles": _GOVERNANCE_PROFILES}
+
+
+@router.get("/governance-profiles/{arch_type}")
+async def get_governance_profile(arch_type: str) -> dict:
+    profile = _GOVERNANCE_PROFILES.get(arch_type)
+    if not profile:
+        raise HTTPException(404, f"No governance profile for '{arch_type}'")
+    return {"architecture_type": arch_type, **profile}
+
+
+# ── WS-5: Architecture Benchmark Packs ───────────────────────────────────
+
+_BENCHMARK_PACKS = {
+    "vector": {
+        "label": "Vector RAG Benchmark Pack",
+        "datasets": ["MS MARCO", "Natural Questions", "BEIR Suite"],
+        "expected_recall_range": [0.70, 0.85],
+        "expected_latency_range_ms": [200, 500],
+        "query_types": ["factoid", "short-answer", "passage-retrieval"],
+    },
+    "vectorless": {
+        "label": "Vectorless RAG Benchmark Pack",
+        "datasets": ["MS MARCO (BM25)", "TREC-DL", "Elasticsearch Eval"],
+        "expected_recall_range": [0.60, 0.75],
+        "expected_latency_range_ms": [50, 200],
+        "query_types": ["keyword-match", "exact-phrase", "structured-query"],
+    },
+    "graph": {
+        "label": "Graph RAG Benchmark Pack",
+        "datasets": ["HotpotQA", "MuSiQue", "2WikiMultiHopQA"],
+        "expected_recall_range": [0.55, 0.70],
+        "expected_latency_range_ms": [500, 1500],
+        "query_types": ["multi-hop", "relational", "constraint-based"],
+    },
+    "temporal": {
+        "label": "Temporal RAG Benchmark Pack",
+        "datasets": ["TimeQA", "TemporalQuestions", "Policy-versioned QA"],
+        "expected_recall_range": [0.65, 0.80],
+        "expected_latency_range_ms": [250, 600],
+        "query_types": ["as-of-date", "version-aware", "recency-weighted"],
+    },
+    "hybrid": {
+        "label": "Hybrid RAG Benchmark Pack",
+        "datasets": ["BEIR Suite", "MS MARCO + BM25 Fusion", "Enterprise QA Mix"],
+        "expected_recall_range": [0.80, 0.92],
+        "expected_latency_range_ms": [300, 800],
+        "query_types": ["mixed-intent", "multi-signal", "enterprise-knowledge"],
+    },
+}
+
+
+@router.get("/catalog/{arch_key}/benchmark-pack")
+async def get_benchmark_pack(arch_key: str) -> dict:
+    """Return architecture-specific benchmark datasets and expected quality ranges."""
+    pack = _BENCHMARK_PACKS.get(arch_key)
+    if not pack:
+        return {"architecture_type": arch_key, "available": False, "message": f"No benchmark pack available for '{arch_key}' yet."}
+    return {"architecture_type": arch_key, "available": True, **pack}
+
+
+# ── WS-5: Architecture-Specific Features ─────────────────────────────────
+
+_ARCH_FEATURES = {
+    "vector": ["Embedding Explorer", "Similarity Score Visualizer", "Index Health Monitor"],
+    "vectorless": ["BM25 Query Debugger", "Keyword Highlight", "Full-Text Index Monitor"],
+    "graph": ["Graph Traversal Visualizer", "Entity Relationship Explorer", "Cypher Query Editor"],
+    "temporal": ["Temporal Date Range Selector", "Version Timeline", "Recency Decay Curve Editor"],
+    "hybrid": ["Retrieval Signal Fusion Debugger", "Reranker Score Inspector", "Multi-Strategy Router"],
+    "agentic": ["Agent Decision Tree Viewer", "Tool Call Timeline", "Reasoning Trace Panel"],
+    "self_rag": ["Self-Evaluation Score Tracker", "Iteration Depth Monitor", "Reflection Log"],
+    "hyde": ["Hypothetical Document Preview", "Query Expansion Viewer", "Embedding Comparison"],
+}
+
+
+@router.get("/catalog/{arch_key}/features")
+async def get_arch_features(arch_key: str) -> dict:
+    """Return architecture-specific UI features."""
+    features = _ARCH_FEATURES.get(arch_key, [])
+    return {"architecture_type": arch_key, "features": features, "feature_count": len(features)}
