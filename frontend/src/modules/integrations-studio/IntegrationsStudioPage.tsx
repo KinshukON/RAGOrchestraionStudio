@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { IntegrationConfig, TestConnectionResult } from '../../api/integrations'
 import { testConnection } from '../../api/integrations'
 import { useEnvironments, useIntegrations, useSaveEnvironment } from '../admin-integrations/useIntegrationsEnvApi'
@@ -10,6 +10,7 @@ import { useToast } from '../ui/ToastContext'
 import { ConnectorCatalog } from './ConnectorCatalog'
 import { ConnectorConfigDrawer } from './ConnectorConfigDrawer'
 import type { ConnectorDef } from './connectorRegistry'
+import { fetchStackValidation, fetchConnectorPacks } from '../../api/analytics'
 import './integrations-studio.css'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -36,13 +37,18 @@ export function IntegrationsStudioPage() {
   const integrations = integrationsQuery.data ?? []
   const environments = environmentsQuery.data ?? []
   const saveEnvironment = useSaveEnvironment()
-  const [activeTab, setActiveTab] = useState<'catalog' | 'list' | 'matrix'>('catalog')
+  const [activeTab, setActiveTab] = useState<'catalog' | 'list' | 'matrix' | 'validation' | 'packs'>('catalog')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [editing, setEditing] = useState<IntegrationConfig | null>(null)
   const [testResult, setTestResult] = useState<TestConnectionResult | null>(null)
   const [selectedConnector, setSelectedConnector] = useState<ConnectorDef | null>(null)
+  const [valArch, setValArch] = useState('hybrid')
+
+  // WS-3 stack validation + connector packs
+  const stackValQ = useQuery({ queryKey: ['stack-validation', valArch], queryFn: () => fetchStackValidation(valArch), enabled: activeTab === 'validation' })
+  const packsQ = useQuery({ queryKey: ['connector-packs'], queryFn: fetchConnectorPacks, enabled: activeTab === 'packs' })
 
   const testMutation = useMutation({
     mutationFn: (id: string) => testConnection(id),
@@ -95,12 +101,14 @@ export function IntegrationsStudioPage() {
         >
           Active
         </button>
-        <button
-          type="button"
-          className={activeTab === 'matrix' ? 'int-studio-tab int-studio-tab--active' : 'int-studio-tab'}
-          onClick={() => setActiveTab('matrix')}
-        >
+        <button type="button" className={activeTab === 'matrix' ? 'int-studio-tab int-studio-tab--active' : 'int-studio-tab'} onClick={() => setActiveTab('matrix')}>
           Binding matrix
+        </button>
+        <button type="button" className={activeTab === 'validation' ? 'int-studio-tab int-studio-tab--active' : 'int-studio-tab'} onClick={() => setActiveTab('validation')}>
+          🔍 Stack Validation
+        </button>
+        <button type="button" className={activeTab === 'packs' ? 'int-studio-tab int-studio-tab--active' : 'int-studio-tab'} onClick={() => setActiveTab('packs')}>
+          📦 Connector Packs
         </button>
       </div>
 
@@ -287,6 +295,72 @@ export function IntegrationsStudioPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Stack Validation Tab */}
+      {activeTab === 'validation' && (
+        <div className="int-studio-matrix-section">
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+            <label style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>Architecture:</label>
+            <select value={valArch} onChange={e => setValArch(e.target.value)}
+              style={{ padding: '0.4rem 0.6rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', fontSize: '0.82rem' }}>
+              {['hybrid', 'vector', 'vectorless', 'graph', 'temporal', 'agentic', 'self_rag', 'hyde', 'multimodal', 'federated'].map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+          {stackValQ.isLoading ? <LoadingMessage label="Checking stack readiness…" /> : stackValQ.data ? (
+            <div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>{(stackValQ.data as Record<string, unknown>).overall_ready ? '✅' : '⚠️'}</span>
+                <strong style={{ fontSize: '0.92rem', color: 'var(--color-text)' }}>
+                  {(stackValQ.data as Record<string, unknown>).overall_ready ? 'Stack is deployment-ready' : 'Missing required integrations'}
+                </strong>
+              </div>
+              <table className="int-studio-matrix">
+                <thead>
+                  <tr><th>Environment</th><th>Ready</th><th>Missing</th></tr>
+                </thead>
+                <tbody>
+                  {Object.entries((stackValQ.data as Record<string, unknown>).environments as Record<string, Record<string, unknown>> ?? {}).map(([env, info]) => (
+                    <tr key={env}>
+                      <td><strong>{String(info.label ?? env)}</strong></td>
+                      <td>{info.ready ? <span style={{ color: '#10b981', fontWeight: 700 }}>✓ Ready</span> : <span style={{ color: '#f59e0b', fontWeight: 700 }}>✗ Not Ready</span>}</td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                        {Array.isArray(info.missing) && (info.missing as string[]).length > 0 ? (info.missing as string[]).join(', ') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <EmptyState title="No validation data" description="Select an architecture to check stack readiness." />}
+        </div>
+      )}
+
+      {/* Connector Packs Tab */}
+      {activeTab === 'packs' && (
+        <div className="int-studio-matrix-section">
+          {packsQ.isLoading ? <LoadingMessage label="Loading connector packs…" /> : packsQ.data?.packs ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+              {Object.entries(packsQ.data.packs).map(([archKey, pack]) => {
+                const p = pack as Record<string, unknown>
+                return (
+                  <div key={archKey} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.1rem 1.25rem' }}>
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 0.5rem', textTransform: 'capitalize' }}>{archKey.replace(/_/g, ' ')}</h3>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: '0 0 0.5rem' }}>{String(p.description ?? '')}</p>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-faint)' }}>
+                      <strong>Required:</strong> {Array.isArray(p.required) ? (p.required as string[]).join(', ') : '—'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-faint)', marginTop: '0.25rem' }}>
+                      <strong>Optional:</strong> {Array.isArray(p.optional) ? (p.optional as string[]).join(', ') : '—'}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : <EmptyState title="No connector packs" description="Packs will appear once the API is configured." />}
         </div>
       )}
 

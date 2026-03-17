@@ -223,3 +223,121 @@
 }
 
 .ex-link:hover { text-decoration: underline; }
+
+/* ── Tab bar ── */
+.ex-tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ex-tab {
+  padding: 0.55rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.ex-tab:hover { color: var(--color-text); }
+.ex-tab--active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+
+/* ── Action items ── */
+.ex-action-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ex-action-item:hover { border-color: var(--color-accent); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.ex-action-item--high { border-left: 3px solid #f59e0b; }
+.ex-action-item--medium { border-left: 3px solid var(--color-accent); }
+.ex-action-item--low { border-left: 3px solid var(--color-border); }
+
+.ex-action-priority { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+.ex-action-category { font-size: 0.68rem; color: var(--color-text-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.ex-action-title { font-size: 0.92rem; font-weight: 700; color: var(--color-text); margin: 0 0 0.25rem; }
+.ex-action-desc { font-size: 0.8rem; color: var(--color-text-muted); margin: 0; line-height: 1.5; }
+
+/* ── ROI table ── */
+.ex-roi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.ex-roi-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+  font-weight: 600;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.ex-roi-table td {
+  padding: 0.5rem 0.6rem;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+}
+.ex-roi-table tr:last-child td { border-bottom: none; }
+.ex-roi-highlight td { background: color-mix(in srgb, var(--color-accent) 5%, transparent); color: var(--color-text); }
+.ex-rec-banner {
+  padding: 0.6rem 1rem;
+  background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent);
+  border-radius: var(--radius);
+  font-size: 0.84rem;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+}
+
+/* ── Business case ── */
+.ex-bc-document {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.ex-bc-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+}
+.ex-bc-section h3 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.75rem;
+}
+.ex-bc-impacts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.ex-bc-impact-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
+}
+.ex-bc-impact-row:last-child { border-bottom: none; }
+.ex-bc-impact-label { text-transform: capitalize; color: var(--color-text-muted); }
+.ex-bc-impact-value { font-weight: 600; color: var(--color-text); }
+.ex-bc-reco {
+  padding: 0.5rem 0;
+}
+.ex-bc-reco h4 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+  margin: 0.75rem 0 0.35rem;
+}

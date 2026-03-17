@@ -1,8 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listCostProfiles, calculateCost, saveScenario, listScenarios, deleteScenario, type CalculateResponse } from '../../api/costRoi'
+import { listCostProfiles, calculateCost, saveScenario, listScenarios, deleteScenario, fetchTcoComparator, fetchUseCaseTemplates, fetchEnvCostHeatmap, type CalculateResponse } from '../../api/costRoi'
 import { useToast } from '../ui/ToastContext'
 import './cost-roi.css'
+
+type CostTab = 'calculator' | 'tco' | 'use-cases' | 'heatmap'
 
 function fmtUSD(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 function fmtK(n: number) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n.toString() }
@@ -33,6 +35,12 @@ export function CostRoiPage() {
   const [drillOpen, setDrillOpen] = useState<string | null>(null)
   const [showSources, setShowSources] = useState(false)
   const [saveName, setSaveName] = useState('')
+  const [costTab, setCostTab] = useState<CostTab>('calculator')
+
+  // ── WS-1 new queries ──
+  const tcoQ = useQuery({ queryKey: ['tco-comparator', monthly], queryFn: () => fetchTcoComparator({ monthly_query_volume: monthly }), enabled: costTab === 'tco' })
+  const useCasesQ = useQuery({ queryKey: ['use-case-templates'], queryFn: fetchUseCaseTemplates, enabled: costTab === 'use-cases' })
+  const heatmapQ = useQuery({ queryKey: ['env-heatmap', monthly], queryFn: () => fetchEnvCostHeatmap({ monthly_query_volume: monthly }), enabled: costTab === 'heatmap' })
 
   // Set arch to first profile once loaded
   useEffect(() => {
@@ -160,10 +168,9 @@ export function CostRoiPage() {
     <div className="cr-root">
       <div className="cr-header">
         <div>
-          <h1 className="cr-title">Cost & ROI Calculator</h1>
+          <h1 className="cr-title">Cost & ROI Analytics</h1>
           <p className="cr-subtitle">
-            All cost parameters are sourced from the database. Click any metric tile to drill into the calculation.
-            Benchmark sources are disclosed below.
+            Engineering economics, business impact, and executive-level cost intelligence across all architectures.
           </p>
         </div>
         <div className="cr-as-of">
@@ -171,6 +178,14 @@ export function CostRoiPage() {
         </div>
       </div>
 
+      {/* ── Tab Navigation ── */}
+      <div className="cr-tab-bar">
+        {([['calculator', '🧮 Calculator'], ['tco', '📊 TCO Comparator'], ['use-cases', '🏢 Use-Case Templates'], ['heatmap', '🌡️ Env Heatmap']] as [CostTab, string][]).map(([id, label]) => (
+          <button key={id} className={`cr-tab ${costTab === id ? 'cr-tab--active' : ''}`} onClick={() => setCostTab(id)}>{label}</button>
+        ))}
+      </div>
+
+      {costTab === 'calculator' && (
       <div className="cr-layout">
         {/* ── Inputs panel ── */}
         <aside className="cr-inputs">
@@ -445,6 +460,113 @@ export function CostRoiPage() {
           )}
         </section>
       </div>
+      )}
+
+      {/* ── TCO Comparator Tab ── */}
+      {costTab === 'tco' && (
+        <div className="cr-tco-section">
+          {tcoQ.isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Loading TCO data…</p> : tcoQ.data ? (
+            <>
+              <div className="cr-roi-card cr-roi-card--positive" style={{ marginBottom: '1.5rem' }}>
+                <div className="cr-roi-icon">🏆</div>
+                <div>
+                  <div className="cr-roi-title">Recommended: {tcoQ.data.recommendation_label}</div>
+                  <p className="cr-roi-body">Best net savings at {fmtK(monthly)} queries/month across all architectures.</p>
+                </div>
+              </div>
+              <table className="cr-compare-table">
+                <thead>
+                  <tr>
+                    <th>Architecture</th>
+                    <th>$/1K Queries</th>
+                    <th>Monthly Cost</th>
+                    <th>Monthly Value</th>
+                    <th>Net Savings/mo</th>
+                    <th>Risk Score</th>
+                    <th>Latency</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(tcoQ.data.architectures || []).map(a => (
+                    <tr key={a.architecture_type} className={a.architecture_type === tcoQ.data!.recommendation ? 'cr-compare-current' : ''}>
+                      <td><strong>{a.label}</strong></td>
+                      <td>{fmtUSD(a.cost_per_1k_queries)}</td>
+                      <td>{fmtUSD(a.monthly_cost)}</td>
+                      <td>{fmtUSD(a.monthly_business_value)}</td>
+                      <td style={{ color: a.monthly_net_savings > 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
+                        {a.monthly_net_savings > 0 ? '+' : ''}{fmtUSD(a.monthly_net_savings)}
+                      </td>
+                      <td>{a.risk_reduction_score}/100</td>
+                      <td>{a.latency_ms}ms</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : <p>No TCO data available.</p>}
+        </div>
+      )}
+
+      {/* ── Use-Case Templates Tab ── */}
+      {costTab === 'use-cases' && (
+        <div className="cr-usecase-section">
+          {useCasesQ.isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Loading templates…</p> : (
+            <div className="cr-usecase-grid">
+              {(useCasesQ.data?.templates || []).map(t => (
+                <div key={t.id} className="cr-usecase-card">
+                  <h3 className="cr-usecase-title">{t.label}</h3>
+                  <p className="cr-usecase-desc">{t.description}</p>
+                  <div className="cr-usecase-meta">
+                    <div><span className="cr-label">Architecture:</span> {t.architecture_label}</div>
+                    <div><span className="cr-label">Monthly Volume:</span> {fmtK(t.monthly_query_volume)}</div>
+                    <div><span className="cr-label">Monthly Cost:</span> {fmtUSD(t.monthly_cost)}</div>
+                    <div><span className="cr-label">Monthly Value:</span> <span style={{ color: 'var(--color-success)' }}>{fmtUSD(t.monthly_business_value)}</span></div>
+                    <div><span className="cr-label">Annual Projected:</span> <strong>{fmtUSD(t.projected_annual_value)}</strong></div>
+                    <div><span className="cr-label">Payback:</span> {t.typical_payback_months} months</div>
+                  </div>
+                  <div className="cr-usecase-why">
+                    <strong>Why:</strong> {t.why}
+                  </div>
+                  <div className="cr-usecase-driver">
+                    <em>Key driver: {t.key_value_driver}</em>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Env Cost Heatmap Tab ── */}
+      {costTab === 'heatmap' && (
+        <div className="cr-heatmap-section">
+          {heatmapQ.isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Loading heatmap…</p> : (
+            <table className="cr-compare-table">
+              <thead>
+                <tr>
+                  <th>Architecture</th>
+                  <th>Development</th>
+                  <th>Staging</th>
+                  <th>Production</th>
+                  <th>Total/mo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(heatmapQ.data?.heatmap || []).map(h => (
+                  <tr key={h.architecture_type}>
+                    <td><strong>{h.label}</strong></td>
+                    {['development', 'staging', 'production'].map(env => {
+                      const e = h.environments?.[env]
+                      return <td key={env}>{e ? fmtUSD(e.monthly_cost) : '—'}</td>
+                    })}
+                    <td><strong>{fmtUSD(h.total_monthly)}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   )
 }

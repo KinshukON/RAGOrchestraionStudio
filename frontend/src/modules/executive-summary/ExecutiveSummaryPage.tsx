@@ -1,11 +1,17 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listWorkflows } from '../../api/workflows'
 import { listEnvironments } from '../../api/environments'
 import { listIntegrations } from '../../api/integrations'
 import { aggregatedScores } from '../../api/evaluations'
 import { listObservabilityRuns } from '../../api/observability'
+import { fetchExecutiveKpis, fetchActionBoard, fetchBusinessCase, fetchRoiSummary } from '../../api/executive'
 import { useNavigate } from 'react-router-dom'
 import './executive-summary.css'
+
+function fmtUSD(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
+
+type ExecTab = 'overview' | 'actions' | 'roi' | 'business-case'
 
 function MetricCard({ label, value, sub, variant }: { label: string; value: string | number; sub?: string; variant?: 'ok' | 'warn' | 'info' }) {
   return (
@@ -19,6 +25,8 @@ function MetricCard({ label, value, sub, variant }: { label: string; value: stri
 
 export function ExecutiveSummaryPage() {
   const navigate = useNavigate()
+  const [tab, setTab] = useState<ExecTab>('overview')
+  const [bcArch, setBcArch] = useState('hybrid')
 
   const workflowsQ  = useQuery({ queryKey: ['workflows'],          queryFn: listWorkflows })
   const envsQ       = useQuery({ queryKey: ['environments'],        queryFn: listEnvironments })
@@ -26,11 +34,18 @@ export function ExecutiveSummaryPage() {
   const evalQ       = useQuery({ queryKey: ['aggregated-scores'],   queryFn: aggregatedScores })
   const runsQ       = useQuery({ queryKey: ['observability-runs'],  queryFn: () => listObservabilityRuns() })
 
+  // WS-6/7 executive API
+  const kpisQ       = useQuery({ queryKey: ['exec-kpis'],           queryFn: fetchExecutiveKpis })
+  const actionsQ    = useQuery({ queryKey: ['exec-actions'],        queryFn: fetchActionBoard, enabled: tab === 'actions' })
+  const roiQ        = useQuery({ queryKey: ['exec-roi'],            queryFn: fetchRoiSummary, enabled: tab === 'roi' })
+  const bcQ         = useQuery({ queryKey: ['exec-bc', bcArch],     queryFn: () => fetchBusinessCase({ architecture_type: bcArch }), enabled: tab === 'business-case' })
+
   const workflows  = workflowsQ.data  ?? []
   const envs       = envsQ.data       ?? []
   const integs     = integsQ.data     ?? []
   const runs       = runsQ.data       ?? []
   const scores     = evalQ.data
+  const kpis       = kpisQ.data?.kpis
 
   // Computed KPIs
   const activeWorkflows = workflows.filter(w => w.is_active).length
@@ -63,108 +78,263 @@ export function ExecutiveSummaryPage() {
       <div className="ex-header">
         <div>
           <h1 className="ex-title">Executive Summary</h1>
-          <p className="ex-subtitle">At-a-glance platform health, quality, and operational readiness — updated on every page load.</p>
+          <p className="ex-subtitle">Platform health, quality, ROI intelligence, and actionable next steps — powered by live data.</p>
         </div>
         <div className="ex-as-of">
           As of {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </div>
       </div>
 
-      {/* ── KPI tier 1: Platform health ── */}
-      <section className="ex-section">
-        <h2 className="ex-section-title">Platform health</h2>
-        <div className="ex-kpi-grid">
-          <MetricCard label="Active workflows"    value={activeWorkflows} sub={`of ${workflows.length} total`}  variant={activeWorkflows > 0 ? 'ok' : 'warn'} />
-          <MetricCard label="Promoted environments" value={promotedEnvs} sub={`of ${envs.length} environments`} variant={promotedEnvs > 0 ? 'ok' : 'warn'} />
-          <MetricCard label="Healthy integrations"  value={`${healthyInteg}/${integs.length}`} sub="connectors" variant={healthyInteg === integs.length ? 'ok' : 'warn'} />
-          <MetricCard label="Run success rate"    value={successRate !== null ? `${successRate}%` : '—'} sub={`from ${totalRuns} runs`} variant={successRate === null ? 'info' : successRate >= 80 ? 'ok' : 'warn'} />
-        </div>
-      </section>
+      {/* ── Tab bar ── */}
+      <div className="ex-tab-bar">
+        {([['overview', '📊 Overview'], ['actions', '🎯 Action Board'], ['roi', '💰 ROI Summary'], ['business-case', '📋 Business Case']] as [ExecTab, string][]).map(([id, label]) => (
+          <button key={id} className={`ex-tab ${tab === id ? 'ex-tab--active' : ''}`} onClick={() => setTab(id)}>{label}</button>
+        ))}
+      </div>
 
-      {/* ── KPI tier 2: Quality ── */}
-      <section className="ex-section">
-        <h2 className="ex-section-title">Retrieval quality</h2>
-        <div className="ex-kpi-grid">
-          <MetricCard label="Avg relevance score"    value={avgRelevance    ? `${avgRelevance}%`    : '—'} sub="across all strategies" variant={avgRelevance && +avgRelevance >= 70 ? 'ok' : 'info'} />
-          <MetricCard label="Avg groundedness score" value={avgGroundedness ? `${avgGroundedness}%` : '—'} sub="across all strategies" variant={avgGroundedness && +avgGroundedness >= 70 ? 'ok' : 'info'} />
-          <MetricCard label="Top strategy" value={topStrategy ?? '—'} sub="by relevance" variant="info" />
-          <MetricCard label="Strategies benchmarked" value={scores?.strategies?.length ?? 0} sub="in evaluation harness" variant="info" />
-        </div>
-        {!scores && (
-          <p className="ex-hint">Run evaluations in the <button className="ex-link" onClick={() => navigate('/app/evaluation')}>Evaluation Harness</button> to populate these scores.</p>
-        )}
-      </section>
-
-      {/* ── Architecture mix ── */}
-      {Object.keys(archBreakdown).length > 0 && (
-        <section className="ex-section">
-          <h2 className="ex-section-title">Architecture portfolio</h2>
-          <div className="ex-arch-bars">
-            {Object.entries(archBreakdown).sort((a, b) => b[1] - a[1]).map(([arch, count]) => (
-              <div key={arch} className="ex-arch-row">
-                <span className="ex-arch-label">{arch}</span>
-                <div className="ex-arch-bar-wrap">
-                  <div className="ex-arch-bar" data-arch={arch}
-                    style={{ width: `${(count / workflows.length) * 100}%` }} />
-                </div>
-                <span className="ex-arch-count">{count}</span>
+      {/* ── Overview Tab ── */}
+      {tab === 'overview' && (
+        <>
+          {/* KPI tier 1: From executive API */}
+          {kpis && (
+            <section className="ex-section">
+              <h2 className="ex-section-title">Live Platform KPIs</h2>
+              <div className="ex-kpi-grid">
+                <MetricCard label="Total runs" value={kpis.total_runs} sub="all time" variant={kpis.total_runs > 0 ? 'ok' : 'info'} />
+                <MetricCard label="Success rate" value={`${kpis.success_rate}%`} sub={`${kpis.failure_rate}% failure`} variant={kpis.success_rate >= 80 ? 'ok' : 'warn'} />
+                <MetricCard label="Active architectures" value={kpis.active_architectures} sub={kpis.architecture_list.join(', ') || 'none'} variant={kpis.active_architectures > 0 ? 'ok' : 'info'} />
+                <MetricCard label="Total cost" value={`$${kpis.total_cost.toFixed(2)}`} sub={`$${kpis.avg_cost_per_run.toFixed(4)}/run`} variant="info" />
+                <MetricCard label="Avg latency" value={kpis.avg_latency_ms !== null ? `${kpis.avg_latency_ms}ms` : '—'} sub="across all runs" variant="info" />
+                <MetricCard label="Environments" value={kpis.active_environments} sub={kpis.environment_list.join(', ') || 'none'} variant={kpis.active_environments > 0 ? 'ok' : 'info'} />
               </div>
-            ))}
-          </div>
+            </section>
+          )}
+
+          {/* KPI tier 2: Platform health */}
+          <section className="ex-section">
+            <h2 className="ex-section-title">Platform health</h2>
+            <div className="ex-kpi-grid">
+              <MetricCard label="Active workflows"    value={activeWorkflows} sub={`of ${workflows.length} total`}  variant={activeWorkflows > 0 ? 'ok' : 'warn'} />
+              <MetricCard label="Promoted environments" value={promotedEnvs} sub={`of ${envs.length} environments`} variant={promotedEnvs > 0 ? 'ok' : 'warn'} />
+              <MetricCard label="Healthy integrations"  value={`${healthyInteg}/${integs.length}`} sub="connectors" variant={healthyInteg === integs.length ? 'ok' : 'warn'} />
+              <MetricCard label="Run success rate"    value={successRate !== null ? `${successRate}%` : '—'} sub={`from ${totalRuns} runs`} variant={successRate === null ? 'info' : successRate >= 80 ? 'ok' : 'warn'} />
+            </div>
+          </section>
+
+          {/* KPI tier 3: Quality */}
+          <section className="ex-section">
+            <h2 className="ex-section-title">Retrieval quality</h2>
+            <div className="ex-kpi-grid">
+              <MetricCard label="Avg relevance"    value={avgRelevance    ? `${avgRelevance}%`    : '—'} sub="across all strategies" variant={avgRelevance && +avgRelevance >= 70 ? 'ok' : 'info'} />
+              <MetricCard label="Avg groundedness" value={avgGroundedness ? `${avgGroundedness}%` : '—'} sub="across all strategies" variant={avgGroundedness && +avgGroundedness >= 70 ? 'ok' : 'info'} />
+              <MetricCard label="Top strategy" value={topStrategy ?? '—'} sub="by relevance" variant="info" />
+              <MetricCard label="Strategies benchmarked" value={scores?.strategies?.length ?? 0} sub="in evaluation harness" variant="info" />
+            </div>
+            {!scores && (
+              <p className="ex-hint">Run evaluations in the <button className="ex-link" onClick={() => navigate('/app/evaluation')}>Evaluation Harness</button> to populate these scores.</p>
+            )}
+          </section>
+
+          {/* Architecture mix */}
+          {Object.keys(archBreakdown).length > 0 && (
+            <section className="ex-section">
+              <h2 className="ex-section-title">Architecture portfolio</h2>
+              <div className="ex-arch-bars">
+                {Object.entries(archBreakdown).sort((a, b) => b[1] - a[1]).map(([arch, count]) => (
+                  <div key={arch} className="ex-arch-row">
+                    <span className="ex-arch-label">{arch}</span>
+                    <div className="ex-arch-bar-wrap">
+                      <div className="ex-arch-bar" data-arch={arch}
+                        style={{ width: `${(count / workflows.length) * 100}%` }} />
+                    </div>
+                    <span className="ex-arch-count">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Integration health */}
+          <section className="ex-section">
+            <h2 className="ex-section-title">Integration health</h2>
+            {integs.length === 0
+              ? <p className="ex-hint">No integrations configured. <button className="ex-link" onClick={() => navigate('/app/integrations')}>Add connectors</button> to complete your stack.</p>
+              : (
+              <div className="ex-integ-rows">
+                {integs.map(i => (
+                  <div key={i.id} className="ex-integ-row">
+                    <span className={`ex-health-dot ex-health-dot--${i.health_status ?? 'unknown'}`} />
+                    <span className="ex-integ-name">{i.name}</span>
+                    <span className="ex-integ-type">{i.provider_type}</span>
+                    <span className={`ex-badge ex-badge--${i.health_status === 'healthy' ? 'ok' : i.health_status === 'degraded' ? 'warn' : 'neutral'}`}>
+                      {i.health_status ?? 'untested'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Quick links */}
+          <section className="ex-section">
+            <h2 className="ex-section-title">Quick actions</h2>
+            <div className="ex-quick-actions">
+              <button className="ex-action-card" onClick={() => navigate('/app')}>
+                <span>🗂️</span><span>Browse catalog</span>
+              </button>
+              <button className="ex-action-card" onClick={() => navigate('/app/designer')}>
+                <span>🧩</span><span>Guided Designer</span>
+              </button>
+              <button className="ex-action-card" onClick={() => navigate('/app/evaluation')}>
+                <span>📊</span><span>Evaluation Harness</span>
+              </button>
+              <button className="ex-action-card" onClick={() => navigate('/app/observability')}>
+                <span>🔭</span><span>Observability</span>
+              </button>
+              <button className="ex-action-card" onClick={() => navigate('/app/cost-roi')}>
+                <span>💰</span><span>Cost & ROI</span>
+              </button>
+              <button className="ex-action-card" onClick={() => navigate('/app/industry-packs')}>
+                <span>📦</span><span>Industry Packs</span>
+              </button>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* ── Action Board Tab ── */}
+      {tab === 'actions' && (
+        <section className="ex-section">
+          <h2 className="ex-section-title">What to do next</h2>
+          {actionsQ.isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Analyzing platform state…</p> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {(actionsQ.data?.actions ?? []).map((a, i) => (
+                <div key={i} className={`ex-action-item ex-action-item--${a.priority}`} onClick={() => navigate(a.link)} style={{ cursor: 'pointer' }}>
+                  <div className="ex-action-priority">
+                    <span className={`ex-badge ex-badge--${a.priority === 'high' ? 'warn' : a.priority === 'medium' ? 'ok' : 'neutral'}`}>{a.priority}</span>
+                    <span className="ex-action-category">{a.category}</span>
+                  </div>
+                  <h3 className="ex-action-title">{a.title}</h3>
+                  <p className="ex-action-desc">{a.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
-      {/* ── Integration health detail ── */}
-      <section className="ex-section">
-        <h2 className="ex-section-title">Integration health</h2>
-        {integs.length === 0
-          ? <p className="ex-hint">No integrations configured. <button className="ex-link" onClick={() => navigate('/app/integrations')}>Add connectors</button> to complete your stack.</p>
-          : (
-          <div className="ex-integ-rows">
-            {integs.map(i => (
-              <div key={i.id} className="ex-integ-row">
-                <span className={`ex-health-dot ex-health-dot--${i.health_status ?? 'unknown'}`} />
-                <span className="ex-integ-name">{i.name}</span>
-                <span className="ex-integ-type">{i.provider_type}</span>
-                <span className={`ex-badge ex-badge--${i.health_status === 'healthy' ? 'ok' : i.health_status === 'degraded' ? 'warn' : 'neutral'}`}>
-                  {i.health_status ?? 'untested'}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* ── ROI Summary Tab ── */}
+      {tab === 'roi' && (
+        <section className="ex-section">
+          <h2 className="ex-section-title">Cross-Architecture ROI Comparison</h2>
+          {roiQ.isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Loading ROI data…</p> : roiQ.data ? (
+            <>
+              {roiQ.data.recommended && (
+                <div className="ex-rec-banner">
+                  🏆 <strong>Top recommendation:</strong> {roiQ.data.recommended} — highest net monthly savings.
+                </div>
+              )}
+              <table className="ex-roi-table">
+                <thead>
+                  <tr>
+                    <th>Architecture</th>
+                    <th>Monthly Cost</th>
+                    <th>Monthly Value</th>
+                    <th>Net/mo</th>
+                    <th>Latency</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(roiQ.data.architectures ?? []).map(a => (
+                    <tr key={a.type} className={a.type === roiQ.data!.recommended ? 'ex-roi-highlight' : ''}>
+                      <td><strong>{a.label}</strong></td>
+                      <td>{fmtUSD(a.monthly_cost)}</td>
+                      <td>{fmtUSD(a.monthly_value)}</td>
+                      <td style={{ color: a.monthly_net > 0 ? 'var(--color-success)' : 'var(--color-error)', fontWeight: 700 }}>
+                        {a.monthly_net > 0 ? '+' : ''}{fmtUSD(a.monthly_net)}
+                      </td>
+                      <td>{a.latency_ms}ms</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : <p>No ROI data available.</p>}
+        </section>
+      )}
 
-      {/* ── Quick links ── */}
-      <section className="ex-section">
-        <h2 className="ex-section-title">Quick actions</h2>
-        <div className="ex-quick-actions">
-          <button className="ex-action-card" onClick={() => navigate('/app')}>
-            <span>🗂️</span>
-            <span>Browse catalog</span>
-          </button>
-          <button className="ex-action-card" onClick={() => navigate('/app/designer')}>
-            <span>🧩</span>
-            <span>Guided Designer</span>
-          </button>
-          <button className="ex-action-card" onClick={() => navigate('/app/evaluation')}>
-            <span>📊</span>
-            <span>Evaluation Harness</span>
-          </button>
-          <button className="ex-action-card" onClick={() => navigate('/app/observability')}>
-            <span>🔭</span>
-            <span>Observability</span>
-          </button>
-          <button className="ex-action-card" onClick={() => navigate('/app/cost-roi')}>
-            <span>💰</span>
-            <span>Cost & ROI</span>
-          </button>
-          <button className="ex-action-card" onClick={() => navigate('/app/industry-packs')}>
-            <span>📦</span>
-            <span>Industry Packs</span>
-          </button>
-        </div>
-      </section>
+      {/* ── Business Case Tab ── */}
+      {tab === 'business-case' && (
+        <section className="ex-section">
+          <h2 className="ex-section-title">Business Case Generator</h2>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+            <label style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>Architecture:</label>
+            <select value={bcArch} onChange={e => setBcArch(e.target.value)}
+              style={{ padding: '0.4rem 0.6rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', fontSize: '0.82rem' }}>
+              {['hybrid', 'vector', 'vectorless', 'graph', 'temporal', 'agentic', 'self_rag', 'hyde'].map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+
+          {bcQ.isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Generating business case…</p> : bcQ.data ? (
+            <div className="ex-bc-document">
+              <div className="ex-bc-section">
+                <h3>Architecture</h3>
+                <p><strong>{bcQ.data.architecture.label}</strong> — {bcQ.data.architecture.latency_ms}ms avg latency</p>
+              </div>
+
+              <div className="ex-bc-section">
+                <h3>Investment</h3>
+                <div className="ex-kpi-grid">
+                  <MetricCard label="Setup cost" value={fmtUSD(bcQ.data.investment.platform_setup_cost)} variant="info" />
+                  <MetricCard label="Monthly operating" value={fmtUSD(bcQ.data.investment.monthly_operating_cost)} variant="info" />
+                  <MetricCard label="Annual operating" value={fmtUSD(bcQ.data.investment.annual_operating_cost)} variant="info" />
+                </div>
+              </div>
+
+              <div className="ex-bc-section">
+                <h3>Returns</h3>
+                <div className="ex-kpi-grid">
+                  <MetricCard label="Monthly value" value={fmtUSD(bcQ.data.returns.monthly_business_value)} variant="ok" />
+                  <MetricCard label="Net savings/mo" value={`${bcQ.data.returns.monthly_net_savings > 0 ? '+' : ''}${fmtUSD(bcQ.data.returns.monthly_net_savings)}`}
+                    variant={bcQ.data.returns.monthly_net_savings > 0 ? 'ok' : 'warn'} />
+                  <MetricCard label="Payback period" value={bcQ.data.returns.payback_period_months != null ? `${bcQ.data.returns.payback_period_months} months` : 'N/A'}
+                    variant={bcQ.data.returns.payback_period_months != null && bcQ.data.returns.payback_period_months <= 6 ? 'ok' : 'warn'} />
+                  <MetricCard label="Annual net" value={`${bcQ.data.returns.annual_net_savings > 0 ? '+' : ''}${fmtUSD(bcQ.data.returns.annual_net_savings)}`}
+                    variant={bcQ.data.returns.annual_net_savings > 0 ? 'ok' : 'warn'} />
+                </div>
+              </div>
+
+              <div className="ex-bc-section">
+                <h3>Impact Breakdown (Monthly)</h3>
+                <div className="ex-bc-impacts">
+                  {Object.entries(bcQ.data.impact_breakdown).map(([key, val]) => (
+                    <div key={key} className="ex-bc-impact-row">
+                      <span className="ex-bc-impact-label">{key.replace(/_/g, ' ')}</span>
+                      <span className="ex-bc-impact-value">{fmtUSD(val)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ex-bc-section">
+                <h3>Executive Recommendation</h3>
+                <div className="ex-bc-reco">
+                  <p style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{bcQ.data.executive_recommendation.recommendation}</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>{bcQ.data.executive_recommendation.why_this_architecture}</p>
+                  <h4>Next Steps:</h4>
+                  <ol style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>
+                    {bcQ.data.executive_recommendation.next_steps.map((s, i) => (
+                      <li key={i} style={{ marginBottom: '0.35rem' }}>{s}</li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          ) : <p>Select an architecture to generate a business case.</p>}
+        </section>
+      )}
     </div>
   )
 }

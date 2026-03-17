@@ -648,3 +648,107 @@
   .cr-metrics-grid { grid-template-columns: repeat(2, 1fr); }
   .cr-header { flex-direction: column; }
 }
+
+/* ── Tab bar ── */
+.cr-tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.cr-tab {
+  padding: 0.55rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.cr-tab:hover {
+  color: var(--color-text);
+}
+
+.cr-tab--active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* ── Use-case templates ── */
+.cr-usecase-section {
+  animation: cr-drill-in 0.2s ease;
+}
+
+.cr-usecase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.cr-usecase-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cr-usecase-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.cr-usecase-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.5rem;
+}
+
+.cr-usecase-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.cr-usecase-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.cr-label {
+  font-weight: 600;
+  color: var(--color-text-faint);
+}
+
+.cr-usecase-why {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  padding: 0.5rem 0.65rem;
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+}
+
+.cr-usecase-driver {
+  font-size: 0.74rem;
+  color: var(--color-text-faint);
+}
+
+/* ── TCO / Heatmap sections ── */
+.cr-tco-section,
+.cr-heatmap-section {
+  animation: cr-drill-in 0.2s ease;
+}

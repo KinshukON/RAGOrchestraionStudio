@@ -6,6 +6,7 @@ import { listWorkflows } from '../../api/workflows'
 import { listIntegrations } from '../../api/integrations'
 import { aggregatedScores } from '../../api/evaluations'
 import { apiClient } from '../../api/client'
+import { fetchRecommendations } from '../../api/analytics'
 import { AdminObservabilityPage } from '../admin-observability/AdminObservabilityPage'
 import { EmptyState } from '../ui/feedback'
 import { SkeletonTable } from '../ui/Skeleton'
@@ -13,7 +14,7 @@ import { TraceExplorer } from './TraceExplorer'
 import './observability.css'
 
 // ── Shared types ─────────────────────────────────────────────────────────
-type Tab = 'overview' | 'quality' | 'governance' | 'cost' | 'runs' | 'audit'
+type Tab = 'overview' | 'quality' | 'governance' | 'cost' | 'runs' | 'audit' | 'recommendations'
 
 type AuditLog = {
   id: number
@@ -32,6 +33,7 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: 'cost',        label: 'Cost Analytics',    emoji: '💰' },
   { id: 'runs',        label: 'Run History',       emoji: '📜' },
   { id: 'audit',       label: 'Audit Log',         emoji: '🔍' },
+  { id: 'recommendations', label: 'AI Recommendations', emoji: '🤖' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -139,6 +141,46 @@ function OperationsTab({ runs }: { runs: RunSummary[] }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── AI Recommendations tab ────────────────────────────────────────────────
+function RecommendationsTab() {
+  const recsQ = useQuery({ queryKey: ['obs-recommendations'], queryFn: fetchRecommendations })
+  const recs = recsQ.data?.recommendations ?? []
+
+  const priorityColor = (p: string) =>
+    p === 'critical' ? 'obs-badge--error' :
+    p === 'high' ? 'obs-badge--warning' :
+    p === 'medium' ? 'obs-badge--running' : ''
+
+  return (
+    <div className="obs-dashboard">
+      {recsQ.isLoading ? (
+        <p style={{ color: 'var(--color-text-muted)' }}>Analyzing run data for recommendations…</p>
+      ) : recs.length === 0 ? (
+        <div className="obs-card obs-card--info">
+          <div className="obs-card-icon">✅</div>
+          <div>
+            <h3 className="obs-card-title">No recommendations</h3>
+            <p className="obs-card-body">The system has no actionable recommendations based on current run data.</p>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {recs.map((rec: Record<string, unknown>, i: number) => (
+            <div key={i} className="obs-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                <span className={`obs-badge ${priorityColor(String(rec.priority ?? ''))}`}>{String(rec.priority ?? 'info')}</span>
+                <h3 className="obs-card-title" style={{ margin: 0 }}>{String(rec.title ?? '')}</h3>
+              </div>
+              <p className="obs-card-body">{String(rec.evidence ?? '')}</p>
+              <p className="obs-card-body" style={{ fontWeight: 600, color: 'var(--color-accent)' }}>💡 {String(rec.recommendation ?? '')}</p>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -562,6 +604,8 @@ export function ObservabilityPage() {
           <AdminObservabilityPage />
         </section>
       )}
+
+      {tab === 'recommendations' && <RecommendationsTab />}
     </div>
   )
 }
