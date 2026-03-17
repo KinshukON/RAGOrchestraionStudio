@@ -81,6 +81,13 @@ app.include_router(admin_observability.router, prefix="/api/admin/observability"
 app.include_router(cost_roi.router, prefix="/api/cost-roi", tags=["cost-roi"])
 app.include_router(demo.router, prefix="/api/demo", tags=["demo"])
 
+# WS-6/7: Executive dashboard & commercial packaging
+try:
+    from routers import executive
+    app.include_router(executive.router, prefix="/api/executive", tags=["executive"])
+except Exception:
+    pass  # Graceful: executive module optional
+
 
 @app.get("/health")
 def health():
