@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import type { RunSummary } from '../../api/observability'
 import { listObservabilityRuns } from '../../api/observability'
@@ -149,16 +150,60 @@ function OperationsTab({ runs }: { runs: RunSummary[] }) {
 
 // ── AI Recommendations tab ────────────────────────────────────────────────
 function RecommendationsTab() {
+  const navigate = useNavigate()
   const recsQ = useQuery({ queryKey: ['obs-recommendations'], queryFn: fetchRecommendations })
   const recs = recsQ.data?.recommendations ?? []
+  const runsQ2 = useQuery({ queryKey: ['observability-runs'], queryFn: () => listObservabilityRuns() })
+  const runs2 = runsQ2.data ?? []
 
   const priorityColor = (p: string) =>
     p === 'critical' ? 'obs-badge--error' :
     p === 'high' ? 'obs-badge--warning' :
     p === 'medium' ? 'obs-badge--running' : ''
 
+  // Sprint 6: Map rec types to target pages for "Fix this →"
+  const targetPageMap: Record<string, { route: string; label: string }> = {
+    integration: { route: '/app/integrations', label: 'Go to Integrations' },
+    governance: { route: '/app/governance', label: 'Review Governance' },
+    cost: { route: '/app/cost-roi', label: 'View Cost & ROI' },
+    quality: { route: '/app/evaluation', label: 'Run Evaluation' },
+    environment: { route: '/app/environments', label: 'Check Environments' },
+    architecture: { route: '/app/architectures', label: 'Architecture Catalog' },
+    observability: { route: '/app/observability', label: 'Observability' },
+  }
+
+  // Sprint 6: Operating metrics
+  const totalRuns2 = runs2.length
+  const successRuns2 = runs2.filter(r => r.status === 'succeeded').length
+  const qualityPct = totalRuns2 > 0 ? Math.round((successRuns2 / totalRuns2) * 100) : null
+  const totalCost = runs2.reduce((sum, r) => sum + (Number(r.metrics?.cost ?? 0)), 0)
+  const costPerRun = totalRuns2 > 0 ? totalCost / totalRuns2 : null
+
+  // Sprint 6: Expandable why state
+  const [expandedWhy, setExpandedWhy] = useState<number | null>(null)
+
   return (
     <div className="obs-dashboard">
+      {/* Sprint 6: Operating metrics row */}
+      <div className="obs-rec-metrics-row">
+        <div className="obs-rec-metric">
+          <div className="obs-rec-metric-value">{costPerRun !== null ? `$${costPerRun.toFixed(4)}` : '—'}</div>
+          <div className="obs-rec-metric-label">Cost/run</div>
+        </div>
+        <div className="obs-rec-metric">
+          <div className="obs-rec-metric-value">{qualityPct !== null ? `${qualityPct}%` : '—'}</div>
+          <div className="obs-rec-metric-label">Quality compliance</div>
+        </div>
+        <div className="obs-rec-metric">
+          <div className="obs-rec-metric-value">{recs.filter((r: Record<string, unknown>) => String(r.priority ?? '') === 'critical').length}</div>
+          <div className="obs-rec-metric-label">Critical issues</div>
+        </div>
+        <div className="obs-rec-metric">
+          <div className="obs-rec-metric-value">{recs.length}</div>
+          <div className="obs-rec-metric-label">Total recommendations</div>
+        </div>
+      </div>
+
       {recsQ.isLoading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>Analyzing run data for recommendations…</p>
       ) : recs.length === 0 ? (
@@ -171,16 +216,34 @@ function RecommendationsTab() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {recs.map((rec: Record<string, unknown>, i: number) => (
-            <div key={i} className="obs-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                <span className={`obs-badge ${priorityColor(String(rec.priority ?? ''))}`}>{String(rec.priority ?? 'info')}</span>
-                <h3 className="obs-card-title" style={{ margin: 0 }}>{String(rec.title ?? '')}</h3>
+          {recs.map((rec: Record<string, unknown>, i: number) => {
+            const recType = String(rec.type ?? rec.category ?? 'observability')
+            const target = targetPageMap[recType] ?? targetPageMap.observability
+            return (
+              <div key={i} className="obs-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <span className={`obs-badge ${priorityColor(String(rec.priority ?? ''))}`}>{String(rec.priority ?? 'info')}</span>
+                  <h3 className="obs-card-title" style={{ margin: 0 }}>{String(rec.title ?? '')}</h3>
+                </div>
+                <p className="obs-card-body">{String(rec.evidence ?? '')}</p>
+                <p className="obs-card-body" style={{ fontWeight: 600, color: 'var(--color-accent)' }}>💡 {String(rec.recommendation ?? '')}</p>
+                {/* Sprint 6: Why + Fix this → */}
+                <div className="obs-rec-actions">
+                  <button className="obs-rec-why-btn" onClick={() => setExpandedWhy(expandedWhy === i ? null : i)}>
+                    {expandedWhy === i ? '▼ Hide why' : '▶ Why?'}
+                  </button>
+                  <button className="obs-rec-fix-btn" onClick={() => navigate(target.route)}>
+                    {target.label} →
+                  </button>
+                </div>
+                {expandedWhy === i && (
+                  <div className="obs-rec-why-panel">
+                    <p>{String(rec.explanation ?? rec.evidence ?? 'This recommendation is derived from observed patterns in your run data, integration health, and governance compliance metrics.')}</p>
+                  </div>
+                )}
               </div>
-              <p className="obs-card-body">{String(rec.evidence ?? '')}</p>
-              <p className="obs-card-body" style={{ fontWeight: 600, color: 'var(--color-accent)' }}>💡 {String(rec.recommendation ?? '')}</p>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

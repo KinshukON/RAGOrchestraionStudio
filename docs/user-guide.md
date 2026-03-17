@@ -114,6 +114,13 @@ The catalog is your starting point. It presents **18 RAG architecture patterns**
 - Stack readiness indicator
 - CTA to configure missing integrations
 
+**Commercial identity (Sprint 6):** Each catalog card now also shows:
+
+- **Tier badge** — Core (⭐), Advanced (🔧), or Specialized (🔬)
+- **Business outcome badge** — e.g. "Reduce support ticket volume by 40–60%"
+- **Commercial strip** — estimated setup days · cost tier · governance posture
+- **"Why it wins"** — one-sentence competitive advantage for this architecture
+
 | Architecture | Best For |
 |---|---|
 | **Vector RAG** | Semantic similarity over embedded text corpora |
@@ -145,7 +152,7 @@ The catalog is your starting point. It presents **18 RAG architecture patterns**
 
 **Sidebar: Architecture → Catalog** → click **"Get a recommendation"** at the top of the page.
 
-The **Architect Advisor** is a 5-question decision wizard that recommends the most appropriate RAG architecture (or suggests Long Context Window / Fine-tuning when RAG is not the right tool).
+The **Architect Advisor** is an **8-question decision wizard** that recommends the most appropriate RAG architecture (or suggests Long Context Window / Fine-tuning when RAG is not the right tool).
 
 ### Questions asked
 
@@ -154,6 +161,9 @@ The **Architect Advisor** is a 5-question decision wizard that recommends the mo
 3. **Volume** — < 10k, 10k–1M, > 1M documents
 4. **Freshness requirement** — real-time, daily, static
 5. **Governance sensitivity** — standard, regulated/HIPAA/FINRA, safety-critical
+6. **Budget posture** — tight (minimize cost), moderate (balance), flexible (invest for quality)
+7. **Latency tolerance** — under 500ms, under 2s, flexible/batch OK
+8. **Explainability requirement** — required (audit/compliance), nice to have, not needed
 
 ### Output
 
@@ -163,6 +173,12 @@ The advisor produces a **recommendation card** with:
 - Operational profile: complexity badge, estimated setup days, cost tier, stack readiness
 - Required integrations with live health status
 - Optional integrations
+- **Commercial Profile** (Sprint 6):
+  - ⏱ Setup effort (days)
+  - 💰 Cost posture (tier + explanation)
+  - 🏛️ Governance posture
+  - 📈 Likely ROI lever (e.g. "Support deflection and analyst time savings")
+- **"Why Not the Alternatives?"** — explains why each rejected architecture was ruled out (e.g. "Graph RAG: graph traversal adds latency — hard to hit <500ms")
 - CTA: **"Design this →"** pre-loads Guided Designer for the recommended type
 
 ---
@@ -367,6 +383,22 @@ Click **Promote →** in the environment detail panel. The final step (`pending 
 > The **Promote** button requires the `approve_promotions` permission (Platform Admin only).  
 > Rate limit: **5 promote attempts per user per 60 seconds**.
 
+### Deployment Readiness Scorecard (Sprint 6)
+
+The environment detail panel now shows a **5-point deployment readiness scorecard**:
+
+1. ✅/○ Integrations bound (count / total)
+2. ✅/○ Required stack validated
+3. ✅/○ Governance approval passed
+4. ✅ Cost profile available
+5. ✅/○ Promoted to production
+
+**Contextual blockers** appear beneath the scorecard:
+- ⚠️ **Blocked** — when no integrations are bound
+- 💡 **Next step** — when governance approval is pending
+
+A **cost connection link** ("📊 View cost breakdown for this environment →") links to the Environment Cost Heatmap tab.
+
 ---
 
 ## 12. Governance & Guardrails
@@ -456,9 +488,18 @@ Full global audit log — all governance-sensitive events across the platform (p
 
 Fetches AI-generated recommendations from `/api/observability/analytics/recommendations`:
 
+**Operating metrics row (Sprint 6):**
+- Cost per run
+- Quality compliance %
+- Critical issues count
+- Total recommendations
+
+**Per-recommendation cards:**
 - **Priority badges** — critical / high / medium / low
 - **Evidence** — data-driven observations from run patterns
 - **Actionable recommendations** — specific suggested changes (highlighted in accent colour)
+- **"Fix this →"** button (Sprint 6) — navigates directly to the relevant page (Integrations, Governance, Cost & ROI, Evaluation, Environments, or Architecture Catalog) based on recommendation type
+- **"Why?" toggle** (Sprint 6) — expandable root-cause explanation panel
 
 Recommendations are generated based on current run data — they analyse failure patterns, performance anomalies, and governance gaps to suggest platform improvements.
 
@@ -537,6 +578,14 @@ Helps identify cost hotspots and optimisation targets across the deployment pipe
 
 Platform intelligence dashboard with four tabs:
 
+### Platform Headline Banner (Sprint 6)
+
+At the top of the Overview tab, a **state-derived platform headline banner** shows:
+- **Status icon** — ✅ healthy, ⚠️ blocked, 🟡 operational, 💡 ready to start
+- **Status text** — e.g. "Platform healthy — ready for pilot or production" or "Blocked by 2 unhealthy integrations"
+- **Best-fit architecture** chip — most-used architecture type
+- **Top action CTA** — navigates to the most impactful next step (e.g. "Fix unhealthy integrations →")
+
 ### 📊 Overview tab
 
 **Live Platform KPIs** (from `/api/executive/kpis`):
@@ -580,8 +629,14 @@ Highlights the **recommended architecture** based on highest net monthly savings
 
 ### 📋 Business Case tab
 
-Full Business Case Generator — select any architecture to produce a structured document:
+Full Business Case Generator — select any architecture and a **presentation variant** to produce a structured document:
 
+**Variant selector (Sprint 6):**
+- 💼 **Executive** — savings narrative, payback period, recommendation in plain English for budget holders
+- ⚙️ **Technical** — architecture reasoning, latency, throughput, infrastructure requirements, integration dependencies
+- 🛡️ **Governance** — audit coverage, compliance posture, explainability guarantees, risk reduction metrics
+
+**Document sections:**
 - **Architecture overview** with latency profile
 - **Investment**: platform setup cost, monthly operating, annual operating
 - **Returns**: monthly business value, net savings, payback period, annual net

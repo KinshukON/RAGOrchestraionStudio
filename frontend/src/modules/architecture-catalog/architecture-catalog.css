@@ -249,3 +249,100 @@
   max-width: 380px;
   margin: 0;
 }
+
+/* ── Tier badges ──────────────────────────────────────────────── */
+.arch-catalog-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.arch-catalog-tier-badge--core {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.arch-catalog-tier-badge--advanced {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.arch-catalog-tier-badge--specialized {
+  background: rgba(244, 114, 182, 0.12);
+  color: #f472b6;
+  border: 1px solid rgba(244, 114, 182, 0.25);
+}
+
+/* ── Business outcome badge ──────────────────────────────────── */
+.arch-catalog-outcome-badge {
+  display: inline-block;
+  margin: 0.35rem 0 0.2rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius);
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(56, 189, 248, 0.08));
+  color: var(--color-accent);
+  border: 1px solid rgba(129, 140, 248, 0.2);
+}
+
+/* ── Commercial strip ────────────────────────────────────────── */
+.arch-catalog-commercial-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  flex-wrap: wrap;
+}
+
+.arch-catalog-strip-divider {
+  color: var(--color-border);
+  font-weight: 300;
+}
+
+/* ── Why it wins ─────────────────────────────────────────────── */
+.arch-catalog-why-wins {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.06), rgba(56, 189, 248, 0.04));
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  font-size: 0.78rem;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.arch-catalog-why-wins-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+/* ── Outlined CTA variant ────────────────────────────────────── */
+.arch-catalog-cta--outlined {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.arch-catalog-cta--outlined:hover {
+  background: var(--color-surface-2);
+  box-shadow: none;
+  color: var(--color-text);
+}
+

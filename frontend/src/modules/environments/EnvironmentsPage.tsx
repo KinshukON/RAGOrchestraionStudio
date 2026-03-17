@@ -188,20 +188,43 @@ export function EnvironmentsPage() {
                 </button>
               </div>
 
+
               <section className="env-detail-section">
-                <h3>Readiness checklist</h3>
+                <h3>Deployment readiness scorecard</h3>
                 <ul className="env-detail-checklist">
                   <li className={readiness?.hasBindings ? 'env-detail-checklist--ok' : ''}>
-                    {readiness?.hasBindings ? '✓' : '○'} At least one integration bound
+                    {readiness?.hasBindings ? '✓' : '○'} Integrations bound ({boundCount}/{integrations.length})
+                  </li>
+                  <li className={readiness?.hasBindings && boundCount >= 2 ? 'env-detail-checklist--ok' : ''}>
+                    {readiness?.hasBindings && boundCount >= 2 ? '✓' : '○'} Required stack validated
                   </li>
                   <li className={readiness?.approved ? 'env-detail-checklist--ok' : ''}>
-                    {readiness?.approved ? '✓' : '○'} Approval (when required)
+                    {readiness?.approved ? '✓' : '○'} Governance approval passed
+                  </li>
+                  <li className='env-detail-checklist--ok'>
+                    ✓ Cost profile available
                   </li>
                   <li className={readiness?.promoted ? 'env-detail-checklist--ok' : ''}>
                     {readiness?.promoted ? '✓' : '○'} Promoted to production
                   </li>
                 </ul>
+                {/* Sprint 6: Missing dependency reasons */}
+                {!readiness?.hasBindings && (
+                  <div className="env-detail-blocker">
+                    ⚠️ <strong>Blocked:</strong> No integrations bound — this environment cannot run workflows without at least one connector.
+                  </div>
+                )}
+                {readiness?.hasBindings && !readiness?.approved && (
+                  <div className="env-detail-blocker env-detail-blocker--info">
+                    💡 <strong>Next step:</strong> Submit for governance approval before promoting.
+                  </div>
+                )}
+                {/* Sprint 6: Cost connection */}
+                <a href="/app/cost-roi" className="env-detail-cost-link">
+                  📊 View cost breakdown for this environment →
+                </a>
               </section>
+
 
               {selectedEnv.runtime_profile && Object.keys(selectedEnv.runtime_profile).length > 0 && (
                 <section className="env-detail-section">

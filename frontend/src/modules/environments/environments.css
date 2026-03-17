@@ -367,3 +367,36 @@
 .env-readiness--ok    .env-readiness-fill { background: #10b981; }
 .env-readiness--partial .env-readiness-fill { background: #f59e0b; }
 .env-readiness--none  .env-readiness-fill { background: #475569; }
+
+/* ── Sprint 6: Deployment blockers + cost link ───────────────────────── */
+.env-detail-blocker {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.4rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: 0.8rem;
+  color: #fbbf24;
+  line-height: 1.5;
+}
+
+.env-detail-blocker--info {
+  background: rgba(56, 178, 172, 0.06);
+  border-color: rgba(56, 178, 172, 0.2);
+  color: #5eead4;
+}
+
+.env-detail-cost-link {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+  color: #38b2ac;
+  text-decoration: none;
+  transition: 0.15s;
+}
+
+.env-detail-cost-link:hover {
+  color: #5eead4;
+  text-decoration: underline;
+}
+

@@ -321,3 +321,92 @@
 .obs-int-name  { font-weight: 600; color: #e2e8f0; flex: 1; }
 .obs-int-type  { font-size: 0.75rem; color: #64748b; }
 .obs-int-tested { font-size: 0.72rem; color: #475569; margin-left: auto; }
+
+/* ── Sprint 6: Prescriptive recommendations ──────────────────────────── */
+.obs-rec-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.obs-rec-metric {
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface, #0f172a);
+  border: 1px solid #1f2937;
+  text-align: center;
+}
+
+.obs-rec-metric-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.15rem;
+}
+
+.obs-rec-metric-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.obs-rec-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.obs-rec-why-btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.35rem;
+  border: 1px solid #1f2937;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.74rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: 0.15s;
+}
+
+.obs-rec-why-btn:hover {
+  border-color: #38b2ac;
+  color: #e2e8f0;
+}
+
+.obs-rec-fix-btn {
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(56, 178, 172, 0.35);
+  background: rgba(56, 178, 172, 0.1);
+  color: #38b2ac;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: 0.15s;
+}
+
+.obs-rec-fix-btn:hover {
+  background: rgba(56, 178, 172, 0.2);
+  color: #5eead4;
+}
+
+.obs-rec-why-panel {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.4rem;
+  background: rgba(56, 178, 172, 0.04);
+  border: 1px solid rgba(56, 178, 172, 0.15);
+}
+
+.obs-rec-why-panel p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.55;
+}
+

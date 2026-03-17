@@ -9,6 +9,7 @@ import { PageSkeleton } from '../ui/Skeleton'
 import { useToast } from '../ui/ToastContext'
 import { ArchitectAdvisor } from './ArchitectAdvisor'
 import { RequiredIntegrationsPanel } from './RequiredIntegrationsPanel'
+import { ARCH_PROFILES } from './archProfiles'
 
 type CatalogTileProps = {
   template: ArchitectureTemplate
@@ -17,14 +18,42 @@ type CatalogTileProps = {
 }
 
 function CatalogTile({ template, onDesign, isDesigning }: CatalogTileProps) {
+  const profile = ARCH_PROFILES[template.type]
   return (
     <article className="arch-catalog-card" data-arch={template.type}>
       <header className="arch-catalog-card-header">
-        <div className="arch-catalog-card-pill">{template.type.toUpperCase()} RAG</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="arch-catalog-card-pill">{template.type.toUpperCase()} RAG</div>
+          {profile?.tier && (
+            <span className={`arch-catalog-tier-badge arch-catalog-tier-badge--${profile.tier}`}>
+              {profile.tier === 'core' ? '⭐' : profile.tier === 'advanced' ? '🔧' : '🔬'} {profile.tier.charAt(0).toUpperCase() + profile.tier.slice(1)}
+            </span>
+          )}
+        </div>
         <h2>{template.title}</h2>
+        {profile?.businessOutcome && (
+          <div className="arch-catalog-outcome-badge">{profile.businessOutcome}</div>
+        )}
         <p className="arch-catalog-card-definition">{template.short_definition}</p>
       </header>
       <div className="arch-catalog-card-body">
+        {/* ── Commercial strip ── */}
+        {profile && (
+          <div className="arch-catalog-commercial-strip">
+            <span>⏱ {profile.estimatedSetupDays}d setup</span>
+            <span className="arch-catalog-strip-divider">|</span>
+            <span>💰 {profile.costTier} cost</span>
+            <span className="arch-catalog-strip-divider">|</span>
+            <span>🏛️ {profile.governancePosture.split('—')[0].trim()}</span>
+          </div>
+        )}
+        {/* ── Why it wins ── */}
+        {profile?.whyItWins && (
+          <div className="arch-catalog-why-wins">
+            <span className="arch-catalog-why-wins-icon">🎯</span>
+            <span>{profile.whyItWins}</span>
+          </div>
+        )}
         <section>
           <h3>When to use</h3>
           <p>{template.when_to_use}</p>

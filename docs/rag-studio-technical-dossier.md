@@ -1,6 +1,6 @@
 # RAGOS — RAG Orchestration Studio · Technical Dossier
 
-> **Version:** 2.3 · March 2026  
+> **Version:** 2.4 · March 2026  
 > **Live site:** [ragorchestrationstudio.com](https://ragorchestrationstudio.com)  
 > **Repository:** [github.com/KinshukON/RAGOrchestraionStudio](https://github.com/KinshukON/RAGOrchestraionStudio)
 
@@ -52,6 +52,12 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
     - Architecture Catalog: Tiered View toggle with governance profile overlays.
     - Executive Summary: 4-tab view (Overview with live KPIs, Action Board, ROI Summary, Business Case Generator).
     - 30+ new backend endpoints across 6 routers; 3 new API client files.
+  - **Sprint 6 — Commercial Legibility (Novelty-First):**
+    - Architecture Catalog: per-card commercial identity (tier badge, business outcome badge, commercial strip, "why it wins" callout). `archProfiles.ts` extended with 6 commercial fields for all 18 architectures.
+    - Architect Advisor: upgraded to 8-question decision assistant with Commercial Profile grid (setup effort, cost posture, governance, ROI lever) and "Why Not the Alternatives?" rejection list.
+    - Executive Summary: platform headline banner (state-derived status + best-fit arch + top action CTA) + 3-variant Business Case selector (Executive/Technical/Governance).
+    - Observability: AI Recommendations upgraded to prescriptive with operating metrics row, "Fix this →" action buttons, expandable "Why?" panels.
+    - Environments: 5-point deployment readiness scorecard, contextual blocker messages, cost connection link.
 
 - **Aspirational / Planned:**
   - Real RAG retrieval against vector/graph/temporal backends and live LLM orchestration.

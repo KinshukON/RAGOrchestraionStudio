@@ -27,6 +27,7 @@ export function ExecutiveSummaryPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<ExecTab>('overview')
   const [bcArch, setBcArch] = useState('hybrid')
+  const [bcVariant, setBcVariant] = useState<'executive' | 'technical' | 'governance'>('executive')
 
   const workflowsQ  = useQuery({ queryKey: ['workflows'],          queryFn: listWorkflows })
   const envsQ       = useQuery({ queryKey: ['environments'],        queryFn: listEnvironments })
@@ -73,6 +74,27 @@ export function ExecutiveSummaryPage() {
     return acc
   }, {})
 
+  // Sprint 6: Platform headline computation
+  const unhealthyIntegCount = integs.filter(i => i.health_status !== 'healthy').length
+  const blockedPromotions = envs.filter(e => (e.promotion_status ?? 'draft') === 'draft' && Object.keys(e.integration_bindings ?? {}).length === 0).length
+  const platformHeadline = (() => {
+    if (unhealthyIntegCount > 0) return { icon: '⚠️', text: `Blocked by ${unhealthyIntegCount} unhealthy integration${unhealthyIntegCount > 1 ? 's' : ''}`, variant: 'warn' as const }
+    if (blockedPromotions > 0) return { icon: '🔴', text: `${blockedPromotions} environment${blockedPromotions > 1 ? 's' : ''} missing integration bindings`, variant: 'warn' as const }
+    if (workflows.length === 0) return { icon: '💡', text: 'Ready to start — create your first workflow', variant: 'info' as const }
+    if (successRate !== null && successRate >= 80 && healthyInteg === integs.length) return { icon: '✅', text: 'Platform healthy — ready for pilot or production', variant: 'ok' as const }
+    return { icon: '🟡', text: 'Platform operational — review recommendations for improvements', variant: 'info' as const }
+  })()
+
+  const topAction = (() => {
+    if (integs.length === 0) return { text: 'Connect your first integration', route: '/app/integrations' }
+    if (unhealthyIntegCount > 0) return { text: 'Fix unhealthy integrations', route: '/app/integrations' }
+    if (workflows.length === 0) return { text: 'Design your first architecture', route: '/app/architectures' }
+    if (envs.filter(e => (e.promotion_status ?? 'draft') === 'promoted').length === 0) return { text: 'Promote an environment to production', route: '/app/environments' }
+    return { text: 'Review observability insights', route: '/app/observability' }
+  })()
+
+  const bestFitArch = topStrategy ?? (Object.entries(archBreakdown).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null)
+
   return (
     <div className="ex-root">
       <div className="ex-header">
@@ -95,6 +117,22 @@ export function ExecutiveSummaryPage() {
       {/* ── Overview Tab ── */}
       {tab === 'overview' && (
         <>
+          {/* Sprint 6: Platform headline banner */}
+          <div className={`ex-headline-banner ex-headline-banner--${platformHeadline.variant}`}>
+            <div className="ex-headline-main">
+              <span className="ex-headline-icon">{platformHeadline.icon}</span>
+              <span className="ex-headline-text">{platformHeadline.text}</span>
+            </div>
+            <div className="ex-headline-actions">
+              {bestFitArch && (
+                <span className="ex-headline-chip">🏆 Best-fit: <strong>{bestFitArch}</strong></span>
+              )}
+              <button className="ex-headline-cta" onClick={() => navigate(topAction.route)}>
+                {topAction.text} →
+              </button>
+            </div>
+          </div>
+
           {/* KPI tier 1: From executive API */}
           {kpis && (
             <section className="ex-section">
@@ -267,7 +305,7 @@ export function ExecutiveSummaryPage() {
       {tab === 'business-case' && (
         <section className="ex-section">
           <h2 className="ex-section-title">Business Case Generator</h2>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <label style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>Architecture:</label>
             <select value={bcArch} onChange={e => setBcArch(e.target.value)}
               style={{ padding: '0.4rem 0.6rem', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', fontSize: '0.82rem' }}>
@@ -275,6 +313,28 @@ export function ExecutiveSummaryPage() {
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>
+            <span style={{ color: 'var(--color-border)' }}>|</span>
+            <div className="ex-bc-variants">
+              {(['executive', 'technical', 'governance'] as const).map(v => (
+                <button key={v} className={`ex-bc-variant-btn ${bcVariant === v ? 'ex-bc-variant-btn--active' : ''}`}
+                  onClick={() => setBcVariant(v)}>
+                  {v === 'executive' ? '💼 Executive' : v === 'technical' ? '⚙️ Technical' : '🛡️ Governance'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Variant-specific framing */}
+          <div className="ex-bc-variant-frame">
+            {bcVariant === 'executive' && (
+              <p className="ex-bc-variant-desc">💼 <strong>Executive view</strong> — savings narrative, payback period, and recommendation in plain English for budget holders.</p>
+            )}
+            {bcVariant === 'technical' && (
+              <p className="ex-bc-variant-desc">⚙️ <strong>Technical justification</strong> — architecture reasoning, latency, throughput, infrastructure requirements, and integration dependencies.</p>
+            )}
+            {bcVariant === 'governance' && (
+              <p className="ex-bc-variant-desc">🛡️ <strong>Governance & risk</strong> — audit coverage, compliance posture, explainability guarantees, and risk reduction metrics.</p>
+            )}
           </div>
 
           {bcQ.isLoading ? <p style={{ color: 'var(--color-text-muted)' }}>Generating business case…</p> : bcQ.data ? (

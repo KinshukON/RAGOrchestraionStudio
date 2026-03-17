@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { createDesignSession, type ArchitectureType } from '../../api/architectures'
+import { ARCH_PROFILES } from './archProfiles'
 import { RequiredIntegrationsPanel } from './RequiredIntegrationsPanel'
 import './architect-advisor.css'
 
@@ -55,6 +56,33 @@ const QUESTIONS: Question[] = [
       { id: 'no',  label: 'No — single-step lookups are fine' },
     ],
   },
+  {
+    id: 'budget',
+    text: 'What is your budget posture for retrieval infrastructure?',
+    options: [
+      { id: 'tight',    label: 'Tight — minimize cost per query',     hint: 'Cost is the primary constraint' },
+      { id: 'moderate', label: 'Moderate — reasonable spend for quality', hint: 'Balance cost and capability' },
+      { id: 'flexible', label: 'Flexible — invest for best results',    hint: 'Quality/accuracy over cost' },
+    ],
+  },
+  {
+    id: 'latency',
+    text: 'What response latency is acceptable?',
+    options: [
+      { id: 'fast',     label: 'Under 500ms',       hint: 'Interactive / real-time' },
+      { id: 'moderate', label: 'Under 2 seconds',    hint: 'Standard web experience' },
+      { id: 'flexible', label: 'Flexible / batch OK', hint: 'Depth over speed' },
+    ],
+  },
+  {
+    id: 'explainability',
+    text: 'Do you need to explain how answers were retrieved?',
+    options: [
+      { id: 'required',     label: 'Required — audit/compliance mandate',  hint: 'Regulated industry or policy' },
+      { id: 'nice_to_have', label: 'Nice to have',                         hint: 'Helpful but not mandatory' },
+      { id: 'not_needed',   label: 'Not needed',                           hint: 'End-user facing, no audit trail' },
+    ],
+  },
 ]
 
 // ── Recommendation engine ───────────────────────────────────────────────
@@ -74,6 +102,55 @@ interface Recommendation {
   tradeoffs?: string[]
   costContext?: string
   whyChosen?: string
+  // Sprint 6: Commercial decision layer
+  whyNotOthers?: { arch: string; reason: string }[]
+  commercialProfile?: {
+    setupEffort: string
+    costPosture: string
+    governancePosture: string
+    likelyRoiLever: string
+  }
+}
+
+function buildWhyNotOthers(chosen: string, answers: Answers): { arch: string; reason: string }[] {
+  const others: { arch: string; reason: string }[] = []
+  const { budget, latency, explainability: _explainability } = answers
+
+  if (chosen !== 'vector' && chosen !== null)
+    others.push({ arch: 'Vector RAG', reason: budget === 'tight' ? 'Embedding pipeline cost exceeds tight budget' : 'Data structure or reasoning needs go beyond flat semantic search' })
+  if (chosen !== 'vectorless')
+    others.push({ arch: 'Vectorless RAG', reason: 'Misses semantic meaning — only matches exact keywords, brittle on paraphrased queries' })
+  if (chosen !== 'graph')
+    others.push({ arch: 'Graph RAG', reason: latency === 'fast' ? 'Graph traversal adds latency — hard to hit <500ms' : 'No entity relationship structure in the data to exploit' })
+  if (chosen !== 'temporal')
+    others.push({ arch: 'Temporal RAG', reason: 'Data has no meaningful time dimension — temporal filtering adds overhead without benefit' })
+  if (chosen !== 'hybrid')
+    others.push({ arch: 'Hybrid RAG', reason: budget === 'tight' ? 'Multiple backends increase infrastructure cost beyond budget' : 'Simpler single-strategy retrieval covers this use case' })
+
+  return others.slice(0, 4) // Cap at 4 alternatives
+}
+
+function buildCommercialProfile(archType: string | null, _answers: Answers): Recommendation['commercialProfile'] {
+  if (!archType) return undefined
+  const profile = ARCH_PROFILES[archType]
+  if (!profile) return undefined
+
+  const roiLevers: Record<string, string> = {
+    vector: 'Support deflection and analyst time savings',
+    vectorless: 'Compliance review time reduction and audit cost avoidance',
+    graph: 'Investigation cycle time reduction and escalation avoidance',
+    temporal: 'Audit review acceleration and regulatory compliance',
+    hybrid: 'Cross-workload consolidation and infrastructure efficiency',
+    agentic: 'Autonomous task completion replacing manual research workflows',
+    custom: 'Custom pipeline optimization for unique business processes',
+  }
+
+  return {
+    setupEffort: `~${profile.estimatedSetupDays} days`,
+    costPosture: `${profile.costTier} cost tier — ${profile.costTier === 'Low' ? 'no embedding cost' : profile.costTier === 'Medium' ? 'standard embedding + LLM' : 'multi-backend infrastructure'}`,
+    governancePosture: profile.governancePosture,
+    likelyRoiLever: roiLevers[archType] ?? 'Operational efficiency through optimized retrieval',
+  }
 }
 
 function recommend(answers: Answers): Recommendation {
@@ -100,6 +177,7 @@ function recommend(answers: Answers): Recommendation {
       tradeoffs: ['Cost scales with corpus size', 'Limited to context window', 'No source attribution', 'Latency increases with size'],
       costContext: '~$0.01–0.10/query · No indexing cost · Scales poorly past 200K tokens',
       whyChosen: 'Small dataset + no citation requirement + static data = context stuffing is simpler and cheaper than RAG.',
+      whyNotOthers: [{ arch: 'Any RAG architecture', reason: 'Dataset fits in a single LLM context window — RAG adds unnecessary complexity' }],
     }
   }
 
@@ -124,6 +202,7 @@ function recommend(answers: Answers): Recommendation {
       tradeoffs: ['Expensive to retrain', 'Knowledge goes stale', 'No source attribution', 'Needs training infrastructure'],
       costContext: '$50–500 to fine-tune · ~$0.001/query after · Can\'t update without retraining',
       whyChosen: 'Small + static dataset + no citation requirement → knowledge fits best in model weights.',
+      whyNotOthers: [{ arch: 'Any RAG architecture', reason: 'Static, compact data is better encoded in model weights than indexed for retrieval' }],
     }
   }
 
@@ -150,6 +229,8 @@ function recommend(answers: Answers): Recommendation {
       tradeoffs: ['Complex setup (Neo4j/Neptune)', 'Graph construction overhead', 'Higher latency', 'Needs entity extraction pipeline'],
       costContext: '~$0.01–0.05/query · Neo4j cloud from $65/mo · Higher setup but precise answers',
       whyChosen: 'Rich entity relationships or multi-hop reasoning needs → graph traversal outperforms flat vector search.',
+      whyNotOthers: buildWhyNotOthers('graph', answers),
+      commercialProfile: buildCommercialProfile('graph', answers),
     }
   }
 
@@ -177,6 +258,8 @@ function recommend(answers: Answers): Recommendation {
       tradeoffs: ['Needs timestamp metadata', 'More complex indexing', 'Decay functions need tuning', 'Older data may be lost'],
       costContext: '~$0.005–0.02/query · Same as vector + timestamp index · Streaming ingestor needed for real-time',
       whyChosen: 'Time-sensitive data or continuous updates → temporal filtering prevents stale/future-dated answers.',
+      whyNotOthers: buildWhyNotOthers('temporal', answers),
+      commercialProfile: buildCommercialProfile('temporal', answers),
     }
   }
 
@@ -205,6 +288,8 @@ function recommend(answers: Answers): Recommendation {
       tradeoffs: ['Higher complexity', 'Multiple indexes needed', '~2x latency vs single-strategy', 'More infrastructure cost'],
       costContext: '~$0.01–0.05/query · 2-3 retrieval backends · ~100x cheaper than full LLM context at scale',
       whyChosen: 'Mixed data types → no single retrieval strategy covers all formats; fusing multiple signals gives best accuracy.',
+      whyNotOthers: buildWhyNotOthers('hybrid', answers),
+      commercialProfile: buildCommercialProfile('hybrid', answers),
     }
   }
 
@@ -231,6 +316,8 @@ function recommend(answers: Answers): Recommendation {
       tradeoffs: ['Misses synonyms', 'No semantic understanding', 'Brittle to paraphrasing', 'Lower recall on ambiguous queries'],
       costContext: '~$0.001/query · No embedding model needed · Elasticsearch/Typesense only',
       whyChosen: 'Structured data + citation need + medium corpus → lexical BM25 gives precise, attributable results without embedding overhead.',
+      whyNotOthers: buildWhyNotOthers('vectorless', answers),
+      commercialProfile: buildCommercialProfile('vectorless', answers),
     }
   }
 
@@ -260,6 +347,8 @@ function recommend(answers: Answers): Recommendation {
     tradeoffs: ['Embedding cost', 'Index maintenance', 'Chunking strategy matters', 'Approximation (ANN) tradeoffs'],
     costContext: '~$0.001/query (RAG) vs $0.10 (full context) · ~100x cheaper at scale · Embedding once, retrieving many',
     whyChosen: 'Large unstructured corpus + need for semantic similarity + source citations → classic Vector RAG is the proven starting point.',
+    whyNotOthers: buildWhyNotOthers('vector', answers),
+    commercialProfile: buildCommercialProfile('vector', answers),
   }
 }
 
@@ -482,6 +571,46 @@ export function ArchitectAdvisor({ onBrowse }: Props) {
                 <div className="advisor-info-cost">
                   <span className="advisor-info-cost-icon">💰</span>
                   <span className="advisor-info-cost-text">{result.costContext}</span>
+                </div>
+              )}
+
+              {/* Sprint 6: Commercial Profile */}
+              {result.commercialProfile && (
+                <div className="advisor-info-section">
+                  <h4 className="advisor-info-section-title">Commercial Profile</h4>
+                  <div className="advisor-commercial-grid">
+                    <div className="advisor-commercial-cell">
+                      <div className="advisor-commercial-cell-label">⏱ Setup Effort</div>
+                      <div className="advisor-commercial-cell-value">{result.commercialProfile.setupEffort}</div>
+                    </div>
+                    <div className="advisor-commercial-cell">
+                      <div className="advisor-commercial-cell-label">💰 Cost Posture</div>
+                      <div className="advisor-commercial-cell-value">{result.commercialProfile.costPosture}</div>
+                    </div>
+                    <div className="advisor-commercial-cell">
+                      <div className="advisor-commercial-cell-label">🏛️ Governance</div>
+                      <div className="advisor-commercial-cell-value">{result.commercialProfile.governancePosture}</div>
+                    </div>
+                    <div className="advisor-commercial-cell">
+                      <div className="advisor-commercial-cell-label">📈 Likely ROI Lever</div>
+                      <div className="advisor-commercial-cell-value">{result.commercialProfile.likelyRoiLever}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sprint 6: Why Not Others */}
+              {result.whyNotOthers && result.whyNotOthers.length > 0 && (
+                <div className="advisor-info-section">
+                  <h4 className="advisor-info-section-title">Why Not the Alternatives?</h4>
+                  <div className="advisor-why-not-list">
+                    {result.whyNotOthers.map((item, i) => (
+                      <div key={i} className="advisor-why-not-item">
+                        <span className="advisor-why-not-arch">✗ {item.arch}</span>
+                        <span className="advisor-why-not-reason">{item.reason}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
