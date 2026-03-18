@@ -148,6 +148,8 @@ export function UserGuidePage() {
                         <h2 className="guide-section-title">1 · Signing In</h2>
                         <div className="guide-section-body">
                             <p>Navigate to <strong>ragorchestrationstudio.com</strong> and click <strong>Continue with Google →</strong>. The platform uses Google OAuth 2.0 — you are redirected back immediately after authentication.</p>
+                            <GuideImg src="/guide-images/landing.png" alt="RAGOS Landing Page — centered logo with gradient background and sign-in" />
+                            <GuideImg src="/guide-images/google-oauth.png" alt="Google OAuth consent screen for secure single sign-on" />
                             <KVTable rows={[
                                 ['Auto-seed', 'Demo data is loaded automatically on first sign-in (no manual step required)'],
                                 ['Welcome toast', '"Welcome back, [Name]! 👋" appears the first time each browser session'],
@@ -164,7 +166,8 @@ export function UserGuidePage() {
                             <p>The <strong>Architecture Catalog</strong> is your starting point. It presents <strong>18 RAG architecture patterns</strong>, each with description, when-to-use guidance, strengths & tradeoffs, typical backend stacks, and a <strong>Required Integrations Panel</strong> showing live connector health.</p>
 
                             <h4 className="guide-h4">Core Architectures</h4>
-                            <GuideImg src="/guide-images/catalog-row1.png" alt="Architecture Catalog — Vector, Vectorless and Graph RAG with tier badges and commercial strips" />
+                            <GuideImg src="/guide-images/catalog.png" alt="Architecture Catalog — full view showing all 18 RAG architecture patterns" />
+                            <GuideImg src="/guide-images/catalog-row1-core.png" alt="Core Architectures — Vector, Vectorless, and Graph RAG with tier badges and commercial strips" />
                             <KVTable rows={[
                                 ['Vector RAG', 'Semantic similarity over embedded text corpora — Core tier'],
                                 ['Vectorless RAG', 'Structured data, strict precision, no embedding overhead — Core tier'],
@@ -172,7 +175,9 @@ export function UserGuidePage() {
                             ]} />
 
                             <h4 className="guide-h4">Advanced & Specialized Architectures</h4>
-                            <GuideImg src="/guide-images/catalog-row2.png" alt="Architecture Catalog — Temporal, Hybrid and Custom RAG cards with commercial identity" />
+                            <GuideImg src="/guide-images/catalog-row2-core.png" alt="Core Architectures — Temporal, Hybrid, and Custom RAG cards" />
+                            <GuideImg src="/guide-images/catalog-row3-advanced.png" alt="Advanced Architectures — Agentic, Modular, and Memory-Augmented RAG" />
+                            <GuideImg src="/guide-images/catalog-row4-specialized.png" alt="Specialized Architectures — Multi-Modal, Federated, and Streaming RAG" />
                             <KVTable rows={[
                                 ['Temporal RAG', 'Time-aware retrieval over event sequences — Advanced tier'],
                                 ['Hybrid RAG', 'Combining vector, lexical, and graph strategies — Advanced tier'],
@@ -240,6 +245,8 @@ export function UserGuidePage() {
                         <h2 className="guide-section-title">4 · Industry Solution Packs</h2>
                         <div className="guide-section-body">
                             <p>Pre-packaged RAG configurations for six enterprise verticals — each contains reference integrations, governance policies, benchmark suites, and estimated setup time.</p>
+                            <GuideImg src="/guide-images/industry-packs.png" alt="Industry Packs — Healthcare, Finance, Legal and more with setup timelines" />
+                            <GuideImg src="/guide-images/industry-pack-detail.png" alt="Industry Pack Detail — expanded view with reference integrations and components" />
                             <KVTable rows={[
                                 ['Financial Services', 'Compliance & Risk Q&A — Vector, Temporal — 7 days — GA'],
                                 ['Healthcare', 'Clinical Knowledge Assistant — Graph, Hybrid — 10 days — GA'],
@@ -259,6 +266,7 @@ export function UserGuidePage() {
                             <p>After clicking "Design this architecture", the Guided Designer opens with a <strong>3-step wizard</strong>. All configuration fields are visible across three columns.</p>
 
                             <Step n={1} title="Architecture Profile">
+                                <GuideImg src="/guide-images/designer-step1.png" alt="Guided Designer Step 1 — Use case selection with architecture options" />
                                 <KVTable rows={[
                                     ['Data source type', 'File store, SQL, data warehouse, etc.'],
                                     ['Chunking strategy', 'Semantic, fixed-size, recursive, sliding-window'],
@@ -268,6 +276,7 @@ export function UserGuidePage() {
                             </Step>
 
                             <Step n={2} title="Retrieval & Routing">
+                                <GuideImg src="/guide-images/designer-step2.png" alt="Guided Designer Step 2 — Retrieval & routing configuration" />
                                 <KVTable rows={[
                                     ['Similarity metric', 'Cosine, dot product, or L2'],
                                     ['Top K', 'Number of chunks to retrieve (default 8)'],
@@ -277,6 +286,7 @@ export function UserGuidePage() {
                             </Step>
 
                             <Step n={3} title="Answering & Governance">
+                                <GuideImg src="/guide-images/designer-step3.png" alt="Guided Designer Step 3 — Review & confirm workflow configuration" />
                                 <KVTable rows={[
                                     ['Answer generation model', 'The LLM used for final answer synthesis'],
                                     ['Fallback strategy', 'llm_fallback, no_answer, or custom'],
@@ -289,6 +299,7 @@ export function UserGuidePage() {
                     <section id="generate" className="guide-section">
                         <h2 className="guide-section-title">6 · Generate Workflow</h2>
                         <div className="guide-section-body">
+                            <GuideImg src="/guide-images/designer-generate.png" alt="Generate Workflow — compiled configuration producing a workflow definition" />
                             <p>Click <strong>"Generate workflow →"</strong> at the bottom-right. The designer compiles your configuration into a <strong>WorkflowDefinition</strong> graph (a real database record) and redirects you to the Workflow Builder.</p>
                             <Callout><strong>Tip:</strong> Click <em>"Save draft"</em> at any time to persist the designer session without generating a workflow yet. All 18 architecture types have unique node graph mappings.</Callout>
                         </div>
@@ -316,7 +327,8 @@ export function UserGuidePage() {
                         <h2 className="guide-section-title">8 · Query Lab</h2>
                         <div className="guide-section-body">
                             <p>Test workflows interactively and compare up to <strong>5 retrieval strategies</strong> side by side.</p>
-                            <GuideImg src="/guide-images/query-lab.png" alt="Query Lab — multi-strategy simulation with evidence cards" />
+                            <GuideImg src="/guide-images/query-lab.png" alt="Query Lab — interactive testing interface" />
+                            <GuideImg src="/guide-images/query-lab-results.png" alt="Query Lab Results — multi-strategy simulation with evidence cards and latency metrics" />
                             <KVTable rows={[
                                 ['Workflow', 'Select from all draft/published workflows'],
                                 ['Environment', 'Target: dev, staging, prod'],
@@ -344,7 +356,8 @@ export function UserGuidePage() {
                     <section id="integrations" className="guide-section">
                         <h2 className="guide-section-title">9 · Integrations Studio</h2>
                         <div className="guide-section-body">
-                            <GuideImg src="/guide-images/integrations.png" alt="Integrations Studio — connector health, stack validation, connector packs" />
+                            <GuideImg src="/guide-images/integrations.png" alt="Integrations Studio — connector catalog with health indicators" />
+                            <GuideImg src="/guide-images/integrations-config.png" alt="Integrations — connector configuration detail view" />
                             <p>Centralize model, database, and storage connections with 5 tabs:</p>
                             <KVTable rows={[
                                 ['📋 Catalog', 'All available connectors with live health indicators (🟢 healthy / 🔴 error / ⚪ unknown)'],
@@ -366,7 +379,8 @@ export function UserGuidePage() {
                     <section id="environments" className="guide-section">
                         <h2 className="guide-section-title">10 · Environments & Promotion Pipeline</h2>
                         <div className="guide-section-body">
-                            <GuideImg src="/guide-images/environments.png" alt="Environments — deployment readiness scorecard with promotion pipeline" />
+                            <GuideImg src="/guide-images/environments.png" alt="Environments — deployment targets with readiness status" />
+                            <GuideImg src="/guide-images/environments-created.png" alt="Environments — newly created environment with success confirmation" />
                             <p>Environments are deployment targets, each with its own integration bindings and configuration overrides.</p>
                             <KVTable rows={[
                                 ['dev', 'Local/sandbox testing, simulated execution'],
@@ -392,7 +406,9 @@ export function UserGuidePage() {
                     <section id="governance" className="guide-section">
                         <h2 className="guide-section-title">11 · Governance & Guardrails</h2>
                         <div className="guide-section-body">
-                            <GuideImg src="/guide-images/governance.png" alt="Governance — policies, approval rules, and bindings" />
+                            <GuideImg src="/guide-images/governance.png" alt="Governance — guardrails policies overview" />
+                            <GuideImg src="/guide-images/governance-approvals.png" alt="Governance — Approval Rules tab with role-based sign-off routing" />
+                            <GuideImg src="/guide-images/governance-bindings.png" alt="Governance — Bindings tab associating policies with workflows and environments" />
                             <p>Define and enforce policies across the platform lifecycle. Governance is <strong>enforced at publish and promote time</strong> — not just advisory.</p>
                             <KVTable rows={[
                                 ['Policies', 'Rules with scope (workflow / environment / architecture) and parameters (min_confidence_score, min_runs)'],
@@ -407,7 +423,8 @@ export function UserGuidePage() {
                     <section id="observability" className="guide-section">
                         <h2 className="guide-section-title">12 · Observability & Traces</h2>
                         <div className="guide-section-body">
-                            <GuideImg src="/guide-images/observability.png" alt="Observability — 7-tab operational command centre with AI Recommendations" />
+                            <GuideImg src="/guide-images/observability-ops.png" alt="Observability — Operations dashboard with KPIs and health metrics" />
+                            <GuideImg src="/guide-images/observability-ai.png" alt="Observability — AI Recommendations tab with prescriptive actions" />
                             <p>Operational command centre with <strong>7 tabs</strong>:</p>
 
                             <KVTable rows={[
@@ -435,6 +452,8 @@ export function UserGuidePage() {
                     <section id="cost-roi" className="guide-section">
                         <h2 className="guide-section-title">13 · Cost & ROI Analytics</h2>
                         <div className="guide-section-body">
+                            <GuideImg src="/guide-images/cost-roi.png" alt="Cost & ROI Calculator — Agentic RAG cost breakdown with 3-layer economics" />
+                            <GuideImg src="/guide-images/cost-roi-results.png" alt="Cost & ROI — architecture comparison with detailed cost analysis" />
                             <p>Full-featured cost analysis and ROI modelling with <strong>4 tabs</strong>:</p>
                             <KVTable rows={[
                                 ['🧮 Calculator', '3-layer economics: Engineering (cost/1k queries, latency, tokens) → Business Impact (time saved, ticket deflection) → Executive (savings, payback, recommendation)'],
@@ -449,6 +468,7 @@ export function UserGuidePage() {
                     <section id="executive-summary" className="guide-section">
                         <h2 className="guide-section-title">14 · Executive Summary</h2>
                         <div className="guide-section-body">
+                            <GuideImg src="/guide-images/executive-summary.png" alt="Executive Summary — platform intelligence dashboard with KPIs and action board" />
                             <p>Platform intelligence dashboard with <strong>4 tabs</strong>:</p>
 
                             <h4 className="guide-h4">Platform Headline Banner</h4>
@@ -467,6 +487,8 @@ export function UserGuidePage() {
                     <section id="evaluation" className="guide-section">
                         <h2 className="guide-section-title">15 · Evaluation Harness</h2>
                         <div className="guide-section-body">
+                            <GuideImg src="/guide-images/eval-harness.png" alt="Evaluation Harness — benchmark query list with scoring metrics" />
+                            <GuideImg src="/guide-images/eval-harness-complete.png" alt="Evaluation Harness — completed benchmark with detailed results" />
                             <p>IEEE-citeable evidence layer for quality assurance:</p>
                             <KVTable rows={[
                                 ['Benchmark queries', '6 pre-seeded canonical enterprise test cases'],
@@ -482,6 +504,8 @@ export function UserGuidePage() {
                     <section id="research" className="guide-section">
                         <h2 className="guide-section-title">16 · Research Assistant</h2>
                         <div className="guide-section-body">
+                            <GuideImg src="/guide-images/research-assistant.png" alt="Research Assistant — conversational interface with suggestion prompts" />
+                            <GuideImg src="/guide-images/research-assistant-metrics.png" alt="Research Assistant — metrics table with performance data and source attribution" />
                             <p>Rule-based conversational interface for querying stored <strong>WorkflowRun</strong> data. No external LLM dependency.</p>
                             <KVTable rows={[
                                 ['Suggestion pills', 'Summarise, compare latency, methodology, deep-dive report'],
