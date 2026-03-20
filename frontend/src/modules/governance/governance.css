@@ -115,13 +115,178 @@
 }
 
 .gov-form-inline input,
-.gov-form-inline select {
+.gov-form-inline select,
+.gov-form-inline textarea {
   padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
   border: 1px solid #334155;
   background: #0f172a;
   color: #e2e8f0;
   min-width: 120px;
+  font-family: inherit;
+}
+
+.gov-form-inline textarea {
+  resize: vertical;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 0.8rem;
+}
+
+.gov-field-full {
+  width: 100%;
+}
+
+.gov-checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  cursor: pointer;
+}
+
+.gov-checkbox-label input {
+  min-width: auto;
+  margin: 0;
+}
+
+.gov-code-snippet {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  background: #1e293b;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  color: #fbbf24;
+  font-size: 0.75rem;
+}
+
+/* === EXHAUSTIVE UI ADDITIONS === */
+
+.gov-form-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #334155;
+  margin-bottom: 2rem;
+}
+
+.gov-split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.gov-form-advanced label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.gov-form-advanced label span {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.tiny-lbl {
+  font-size: 0.75rem !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gov-builder-toggle {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.gov-builder-toggle button {
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.3rem 0;
+  position: relative;
+}
+
+.gov-builder-toggle button.active {
+  color: #818cf8;
+}
+
+.gov-builder-toggle button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.6rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #818cf8;
+}
+
+.gov-visual-builder {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  background: #0f172a;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #334155;
+}
+
+.vbuilder-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.vbuilder-col h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  border-bottom: 1px dashed #475569;
+  padding-bottom: 0.4rem;
+}
+
+.arch-box {
+  background: #1e293b;
+  padding: 0.75rem;
+  border-radius: 0.35rem;
+  border: 1px solid #475569;
+  margin-top: 0.5rem;
+}
+
+.gov-form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: center;
+}
+
+.gov-row-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gov-pack-dropdown {
+  display: flex;
+  align-items: center;
+}
+
+.gov-pack-dropdown select {
+  padding: 0.4rem 0.8rem;
+  background: #312e81;
+  color: #c7d2fe;
+  border: 1px solid #4338ca;
+  border-radius: 2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .gov-form-inline select {
