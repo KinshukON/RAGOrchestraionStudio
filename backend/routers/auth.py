@@ -270,38 +270,48 @@ async def sign_in_with_google_code(payload: GoogleCodeRequest) -> AuthResponse:
             detail=f"Google token exchange failed: {token_response.text}",
         )
 
-    token_data = token_response.json()
-    id_token = token_data.get("id_token")
-    if not id_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Google did not return an id_token",
-        )
+    import traceback
 
-    # Reuse the existing id_token verification + user upsert logic
-    google_payload = _verify_google_id_token(id_token)
-    user, permissions = _get_or_create_user(google_payload)
+    try:
+        token_data = token_response.json()
+        id_token = token_data.get("id_token")
+        if not id_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Google did not return an id_token",
+            )
 
-    access_token, expires_in = create_access_token(
-        user_id=str(user.id),
-        email=user.email,
-        name=user.name,
-        permissions=permissions,
-    )
-    refresh_token = create_refresh_token(user_id=str(user.id))
-    _create_db_session(user.id or 0)
+        # Reuse the existing id_token verification + user upsert logic
+        google_payload = _verify_google_id_token(id_token)
+        user, permissions = _get_or_create_user(google_payload)
 
-    return AuthResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=expires_in,
-        user=AuthUser(
-            id=str(user.id),
-            name=user.name,
+        access_token, expires_in = create_access_token(
+            user_id=str(user.id),
             email=user.email,
+            name=user.name,
             permissions=permissions,
-        ),
-    )
+        )
+        refresh_token = create_refresh_token(user_id=str(user.id))
+        _create_db_session(user.id or 0)
+
+        return AuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+            user=AuthUser(
+                id=str(user.id),
+                name=user.name,
+                email=user.email,
+                permissions=permissions,
+            ),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Sign-in error: {type(exc).__name__}: {exc}\n{traceback.format_exc()}",
+        ) from exc
 
 
 

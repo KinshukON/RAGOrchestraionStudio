@@ -53,8 +53,11 @@ export function AuthCallbackPage() {
         qc.clear()
         success('Welcome back! 👋')
         navigate('/app', { replace: true })
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
+      } catch (err: any) {
+        const detail = err.response?.data?.detail;
+        const msg = detail 
+          ? (typeof detail === 'string' ? detail : JSON.stringify(detail))
+          : (err instanceof Error ? err.message : String(err))
         setErrMsg(msg)
         setStatus('error')
       }
