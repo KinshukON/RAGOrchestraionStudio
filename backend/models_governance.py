@@ -44,3 +44,26 @@ class GovernanceBinding(SQLModel, table=True):
     status: str = "active"  # active | inactive
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ApprovalRequest(SQLModel, table=True):
+    """Tracks a pending human approval lifecycle."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    target_type: str  # workflow | environment
+    target_id: str
+    rule_id: int  # FK to approvalrule.id
+    status: str = "pending"  # pending | approved | rejected | expired
+    expires_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ApprovalVote(SQLModel, table=True):
+    """Tracks individual human decisions on an ApprovalRequest."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    request_id: int  # FK to approvalrequest.id
+    user_id: int  # User casting the vote
+    role: str  # Role under which they voted
+    vote: str  # approve | reject
+    reason: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)

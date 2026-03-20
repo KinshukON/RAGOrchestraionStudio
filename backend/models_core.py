@@ -52,6 +52,8 @@ class Environment(SQLModel, table=True):
     promotion_status: str = "draft"  # draft | promoted | promoted_to_staging | promoted_to_prod
     approval_state: str | None = None  # pending | approved | rejected
     health_status: str | None = None
+    drift_detected: bool = False
+    drift_reason: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -68,6 +70,8 @@ class WorkflowDefinition(SQLModel, table=True):
     nodes: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     edges: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     is_active: bool = True
+    drift_detected: bool = False
+    drift_reason: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

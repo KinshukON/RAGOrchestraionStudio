@@ -223,18 +223,7 @@ async def publish_workflow(
     workflow_id: str,
     current_user: TokenPayload = Depends(require_permission("publish_workflows")),
 ) -> PublishGateResult:
-
-    """
-    Governance-gated workflow publish.
-
-    1. Loads all active GovernancePolicies with scope='workflow' from the DB.
-    2. Reads the most recent WorkflowRun for this workflow to extract confidence_score.
-    3. Checks rules: min_confidence_score, min_runs.
-    4. If all checks pass: sets is_active=True and returns published=True.
-    5. If any check fails: returns 422 with violations[] — workflow stays as draft.
-    """
-    from models_governance import GovernancePolicy as _GovPolicy
-    from sqlmodel import select as _select
+    from services.policy_engine import PolicyEngine
     from models_admin import AuditLog as _AuditLog
     import logging
     _log = logging.getLogger(__name__)
@@ -242,129 +231,115 @@ async def publish_workflow(
     # Rate-limit: max 10 publish attempts per user per 60 s
     enforce_rate_limit(current_user.user_id, "publish", limit=10, window_seconds=60)
 
-    # 1. Check workflow exists
     wf_dict = _workflow_repo.get(workflow_id)
     if not wf_dict:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # 2. Load governance policies from DB (graceful if table is empty)
-    workflow_policies: list = []
-    try:
-        with get_session() as session:
-            all_policies = list(session.exec(_select(_GovPolicy)))
-        workflow_policies = [p for p in all_policies if p.scope == "workflow"]
-    except Exception as e:
-        _log.warning("Could not load governance policies: %s", e)
+    # Evaluate dynamic multi-scope governance explicitly
+    evaluation_result = PolicyEngine.evaluate(
+        workflow_id=workflow_id, 
+        environment_id=None, 
+        target_action="publish"
+    )
 
-    # 3. Get recent run data (graceful if no runs)
-    runs: list = []
-    try:
-        with get_session() as session:
-            runs = list(session.exec(
-                select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)
-            ))
-    except Exception as e:
-        _log.warning("Could not load workflow runs: %s", e)
-
-    run_count = len(runs)
-    latest_confidence: Optional[float] = None
-    if runs:
-        runs.sort(key=lambda r: r.created_at, reverse=True)
-        latest_run = runs[0]
-        out = latest_run.output_payload or {}
-        # confidence_score may be nested in strategies array (multi-run) or top-level (single run)
-        if "confidence_score" in out:
-            latest_confidence = float(out["confidence_score"])
-        elif "strategies" in out and isinstance(out["strategies"], list) and out["strategies"]:
-            scores = [s.get("confidence_score", 0) for s in out["strategies"]]
-            latest_confidence = sum(scores) / len(scores)
-
-    # 4. Apply policy rules
-    violations: List[str] = []
-    warnings: List[str] = []
-    active_policy_name: Optional[str] = None
-
-    for policy in workflow_policies:
-        rules = policy.rules or {}
-        active_policy_name = policy.name
-
-        min_runs = rules.get("min_runs", 0)
-        if isinstance(min_runs, (int, float)) and run_count < int(min_runs):
-            violations.append(
-                f'Policy "{policy.name}" requires at least {int(min_runs)} evaluation run(s); '
-                f'found {run_count}. Run the workflow from the Evaluation Harness first.'
-            )
-
-        min_score = rules.get("min_confidence_score")
-        if min_score is not None:
-            threshold = float(min_score)
-            if latest_confidence is None:
-                violations.append(
-                    f'Policy "{policy.name}" requires confidence ≥ {threshold:.0%} '
-                    f'but no runs exist for this workflow.'
-                )
-            elif latest_confidence < threshold:
-                violations.append(
-                    f'Policy "{policy.name}" requires confidence ≥ {threshold:.0%}; '
-                    f'latest run scored {latest_confidence:.0%}. '
-                    f'Re-run the workflow and improve retrieval quality before publishing.'
-                )
-            elif latest_confidence < threshold + 0.05:
-                warnings.append(
-                    f'Confidence {latest_confidence:.0%} is close to the minimum threshold of {threshold:.0%}.'
-                )
-
-    # 5. Publish or reject
-    if violations:
-        # Audit: blocked publish attempt (non-blocking)
+    if evaluation_result.is_blocked:
+        # Generate empirical snapshot provenance on block
         try:
             with get_session() as _s:
                 _s.add(_AuditLog(
-                    action="workflow.publish_blocked",
+                    action=evaluation_result.action,
                     resource_type="workflow",
                     resource_id=workflow_id,
-                    event_data={"violations": violations, "policy": active_policy_name},
+                    event_data=evaluation_result.model_dump(),
                     ip=None,
                 ))
                 _s.commit()
         except Exception as e:
             _log.warning("Audit log write failed: %s", e)
+            
         return PublishGateResult(
             workflow_id=workflow_id,
             published=False,
-            violations=violations,
-            warnings=warnings,
-            confidence_score=latest_confidence,
-            run_count=run_count,
-            policy_name=active_policy_name,
+            violations=evaluation_result.failed_rules,
+            warnings=evaluation_result.warnings,
+            confidence_score=evaluation_result.evidence_checked.get("confidence_score"),
+            run_count=evaluation_result.evidence_checked.get("eval_runs", 0),
+            policy_name="Dynamic Resolved Lattice",
         )
 
-    # All checks passed — activate
+    # Apply Multi-Role Human Routing
+    # If policy engine passed, we check if an Approval Gateway triggers on this transition.
+    from models_governance import ApprovalRule as _AppRule
+    from models_governance import ApprovalRequest as _AppReq
+    from datetime import datetime as _dt, timedelta as _td
+
+    with get_session() as session:
+        # For the paper's empiricism, look for ANY active human gateway bound to "publish_workflow"
+        rule = session.exec(select(_AppRule).where(_AppRule.trigger_event == "publish_workflow", _AppRule.is_active == True)).first()
+        if rule:
+            # Create a pending approval request
+            timeout_str = rule.timeout_hours or "48h"
+            hours = int(str(timeout_str).replace('h', '')) if 'h' in str(timeout_str) else 48
+            expires = _dt.utcnow() + _td(hours=hours)
+
+            req = _AppReq(
+                target_type="workflow", 
+                target_id=workflow_id, 
+                rule_id=rule.id, 
+                status="pending",
+                expires_at=expires
+            )
+            session.add(req)
+
+            # Keep workflow inactive but change internal status to indicate pending gate
+            wf_dict["status"] = "pending_approval"
+            _workflow_repo.update(workflow_id, wf_dict)
+
+            # Snapshot provenance of hitting the human gate
+            session.add(_AuditLog(
+                action="publish_pending_approval",
+                resource_type="workflow",
+                resource_id=workflow_id,
+                event_data={"rule_id": rule.id, "timeout": timeout_str},
+                ip=None,
+            ))
+            session.commit()
+
+            return PublishGateResult(
+                workflow_id=workflow_id,
+                published=False,  # Blocked from active deployment
+                violations=["Human Approval Gateway triggers on this workflow. Status set to pending."],
+                warnings=evaluation_result.warnings,
+                policy_name="Human Approval Gateway",
+            )
+
+    # All automation passed and no human gate applied. Deploy to Active.
+    wf_dict["status"] = "active"
     wf_dict["is_active"] = True
     _workflow_repo.update(workflow_id, wf_dict)
 
-    # Audit: successful publish (non-blocking)
+    # Audit: successful publish (with snapshot trace of why it was allowed)
     try:
         with get_session() as _s:
             _s.add(_AuditLog(
-                action="workflow.published",
+                action=evaluation_result.action,
                 resource_type="workflow",
                 resource_id=workflow_id,
-                event_data={"confidence_score": latest_confidence, "run_count": run_count, "policy": active_policy_name},
+                event_data=evaluation_result.model_dump(),
                 ip=None,
             ))
             _s.commit()
     except Exception as e:
         _log.warning("Audit log write failed: %s", e)
+
     return PublishGateResult(
         workflow_id=workflow_id,
         published=True,
         violations=[],
-        warnings=warnings,
-        confidence_score=latest_confidence,
-        run_count=run_count,
-        policy_name=active_policy_name,
-
+        warnings=evaluation_result.warnings,
+        confidence_score=evaluation_result.evidence_checked.get("confidence_score"),
+        run_count=evaluation_result.evidence_checked.get("eval_runs", 0),
+        policy_name="Dynamic Resolved Lattice",
     )
 
 
