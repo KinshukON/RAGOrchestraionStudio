@@ -17,12 +17,15 @@ import {
   listBindings,
   createBinding,
   deleteBinding,
+  getPolicyDeltas,
+  runDriftScan,
 } from '../../api/governance'
+import type { CrossEnvDelta } from '../../api/governance'
 import { EmptyState, LoadingMessage } from '../ui/feedback'
 import { useToast } from '../ui/ToastContext'
 import './governance.css'
 
-type Tab = 'policies' | 'approvals' | 'bindings'
+type Tab = 'policies' | 'approvals' | 'bindings' | 'deltas'
 
 export function GovernancePage() {
   const { success, error } = useToast()
@@ -68,6 +71,12 @@ export function GovernancePage() {
   const [newBindingTarget, setNewBindingTarget] = useState<'workflow' | 'environment' | 'architecture'>('workflow')
   const [newBindingValue, setNewBindingValue] = useState('')
   const [newBindingStatus, setNewBindingStatus] = useState('active')
+
+  // === DELTAS & DRIFT STATE ===
+  const [baseEnv, setBaseEnv] = useState('staging')
+  const [targetEnv, setTargetEnv] = useState('production')
+  const [deltas, setDeltas] = useState<CrossEnvDelta[]>([])
+  const [isDiffing, setIsDiffing] = useState(false)
 
   const queryClient = useQueryClient()
   const policiesQuery = useQuery({ queryKey: ['governance-policies'], queryFn: () => listPolicies() })
@@ -159,6 +168,29 @@ export function GovernancePage() {
     },
     onError: () => error('Failed to delete binding'),
   })
+
+  // --- MUTATIONS: DRIFT & DELTAS ---
+  const runDriftScanMutation = useMutation({
+    mutationFn: runDriftScan,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries()
+      success(`Drift scan complete. Flagged ${data.drifted_workflows.length} workflows and ${data.drifted_environments.length} environments.`)
+    },
+    onError: () => error('Failed to run drift scan'),
+  })
+
+  async function handleLoadDeltas() {
+    if (!baseEnv || !targetEnv) return
+    setIsDiffing(true)
+    try {
+      const data = await getPolicyDeltas(baseEnv, targetEnv)
+      setDeltas(data.deltas)
+    } catch (err) {
+      error('Failed to load cross-environment deltas')
+    } finally {
+      setIsDiffing(false)
+    }
+  }
 
   // === HELPERS & HANDLERS ===
   function resetPolicyForm() {
@@ -347,6 +379,9 @@ export function GovernancePage() {
         </button>
         <button type="button" className={tab === 'bindings' ? 'gov-tab--active' : ''} onClick={() => setTab('bindings')}>
           Bindings
+        </button>
+        <button type="button" className={tab === 'deltas' ? 'gov-tab--active' : ''} onClick={() => setTab('deltas')}>
+          Drift &amp; Deltas
         </button>
       </nav>
 
@@ -676,6 +711,80 @@ export function GovernancePage() {
                 })}
               </tbody>
             </table>
+          )}
+        </section>
+      )}
+
+      {tab === 'deltas' && (
+        <section className="gov-section">
+          <h2>Continuous Governance Analysis</h2>
+          <p className="gov-empty">Scan for active policy drift across running AI pipelines, or visualize the structural delta between environment gates.</p>
+          
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Fleet Drift Scanner</h3>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>Evaluate all active workflows and promoted environments against standard policy baseline.</p>
+              </div>
+              <button 
+                type="button" 
+                className="gov-btn gov-btn--primary" 
+                onClick={() => runDriftScanMutation.mutate()}
+                disabled={runDriftScanMutation.isPending}
+              >
+                {runDriftScanMutation.isPending ? 'Scanning...' : 'Trigger Global Drift Scan'}
+              </button>
+            </div>
+          </div>
+
+          <h3>Cross-Environment Policy Deltas</h3>
+          <div className="gov-form-inline" style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
+            <label>
+              <span>Base Environment (e.g. staging)</span>
+              <input type="text" value={baseEnv} onChange={e => setBaseEnv(e.target.value)} placeholder="staging" />
+            </label>
+            <div style={{display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem', opacity: 0.5}}>→</div>
+            <label>
+              <span>Target Environment (e.g. production)</span>
+              <input type="text" value={targetEnv} onChange={e => setTargetEnv(e.target.value)} placeholder="production" />
+            </label>
+            <button type="button" className="gov-btn gov-btn--ghost" onClick={handleLoadDeltas} disabled={isDiffing}>
+              {isDiffing ? 'Diffing...' : 'Compare Policies'}
+            </button>
+          </div>
+
+          {deltas.length > 0 && (
+            <table className="gov-table" style={{marginTop: '2rem'}}>
+              <thead>
+                <tr>
+                  <th>Rule Key</th>
+                  <th>{baseEnv} (Base)</th>
+                  <th>{targetEnv} (Target)</th>
+                  <th>Delta Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deltas.map((d, i) => (
+                  <tr key={i}>
+                    <td><code>{d.rule_key}</code></td>
+                    <td style={{ opacity: 0.8 }}>{d.base_value === undefined ? <em style={{color: 'rgba(255,255,255,0.4)'}}>implicit</em> : String(d.base_value)}</td>
+                    <td>{d.target_value === undefined ? <em style={{color: 'rgba(255,255,255,0.4)'}}>implicit</em> : String(d.target_value)}</td>
+                    <td>
+                      {d.stricter_in_target ? (
+                        <span className="gov-badge gov-badge--active" style={{background: 'rgba(235, 87, 87, 0.2)', color: '#ff7b72', border: '1px solid rgba(235, 87, 87, 0.4)'}}>Stricter in Target</span>
+                      ) : (
+                        <span className="gov-badge" style={{opacity: 0.5}}>Equivalent / Looser</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {deltas.length === 0 && !isDiffing && (
+            <div style={{ marginTop: '2rem', textAlign: 'center', opacity: 0.5, fontSize: '0.9rem' }}>
+              No deltas to display between '{baseEnv}' and '{targetEnv}'. Ensure policies are bound to these IDs.
+            </div>
           )}
         </section>
       )}

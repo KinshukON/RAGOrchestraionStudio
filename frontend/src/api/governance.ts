@@ -122,3 +122,31 @@ export async function createBinding(payload: {
 export async function deleteBinding(bindingId: number | string): Promise<void> {
   await apiClient.delete(`/api/governance/bindings/${bindingId}`)
 }
+
+export type CrossEnvDelta = {
+  rule_key: string
+  base_value: any
+  target_value: any
+  stricter_in_target: boolean
+}
+
+export async function getPolicyDeltas(baseEnv: string, targetEnv: string): Promise<{
+  base_environment_id: string
+  target_environment_id: string
+  deltas: CrossEnvDelta[]
+}> {
+  const res = await apiClient.get('/api/governance/deltas', {
+    params: { base_env: baseEnv, target_env: targetEnv }
+  })
+  return res.data
+}
+
+export async function runDriftScan(): Promise<{
+  scanned_workflows: number
+  scanned_environments: number
+  drifted_workflows: string[]
+  drifted_environments: string[]
+}> {
+  const res = await apiClient.post('/api/governance/drift-scan')
+  return res.data
+}

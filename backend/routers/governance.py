@@ -10,8 +10,11 @@ from pydantic import BaseModel, Field
 from sqlmodel import select
 
 from models_governance import ApprovalRule, GovernanceBinding, GovernancePolicy
+from models_core import WorkflowDefinition, Environment
+from models_admin import AuditLog
 from auth_middleware import TokenPayload, require_auth, require_permission
 from db import get_session
+from services.policy_engine import PolicyEngine
 
 router = APIRouter()
 
@@ -360,3 +363,156 @@ async def delete_binding(binding_id: int):
         session.delete(binding)
         session.commit()
     return Response(status_code=204)
+
+# --- Drift Detection ---
+
+class DriftScanReport(BaseModel):
+    scanned_workflows: int
+    scanned_environments: int
+    drifted_workflows: List[str]
+    drifted_environments: List[str]
+
+@router.post("/drift-scan", response_model=DriftScanReport)
+async def scan_for_policy_drift(
+    current_user: TokenPayload = Depends(require_permission("governance:admin")),
+) -> DriftScanReport:
+    """
+    Actively scan all 'active' workflows and 'promoted' environments.
+    If they no longer satisfy the dynamically resolved multi-scope policy lattice
+    (e.g., confidence scores dropped, new strict rules were added), flag them with drift.
+    """
+    report = DriftScanReport(
+        scanned_workflows=0, scanned_environments=0,
+        drifted_workflows=[], drifted_environments=[]
+    )
+    
+    with get_session() as session:
+        # 1. Scan active workflows
+        active_workflows = list(session.exec(
+            select(WorkflowDefinition).where(WorkflowDefinition.status == "active")
+        ).all())
+        report.scanned_workflows = len(active_workflows)
+        
+        for wf in active_workflows:
+            res = PolicyEngine.evaluate(workflow_id=wf.id, environment_id=None, target_action="publish")
+            if res.is_blocked or res.warnings:
+                drift_msgs = res.failed_rules + res.warnings
+                msg = " | ".join(drift_msgs)
+                wf.drift_detected = True
+                wf.drift_reason = msg
+                report.drifted_workflows.append(wf.id)
+                session.add(AuditLog(
+                    action="workflow.drift_detected",
+                    resource_type="workflow",
+                    resource_id=wf.id,
+                    event_data={"reason": msg, "trace": [v.model_dump() for k,v in res.rule_trace.items()]},
+                    ip=None
+                ))
+            elif wf.drift_detected:
+                # Drift resolved
+                wf.drift_detected = False
+                wf.drift_reason = None
+            session.add(wf)
+
+        # 2. Scan promoted environments (production)
+        promoted_envs = list(session.exec(
+            select(Environment).where(Environment.promotion_status == "promoted")
+        ).all())
+        report.scanned_environments = len(promoted_envs)
+        
+        for env in promoted_envs:
+            res = PolicyEngine.evaluate(workflow_id="", environment_id=env.external_id, target_action="promote")
+            if res.is_blocked or res.warnings:
+                drift_msgs = res.failed_rules + res.warnings
+                msg = " | ".join(drift_msgs)
+                env.drift_detected = True
+                env.drift_reason = msg
+                report.drifted_environments.append(env.external_id)
+                session.add(AuditLog(
+                    action="environment.drift_detected",
+                    resource_type="environment",
+                    resource_id=env.external_id,
+                    event_data={"reason": msg, "trace": [v.model_dump() for k,v in res.rule_trace.items()]},
+                    ip=None
+                ))
+            elif env.drift_detected:
+                env.drift_detected = False
+                env.drift_reason = None
+            session.add(env)
+
+        session.commit()
+    return report
+
+# --- Cross-Environment Deltas ---
+
+class CrossEnvDelta(BaseModel):
+    rule_key: str
+    base_value: Any
+    target_value: Any
+    stricter_in_target: bool
+
+class DeltaReport(BaseModel):
+    base_environment_id: str
+    target_environment_id: str
+    deltas: List[CrossEnvDelta]
+
+@router.get("/deltas", response_model=DeltaReport)
+async def cross_environment_policy_deltas(
+    base_env: str,
+    target_env: str,
+    _user: TokenPayload = Depends(require_auth)
+) -> DeltaReport:
+    """
+    Compare the resolved policy lattice between two environments (e.g., Staging vs Prod).
+    Highlights rules that are stricter in the target environment.
+    """
+    def _resolve_env_rules(env_id: str) -> Dict[str, Any]:
+        with get_session() as session:
+            all_policies = list(session.exec(select(GovernancePolicy)).all())
+            all_bindings = list(session.exec(select(GovernanceBinding).where(GovernanceBinding.status == "active")).all())
+            
+            env_rules = {}
+            # Apply Environment-level limits based on bindings
+            bound_policies = [p for p in all_policies if p.id in [b.policy_id for b in all_bindings if b.environment_id == env_id or b.environment_id == "*"]]
+            for p in bound_policies:
+                env_rules.update(p.rules or {})
+            return env_rules
+
+    base_rules = _resolve_env_rules(base_env)
+    target_rules = _resolve_env_rules(target_env)
+    
+    deltas = []
+    all_keys = set(base_rules.keys()) | set(target_rules.keys())
+    
+    for key in all_keys:
+        b_val = base_rules.get(key)
+        t_val = target_rules.get(key)
+        
+        if b_val != t_val:
+            stricter = False
+            if key == "min_confidence_score" or key == "min_evaluation_runs":
+                bb = float(b_val) if b_val is not None else 0.0
+                tt = float(t_val) if t_val is not None else 0.0
+                stricter = tt > bb
+            elif key == "pii_redaction_required":
+                stricter = bool(t_val) and not bool(b_val)
+            elif key == "promotion_class":
+                # simplistic strictness: human_review_required > production_blocked > production_allowed_with_monitoring > staging_allowed > sandbox_only
+                strictness_map = {
+                    "human_review_required": 5, "production_blocked": 4, 
+                    "production_allowed_with_monitoring": 3, "staging_allowed": 2, "sandbox_only": 1
+                }
+                stricter = strictness_map.get(str(t_val), 0) > strictness_map.get(str(b_val), 0)
+
+            deltas.append(CrossEnvDelta(
+                rule_key=key,
+                base_value=b_val,
+                target_value=t_val,
+                stricter_in_target=stricter
+            ))
+            
+    return DeltaReport(
+        base_environment_id=base_env,
+        target_environment_id=target_env,
+        deltas=deltas
+    )
