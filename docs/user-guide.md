@@ -405,17 +405,37 @@ A **cost connection link** ("📊 View cost breakdown for this environment →")
 
 **Sidebar: Control → Governance**
 
-![Governance — policies, approval rules, and bindings](./screenshots/governance.png)
+Define and enforce **Exhaustive Governance-Aware Lifecycle Control** across your enterprise RAG platform using deterministic policy-based gates, strict RBAC checks, rate limits, and audit hooks.
 
-Define and enforce policies across the platform lifecycle.
+### 🛡️ Exhaustive Policy Sets & Industry Packs
 
-| Policy Scope | Example Rule |
-|---|---|
-| `workflow` | `min_confidence_score: 0.75`, `min_runs: 2` |
-| `environment` | Block promotion if evaluation score < threshold |
-| `architecture` | Whitelist permitted architecture types |
+![Governance — policies with exhaustive builder](./screenshots/gov_policy.png)
 
-Policies are checked automatically at publish and promote time — no manual approval step needed for policy-based gates. Approval rules define role-based human approval routing for additional oversight.
+Rather than flat rules, the platform builds a **multi-scope policy lattice**:
+- **Architecture-level baseline policies** (e.g. Graph RAG requires high explainability)
+- **Workflow-level overrides** (e.g. strict eval requirements)
+- **Environment-level bounds** (e.g. production requires monitoring and human review)
+
+The **Advanced Policy Builder** allows you to leverage:
+- **Industry Packs**: Instantly load vertical-specific templates like *Financial Services Baseline* or *Cybersecurity Strict Mode*.
+- **Evidence-Aware Release Gating**: Govern transitions based on live objective evaluation scores (e.g. `min_confidence_score`, `min_runs`, groundedness). Governance is conditioned on telemetry evidence, not just basic flags.
+- **Guardrail-Aware Promotion Classes**: Replace binary gating with nuanced deployment states (Sandbox, Staging, Production with Monitoring, Production Blocked, Human Review).
+- **Architecture-Specific Profiles**: Trigger dynamic rules based on the family of RAG being deployed (e.g. Agentic RAG requires tool whitelists).
+
+### 👥 Approval Gateways & Provenance 
+
+![Governance — approval gateways with consensus types](./screenshots/gov_approval.png)
+
+Elevate standard checks into complex human sign-off lifecycles:
+- **Consensus Types**: Choose between *Sequential Sign-offs* or *Parallel (Any can approve)*.
+- **Role-Aware Separation**: Gate promotions to specific auditor/executive roles (e.g. Platform Admin, Executive Reviewer).
+- **Snapshot Provenance on Block**: When an approval is rejected or a policy fails, generate an explicit evidence snapshot. This writes a rich audit event recording the exact failure reason, the timeline, and the target state to turn blocked transitions into reusable operational knowledge.
+
+### 🔗 Policy Bindings
+
+![Governance — policy bindings](./screenshots/gov_binding.png)
+
+- Bind the exhaustively defined policies either universally or to specific **Target Dimensions** (Workflow IDs, Environment IDs, or Architecture types) to create conditional enforcement mechanisms.
 
 ---
 
