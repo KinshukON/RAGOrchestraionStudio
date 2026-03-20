@@ -58,6 +58,12 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
     - Executive Summary: platform headline banner (state-derived status + best-fit arch + top action CTA) + 3-variant Business Case selector (Executive/Technical/Governance).
     - Observability: AI Recommendations upgraded to prescriptive with operating metrics row, "Fix this →" action buttons, expandable "Why?" panels.
     - Environments: 5-point deployment readiness scorecard, contextual blocker messages, cost connection link.
+  - **Sprint 7 — End-to-End Enterprise Governance:**
+    - Active RBAC routing with multi-role human approval gateways (e.g., Legal Sign-off, CTO Review).
+    - Multi-scope Policy Lattice (inheritance tracking across Architectures, Environments, and Workflows).
+    - Evidence-aware release gating via PolicyEngine (intercepts Publish / Promote actions if validation trace fails).
+    - Continuous Fleet Policy Drift Scanner (`POST /api/governance/drift-scan`) natively logging `drift_detected` states.
+    - Deterministic Cross-Environment Deltas visualization (`GET /api/governance/deltas`) mapping constraints across promotion boundaries.
 
 - **Aspirational / Planned:**
   - Real RAG retrieval against vector/graph/temporal backends and live LLM orchestration.
@@ -111,7 +117,7 @@ The platform has advanced well beyond MVP into a **functional early-stage produc
 | RBAC permission model (backend) | **Implemented** | `backend/auth_middleware.py`, `backend/routers/workflows.py`, `backend/routers/environments.py` | `require_permission(key)` FastAPI dependency factory; enforced on `POST /workflows/{id}/publish` (`publish_workflows`) and `POST /environments/{id}/promote` (`approve_promotions`); 403 on failure |
 | RBAC helpers (frontend) | **Implemented** | `AuthContext.tsx` | `useHasPermission(key)` hook; gates Admin nav section (`administer_platform`), Publish button disabled state (`publish_workflows`) |
 | **Rate limiting** | **Implemented** | `backend/rate_limit.py` | In-process sliding-window per `(user_id, endpoint)`; 10/min on publish, 5/min on promote; HTTP 429 + `Retry-After` header; thread-safe, no external deps |
-| **Audit write hooks** | **Implemented** | `backend/routers/workflows.py`, `backend/routers/environments.py` | `AuditLog` row written on every publish (action: `workflow.published` or `workflow.publish_blocked`) and every promote step (`environment.promoted`, includes `from_status` + `to_status`) |
+| **Audit write hooks** | **Implemented** | `backend/routers/workflows.py`, `backend/routers/environments.py`, `services/policy_engine.py` | `AuditLog` row written on every publish (action: `workflow.published` or `workflow.publish_blocked`) and every promote step, encapsulating `EvaluationResult` snapshot data |
 | **Session management admin UI** | **Implemented** | `AdminUsersPage.tsx`, `admin.css` | Two-panel split layout: user list on left, detail panel on right with Sessions tab (active/revoked, Revoke / Revoke All buttons) and Audit Log tab (50 most recent events, expandable JSON details) |
 | **Collapsible sidebar** | **Implemented** | `AppShell.tsx`, `layout.css` | Hamburger toggle; 220px expanded ↔ 56px icon-only collapsed; state persisted to `localStorage` |
 | **Integrations live health** | **Implemented** | `IntegrationsStudioPage.tsx`, `backend/routers/integrations.py` | `POST /{id}/test-connection` returns real health status; health dots (🟢/🔴/⚪) update in UI |
@@ -282,7 +288,10 @@ Wizard state is typed (`DesignerWizardState`, `ArchitectureConfig`, `VectorRagCo
 
 ### 5.5 Governance & Observability
 
-- **Governance page:** Rule-based policy UI scaffolded; backend returns empty lists for approvals and audit entries.
+- **Governance page:** Fully working multi-tab visual interface containing policies, approval rules, bindings, and active continuous drift detection tools.
+- **Rules Engine:** The `PolicyEngine` enforces real limits directly attached to API write boundaries (`/publish`, `/promote`).
+- **Human Approval Gateways:** The `governance_approvals` router queues actions mapped to defined `ApprovalRule`s requiring explicit votes based on RBAC escalation paths.
+- **Fleet Drift & Deltas:** Continuous infrastructure evaluation endpoints map compliance drift across active workflow versions and environmental deployment gates.
 - **Observability page:** Dedicated page for workflow run metrics and execution traces (separate from admin observability).
 - **Admin observability:** In-memory `AuditLog` and `ObservabilityEvent` with `/metrics` endpoint; `log_action` helper defined but not wired to business events.
 - **No external observability tooling** (OpenTelemetry, Datadog, etc.) is integrated.
@@ -343,8 +352,10 @@ The application surface has grown substantially since v1:
 | `/api/environments/` | GET, POST, PUT | DB | Implemented |
 | `/api/environments/{id}` | GET, DELETE (501) | DB | Partial |
 | `/api/evaluations/` | GET, POST | DB | Partial |
-| `/api/governance/approvals` | GET | — | Placeholder (empty) |
-| `/api/governance/audit-logs` | GET | — | Placeholder (empty) |
+| `/api/governance/approvals` | GET, POST | DB | Implemented |
+| `/api/governance/{id}/vote` | POST | DB | Implemented |
+| `/api/governance/drift-scan` | POST | DB | Implemented |
+| `/api/governance/deltas` | GET | DB | Implemented |
 | `/api/observability/…` | GET | In-memory | Implemented |
 | `/api/admin/users` | GET, POST, PATCH | In-memory | Implemented |
 | `/api/admin/roles` | GET, POST, PATCH | In-memory | Implemented |
@@ -448,11 +459,9 @@ The application surface has grown substantially since v1:
 
 **Contributions that need more evidence:**
 - Multi-strategy simulation and comparison: currently based on synthetic latency/confidence; real retrieval would make results publishable.
-- Enterprise governance: policy model and approval scaffolding exist but are not enforced.
 
 **Claims to avoid:**
 - That the system performs live RAG retrieval against vector/graph/temporal backends.
-- That it enforces RBAC or governance policies on real operations.
 - That evaluation metrics are empirically grounded.
 
 **Directions to strengthen:**
@@ -467,9 +476,7 @@ The application surface has grown substantially since v1:
 | Gap | Risk level | Notes |
 |---|---|---|
 | RAG execution stubbed | High | All simulation results are synthetic; Query Lab cannot produce real evaluation data |
-| RBAC not enforced | High | All API endpoints are open; admin stores use trusted query params for user identity |
 | Admin data in-memory | Medium | Users, roles, teams, etc. reset on backend restart; SQLModel definitions are unused |
-| Governance endpoints empty | Medium | `log_action` is never called; audit logs and approval gates are non-functional |
 | DELETE not implemented | Low | Integrations and environments cannot be deleted via API (501) |
 | No automated tests | Medium | No regression safety net; correctness claims are unverifiable |
 | No CI/CD | Low | Deployments are manual pushes to `main`; Railway/Vercel auto-deploy from GitHub |
@@ -503,7 +510,6 @@ RAG Studio is a production-deployed, browser-based control plane for enterprise 
 
 **Current limitations:**
 - RAG retrieval and LLM orchestration are not executed; providers return stub responses.
-- RBAC and governance policies are modeled but not enforced on API calls or frontend rendering.
 - Admin entities (users, roles, teams) use in-memory stores; data resets on restart.
 - No evaluation metrics beyond test-case record persistence.
 - No automated test suite or CI/CD pipeline.
