@@ -59,9 +59,15 @@ def init_db() -> None:
         logger.info("Database schema is up to date.")
     except Exception as exc:  # pragma: no cover
         logger.warning(
-            "Alembic migration failed (%s). Falling back to SQLModel.metadata.create_all().",
+            "Alembic migration failed (%s).",
             exc,
         )
+    finally:
+        # Unconditionally ensure that all tables defined in SQLModel metadata exist
+        # on the active runtime engine. This protects against split-brain scenarios where
+        # MIGRATION_URL points to a different DB proxy than DATABASE_URL, or when new
+        # models were added without corresponding Alembic migrations.
+        logger.info("Ensuring all SQLModel definitions exist via create_all on runtime engine.")
         from sqlmodel import SQLModel
         SQLModel.metadata.create_all(engine)
 
