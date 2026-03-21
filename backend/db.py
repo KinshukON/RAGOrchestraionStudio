@@ -64,12 +64,19 @@ def init_db() -> None:
         )
     finally:
         # Unconditionally ensure that all tables defined in SQLModel metadata exist
-        # on the active runtime engine. This protects against split-brain scenarios where
-        # MIGRATION_URL points to a different DB proxy than DATABASE_URL, or when new
-        # models were added without corresponding Alembic migrations.
-        logger.info("Ensuring all SQLModel definitions exist via create_all on runtime engine.")
-        from sqlmodel import SQLModel
-        SQLModel.metadata.create_all(engine)
+        # on the active runtime engine. We explicitly use MIGRATION_URL here because
+        # PgBouncer transaction poolers (DATABASE_URL) notoriously reject or silently drop
+        # DDL CREATE TABLE statements.
+        logger.info("Ensuring all SQLModel definitions exist via create_all on migration engine.")
+        from sqlmodel import SQLModel, create_engine
+        
+        # Build temp engine on the safe non-pooling URL uniquely for this DDL phase
+        migration_engine = create_engine(
+            MIGRATION_URL,
+            echo=False,
+            connect_args={"sslmode": "require"} if "supabase.com" in MIGRATION_URL else {},
+        )
+        SQLModel.metadata.create_all(migration_engine)
 
 
 def get_session() -> Session:
