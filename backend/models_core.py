@@ -98,8 +98,8 @@ class AssetBase(SQLModel):
     environment: str = "default"
     version: str = "1.0.0"
     status: str = "draft"  # draft | test-ready | evaluated | certified | published | deprecated | archived
-    tags: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
-    use_case_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    tags: list = Field(default_factory=list, sa_type=JSON)
+    use_case_metadata: dict = Field(default_factory=dict, sa_type=JSON)
     created_by: str = "system"
     updated_by: str = "system"
     created_at: datetime = Field(default_factory=datetime.utcnow)
