@@ -10,6 +10,7 @@ from routers import (
     governance,
     governance_approvals,
     observability,
+    integration_aos,
     evaluations,
     admin_users,
     admin_roles,
@@ -68,6 +69,7 @@ app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
 app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])
 app.include_router(environments.router, prefix="/api/environments", tags=["environments"])
+app.include_router(integration_aos.router, prefix="/api/integration/aos", tags=["aos-integration"])
 app.include_router(governance.router, prefix="/api/governance", tags=["governance"])
 app.include_router(governance_approvals.router, prefix="/api/governance/approvals", tags=["governance-approvals"])
 app.include_router(architectures.router, prefix="/api/architectures", tags=["architectures"])
